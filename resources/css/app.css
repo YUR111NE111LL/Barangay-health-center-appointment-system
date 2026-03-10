@@ -1,0 +1,102 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    /* Health-friendly palette: teal primary, amber accent */
+    --color-primary-50: #f0fdfa;
+    --color-primary-100: #ccfbf1;
+    --color-primary-200: #99f6e4;
+    --color-primary-300: #5eead4;
+    --color-primary-400: #2dd4bf;
+    --color-primary-500: #14b8a6;
+    --color-primary-600: #0d9488;
+    --color-primary-700: #0f766e;
+    --color-primary-800: #115e59;
+    --color-primary-900: #134e4a;
+    --color-accent-500: #f59e0b;
+    --color-accent-600: #d97706;
+}
+
+/* Tenant theme variants (Customize web > Design) */
+body.theme-modern {
+    --tw-rounded-xl: 0.75rem;
+}
+body.theme-modern nav {
+    border-radius: 0 0 0.75rem 0.75rem;
+    box-shadow: 0 4px 14px rgb(0 0 0 / 0.08);
+}
+body.theme-modern main {
+    max-width: 56rem;
+}
+
+body.theme-minimal {
+    font-weight: 450;
+}
+body.theme-minimal nav {
+    border-bottom-width: 1px;
+    box-shadow: none;
+}
+body.theme-minimal .rounded-xl {
+    border-radius: 0.5rem;
+}
+body.theme-minimal main {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+}
+
+/* Web customization: responsive nav – prevent overlap on small screens */
+html { overflow-x: hidden; }
+body { overflow-x: hidden; }
+
+/* Sidebar layout: on mobile show as overlay drawer; on md+ fixed and main offset */
+@media (max-width: 767px) {
+    .sidebar-drawer {
+        transform: translateX(-100%);
+        transition: transform 0.2s ease-out;
+    }
+    body.sidebar-open .sidebar-drawer {
+        transform: translateX(0);
+    }
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        background: rgba(0, 0, 0, 0.5);
+    }
+    body.sidebar-open .sidebar-overlay {
+        display: block;
+    }
+}
+@media (min-width: 768px) {
+    .sidebar-drawer {
+        transform: none !important;
+    }
+    .sidebar-overlay {
+        display: none !important;
+    }
+}
+
+/* Main content with sidebar: shift right by sidebar width so it never sits under the sidebar */
+@media (min-width: 768px) {
+    body.layout-sidebar main.main-with-sidebar,
+    body[data-nav-layout="sidebar"] main.main-with-sidebar {
+        margin-left: 14rem; /* w-56 sidebar */
+        width: calc(100% - 14rem);
+        max-width: none;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+}
+
+/* Dropdown menus: don't overflow viewport */
+.nav-dropdown-panel {
+    max-height: min(70vh, 400px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
