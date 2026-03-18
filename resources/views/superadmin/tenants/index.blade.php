@@ -14,7 +14,7 @@
             <thead class="bg-slate-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Name</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Slug</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Domain</th>
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Plan</th>
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Subscription Status</th>
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Expiry Date</th>
@@ -26,7 +26,19 @@
                 @forelse($tenants as $t)
                 <tr class="hover:bg-slate-50/50">
                     <td class="px-4 py-3 text-sm font-medium text-slate-800">{{ $t->name }}</td>
-                    <td class="px-4 py-3"><code class="rounded bg-slate-100 px-1.5 py-0.5 text-sm text-slate-700">{{ $t->slug }}</code></td>
+                    <td class="px-4 py-3">
+                        @php
+                            $primaryDomain = $t->domains->first()?->domain;
+                            $tenantLoginUrl = $primaryDomain
+                                ? (request()->getScheme() . '://' . $primaryDomain . (in_array(request()->getPort(), [80, 443, null]) ? '' : ':' . request()->getPort()) . '/login')
+                                : null;
+                        @endphp
+                        @if($tenantLoginUrl)
+                            <a href="{{ $tenantLoginUrl }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-sm text-violet-700 hover:bg-violet-100 hover:text-violet-800" title="Open tenant login">{{ $primaryDomain }} <span aria-hidden="true">↗</span></a>
+                        @else
+                            <span class="text-slate-400">—</span>
+                        @endif
+                    </td>
                     <td class="px-4 py-3 text-sm text-slate-700">{{ $t->plan->name }}</td>
                     <td class="px-4 py-3">
                         @php
@@ -81,7 +93,10 @@
                         @endif
                     </td>
                     <td class="whitespace-nowrap px-4 py-3 text-right">
-                        <a href="{{ route('super-admin.tenants.show', $t) }}" class="text-sm font-medium text-violet-600 hover:text-violet-700">View</a>
+                        @if($tenantLoginUrl ?? null)
+                            <a href="{{ $tenantLoginUrl }}" target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-emerald-600 hover:text-emerald-700">Login</a>
+                        @endif
+                        <a href="{{ route('super-admin.tenants.show', $t) }}" class="text-sm font-medium text-violet-600 hover:text-violet-700 {{ ($tenantLoginUrl ?? null) ? 'ml-3' : '' }}">View</a>
                         <a href="{{ route('super-admin.tenants.rbac.index', $t) }}" class="ml-3 text-sm font-medium text-violet-600 hover:text-violet-700">RBAC</a>
                         <a href="{{ route('super-admin.tenants.edit', $t) }}" class="ml-3 text-sm font-medium text-slate-600 hover:text-slate-700">Edit</a>
                     </td>

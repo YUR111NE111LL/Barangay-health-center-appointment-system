@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant' => \App\Http\Middleware\EnsureUserHasTenant::class,
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
             'permission' => \App\Http\Middleware\EnsureUserHasPermission::class,
+            'tenancy.by_domain_for_auth' => \App\Http\Middleware\InitializeTenancyByDomainForAuth::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -22,9 +22,10 @@
         @error('name')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
     </div>
     <div>
-        <label for="slug" class="mb-1 block text-sm font-medium text-slate-700">Slug <span class="text-rose-500">*</span></label>
-        <input type="text" name="slug" id="slug" value="{{ old('slug') }}" placeholder="brgy-sumpong" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 focus:border-violet-500 focus:ring-violet-500" required>
-        @error('slug')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
+        <label for="domain" class="mb-1 block text-sm font-medium text-slate-700">Domain <span class="text-rose-500">*</span></label>
+        <input type="text" name="domain" id="domain" value="{{ old('domain') }}" placeholder="brgy-sumpong.test" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 focus:border-violet-500 focus:ring-violet-500" required>
+        <p class="mt-1 text-xs text-slate-500">Tenant is identified by this domain (e.g. brgy-sumpong.test or subdomain.yourdomain.com).</p>
+        @error('domain')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
     </div>
     <div>
         <label for="address" class="mb-1 block text-sm font-medium text-slate-700">Address</label>

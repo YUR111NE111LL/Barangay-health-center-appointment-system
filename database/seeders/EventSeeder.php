@@ -11,8 +11,8 @@ class EventSeeder extends Seeder
 {
     public function run(): void
     {
-        $sumpong = Tenant::where('slug', 'brgy-sumpong')->first();
-        $casisang = Tenant::where('slug', 'brgy-casisang')->first();
+        $sumpong = Tenant::whereHas('domains', fn ($q) => $q->where('domain', 'brgy-sumpong.test'))->first();
+        $casisang = Tenant::whereHas('domains', fn ($q) => $q->where('domain', 'brgy-casisang.test'))->first();
 
         if (! $sumpong || ! $casisang) {
             return;

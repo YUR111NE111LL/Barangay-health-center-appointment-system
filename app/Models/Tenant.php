@@ -6,10 +6,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Stancl\Tenancy\Contracts\Tenant as TenantContract;
+use Stancl\Tenancy\Database\Concerns\CentralConnection;
+use Stancl\Tenancy\Database\Concerns\TenantRun;
+use Stancl\Tenancy\Database\Models\Domain;
 
-class Tenant extends Model
+class Tenant extends Model implements TenantContract
 {
+    use CentralConnection;
     use HasFactory;
+    use TenantRun;
 
     /**
      * Tenants are not scoped by tenant_id (they define the tenant).
@@ -24,6 +30,7 @@ class Tenant extends Model
     }
 
     protected $fillable = [
+        'data',
         'plan_id',
         'name',
         'slug',
@@ -50,6 +57,7 @@ class Tenant extends Model
     protected function casts(): array
     {
         return [
+            'data' => 'array',
             'is_active' => 'boolean',
             'subscription_ends_at' => 'datetime',
             'expiry_notification_sent_at' => 'datetime',
@@ -58,9 +66,48 @@ class Tenant extends Model
         ];
     }
 
+    public function getTenantKeyName(): string
+    {
+        return 'id';
+    }
+
+    public function getTenantKey(): mixed
+    {
+        return $this->getAttribute($this->getTenantKeyName());
+    }
+
+    public function getInternal(string $key): mixed
+    {
+        $data = $this->getAttribute('data') ?? [];
+
+        return $data['tenancy_' . $key] ?? null;
+    }
+
+    public function setInternal(string $key, mixed $value): static
+    {
+        $data = $this->getAttribute('data') ?? [];
+        $data['tenancy_' . $key] = $value;
+        $this->setAttribute('data', $data);
+
+        return $this;
+    }
+
     public function plan(): BelongsTo
     {
         return $this->belongsTo(Plan::class);
+    }
+
+    public function domains(): HasMany
+    {
+        return $this->hasMany(Domain::class);
+    }
+
+    /** Primary domain (first domain) used for tenant identification. */
+    public function getPrimaryDomainAttribute(): ?string
+    {
+        $domain = $this->domains()->first();
+
+        return $domain?->domain;
     }
 
     public function users(): HasMany

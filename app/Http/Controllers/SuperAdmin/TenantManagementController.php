@@ -7,13 +7,16 @@ use App\Models\Plan;
 use App\Models\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Stancl\Tenancy\Database\Models\Domain;
 
 class TenantManagementController extends Controller
 {
     public function index(): View
     {
-        $tenants = Tenant::with('plan')->orderBy('name')->paginate(15);
+        $tenants = Tenant::with('plan', 'domains')->orderBy('name')->paginate(15);
 
         return view('superadmin.tenants.index', compact('tenants'));
     }
@@ -30,7 +33,7 @@ class TenantManagementController extends Controller
         $validated = $request->validate([
             'plan_id' => ['required', 'exists:plans,id'],
             'name' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', 'unique:tenants,slug'],
+            'domain' => ['required', 'string', 'max:255', 'unique:domains,domain'],
             'address' => ['nullable', 'string'],
             'contact_number' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email'],
@@ -39,14 +42,26 @@ class TenantManagementController extends Controller
         ]);
         $validated['is_active'] = $request->boolean('is_active');
 
-        Tenant::create($validated);
+        $tenant = Tenant::create([
+            'plan_id' => $validated['plan_id'],
+            'name' => $validated['name'],
+            'address' => $validated['address'] ?? null,
+            'contact_number' => $validated['contact_number'] ?? null,
+            'email' => $validated['email'] ?? null,
+            'is_active' => $validated['is_active'],
+            'subscription_ends_at' => $validated['subscription_ends_at'] ?? null,
+        ]);
+
+        $tenant->domains()->create([
+            'domain' => Str::lower($validated['domain']),
+        ]);
 
         return redirect()->route('super-admin.tenants.index')->with('success', 'Tenant created.');
     }
 
     public function show(Tenant $tenant): View
     {
-        $tenant->load('plan');
+        $tenant->load('plan', 'domains');
         $tenant->loadCount(['users', 'appointments']);
         $tenant->load(['users' => fn ($q) => $q->orderBy('role')->orderBy('name')]);
 
@@ -55,7 +70,7 @@ class TenantManagementController extends Controller
 
     public function edit(Tenant $tenant): View
     {
-        $tenant->load('plan');
+        $tenant->load('plan', 'domains');
         $plans = Plan::orderBy('name')->get();
 
         return view('superadmin.tenants.edit', compact('tenant', 'plans'));
@@ -66,7 +81,7 @@ class TenantManagementController extends Controller
         $validated = $request->validate([
             'plan_id' => ['required', 'exists:plans,id'],
             'name' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', 'unique:tenants,slug,' . $tenant->id],
+            'domain' => ['required', 'string', 'max:255', Rule::unique('domains', 'domain')->ignore($tenant->domains()->first())],
             'address' => ['nullable', 'string'],
             'contact_number' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email'],
@@ -75,9 +90,24 @@ class TenantManagementController extends Controller
         ]);
         $validated['is_active'] = $request->boolean('is_active');
 
-        $tenant->update($validated);
+        $tenant->update([
+            'plan_id' => $validated['plan_id'],
+            'name' => $validated['name'],
+            'address' => $validated['address'] ?? null,
+            'contact_number' => $validated['contact_number'] ?? null,
+            'email' => $validated['email'] ?? null,
+            'is_active' => $validated['is_active'],
+            'subscription_ends_at' => $validated['subscription_ends_at'] ?? null,
+        ]);
 
-        $message = $validated['is_active'] 
+        $primary = $tenant->domains()->first();
+        if ($primary) {
+            $primary->update(['domain' => Str::lower($validated['domain'])]);
+        } else {
+            $tenant->domains()->create(['domain' => Str::lower($validated['domain'])]);
+        }
+
+        $message = $validated['is_active']
             ? 'Tenant activated successfully. All users can now access the system.'
             : 'Tenant deactivated successfully. All users have been blocked from accessing the system.';
 

@@ -67,41 +67,43 @@ class TenantSeeder extends Seeder
             ]
         );
 
-        Tenant::firstOrCreate(
-            ['slug' => 'brgy-sumpong'],
+        $sumpong = Tenant::firstOrCreate(
+            ['name' => 'Brgy Sumpong'],
             [
                 'plan_id' => $standard->id,
-                'name' => 'Brgy Sumpong',
                 'address' => 'Sumpong, Malaybalay City',
                 'contact_number' => '088-123-4567',
                 'email' => 'sumpong@bhc.example.com',
                 'is_active' => true,
             ]
         );
+        $sumpong->domains()->firstOrCreate(['domain' => 'brgy-sumpong.test']);
 
-        Tenant::firstOrCreate(
-            ['slug' => 'brgy-casisang'],
+
+        $casisang = Tenant::firstOrCreate(
+            ['name' => 'Brgy Casisang'],
             [
                 'plan_id' => $basic->id,
-                'name' => 'Brgy Casisang',
                 'address' => 'Casisang, Malaybalay City',
                 'contact_number' => '088-234-5678',
                 'email' => 'casisang@bhc.example.com',
                 'is_active' => true,
             ]
         );
+        $casisang->domains()->firstOrCreate(['domain' => 'brgy-casisang.test']);
+
 
         // Premium plan tenant (full web customization, etc.)
-        Tenant::firstOrCreate(
-            ['slug' => 'brgy-kalasungay'],
+        $kalasungay = Tenant::firstOrCreate(
+            ['name' => 'Brgy Kalasungay'],
             [
                 'plan_id' => $premium->id,
-                'name' => 'Brgy Kalasungay',
                 'address' => 'Kalasungay, Malaybalay City',
                 'contact_number' => '088-345-6789',
                 'email' => 'kalasungay@bhc.example.com',
                 'is_active' => true,
             ]
         );
+        $kalasungay->domains()->firstOrCreate(['domain' => 'brgy-kalasungay.test']);
     }
 }

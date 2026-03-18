@@ -6,6 +6,15 @@
 <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <h1 class="text-2xl font-bold text-slate-800">{{ $tenant->name }}</h1>
     <div class="flex flex-wrap items-center gap-2">
+        @php
+            $primaryDomain = $tenant->domains->first()?->domain;
+            $tenantLoginUrl = $primaryDomain
+                ? (request()->getScheme() . '://' . $primaryDomain . (in_array(request()->getPort(), [80, 443, null]) ? '' : ':' . request()->getPort()) . '/login')
+                : null;
+        @endphp
+        @if($tenantLoginUrl)
+            <a href="{{ $tenantLoginUrl }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 font-medium text-emerald-700 hover:bg-emerald-100">Login at {{ $primaryDomain }} <span aria-hidden="true">↗</span></a>
+        @endif
         <form action="{{ route('super-admin.tenants.toggle-status', $tenant) }}" method="POST" class="inline" id="toggle-status-form">
             @csrf
             @method('PATCH')
@@ -22,7 +31,19 @@
 
 <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/60">
     <dl class="grid gap-4 sm:grid-cols-2">
-        <div><dt class="text-sm font-medium text-slate-500">Slug</dt><dd class="mt-1"><code class="rounded bg-slate-100 px-1.5 py-0.5 text-slate-800">{{ $tenant->slug }}</code></dd></div>
+        <div class="sm:col-span-2">
+            <dt class="text-sm font-medium text-slate-500">Domain(s)</dt>
+            <dd class="mt-1">
+                @forelse($tenant->domains as $d)
+                    @php
+                        $domainLoginUrl = request()->getScheme() . '://' . $d->domain . (in_array(request()->getPort(), [80, 443, null]) ? '' : ':' . request()->getPort()) . '/login';
+                    @endphp
+                    <a href="{{ $domainLoginUrl }}" target="_blank" rel="noopener noreferrer" class="mr-2 inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-sm text-violet-700 hover:bg-violet-100 hover:text-violet-800">{{ $d->domain }} <span aria-hidden="true">↗</span></a>
+                @empty
+                    <span class="text-slate-500">—</span>
+                @endforelse
+            </dd>
+        </div>
         <div><dt class="text-sm font-medium text-slate-500">Plan</dt><dd class="mt-1 text-slate-800">{{ $tenant->plan->name }}</dd></div>
         <div><dt class="text-sm font-medium text-slate-500">Active</dt><dd class="mt-1">{{ $tenant->is_active ? 'Yes' : 'No' }}</dd></div>
         @if($tenant->address)<div class="sm:col-span-2"><dt class="text-sm font-medium text-slate-500">Address</dt><dd class="mt-1 text-slate-800">{{ $tenant->address }}</dd></div>@endif

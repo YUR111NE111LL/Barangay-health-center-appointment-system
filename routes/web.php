@@ -13,7 +13,7 @@ Route::get('/', function () {
 
 Route::get('/requirements', RequirementsController::class)->name('requirements');
 
-Route::middleware('guest')->group(function (): void {
+Route::middleware(['guest', 'tenancy.by_domain_for_auth'])->group(function (): void {
     Route::get('/login', [\App\Http\Controllers\Auth\LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [\App\Http\Controllers\Auth\LoginController::class, 'login']);
     Route::get('/auth/google', [\App\Http\Controllers\Auth\GoogleLoginController::class, 'redirect'])->name('auth.google.redirect');
@@ -35,21 +35,11 @@ Route::middleware('guest')->group(function (): void {
 });
 
 Route::post('/logout', function () {
-    /** @var \App\Models\User|null $user */
-    $user = Auth::user();
     Auth::guard('web')->logout();
     request()->session()->invalidate();
     request()->session()->regenerateToken();
     $message = __('You have logged out successfully.');
-    if ($user && $user->isSuperAdmin()) {
-        return redirect()->route('login', ['for' => 'super-admin'])->with('status', $message);
-    }
-    if ($user && $user->role === 'Resident') {
-        return redirect()->route('login', ['for' => 'resident'])->with('status', $message);
-    }
-    if ($user && $user->hasTenant()) {
-        return redirect()->route('login', ['for' => 'tenant'])->with('status', $message);
-    }
+    // Redirect to login on same domain: central shows central login, tenant domain shows tenant login
     return redirect()->route('login')->with('status', $message);
 })->name('logout')->middleware('auth');
 

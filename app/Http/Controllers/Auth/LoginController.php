@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,30 +15,41 @@ class LoginController extends Controller
 {
     public function showLoginForm(Request $request): View
     {
-        $for = $request->query('for', 'resident'); // super-admin | tenant | resident
-        $tenants = in_array($for, ['tenant', 'resident'], true)
-            ? Tenant::where('is_active', true)->orderBy('name')->get()
-            : collect();
+        $tenant = tenant();
 
-        return view('auth.login', [
-            'for' => $for,
-            'tenants' => $tenants,
-        ]);
+        if ($tenant) {
+            $for = $request->query('for', 'resident');
+            if (! in_array($for, ['tenant', 'resident'], true)) {
+                $for = 'resident';
+            }
+
+            return view('auth.login-tenant', [
+                'tenant' => $tenant,
+                'for' => $for,
+            ]);
+        }
+
+        return view('auth.login-central');
     }
 
     public function login(Request $request): RedirectResponse
     {
-        $for = $request->input('for', 'resident');
+        $currentTenant = tenant();
+        $for = $request->input('for', $currentTenant ? 'resident' : 'super-admin');
+
         $rules = [
             'email' => ['required', 'email'],
             'password' => ['required'],
         ];
-        if (in_array($for, ['tenant', 'resident'], true)) {
-            $rules['tenant_id'] = ['required', 'exists:tenants,id'];
+        if (! $currentTenant) {
+            $rules['for'] = ['required', 'in:super-admin'];
+        } elseif (in_array($for, ['tenant', 'resident'], true)) {
+            $rules['for'] = ['required', 'in:tenant,resident'];
         }
+        // Central = super-admin only (no tenant_id). Tenant domain = no tenant_id (current tenant).
         $siteKey = config('services.recaptcha.v3.site_key');
         $secretKey = config('services.recaptcha.v3.secret_key');
-        $skipRecaptcha = config('app.debug'); // allow login without reCAPTCHA in local/dev
+        $skipRecaptcha = config('app.debug');
         if ($siteKey && $secretKey && ! $skipRecaptcha) {
             $rules['recaptcha_token'] = ['required', 'string'];
         }
@@ -62,17 +72,20 @@ class LoginController extends Controller
 
         $email = $validated['email'];
         $password = $validated['password'];
-        $selectedTenantId = in_array($for, ['tenant', 'resident'], true) ? (int) ($validated['tenant_id'] ?? 0) : null;
-
-        // Resolve user by login type: only the user registered under the selected barangay (or Super Admin with no tenant)
-        if (in_array($for, ['tenant', 'resident'], true)) {
-            $user = User::where('tenant_id', $selectedTenantId)
+        if ($currentTenant) {
+            $user = User::where('tenant_id', $currentTenant->id)
                 ->whereRaw('LOWER(email) = ?', [strtolower($email)])
                 ->first();
             if (! $user) {
                 return back()
-                    ->withInput($request->only('email', 'for', 'tenant_id'))
-                    ->withErrors(['email' => 'This email is not registered under the selected barangay. Please select the barangay where you signed up, or sign up first.']);
+                    ->withInput($request->only('email', 'for'))
+                    ->withErrors(['email' => 'This email is not registered for this barangay.']);
+            }
+            $allowedRoles = $for === 'resident' ? ['Resident'] : ['Health Center Admin', 'Nurse', 'Staff'];
+            if (! in_array($user->role, $allowedRoles, true)) {
+                return back()
+                    ->withInput($request->only('email', 'for'))
+                    ->withErrors(['email' => $for === 'resident' ? 'Use Staff / Nurse login for this account.' : 'Use Resident login for this account.']);
             }
         } else {
             // Super Admin login: only allow if email is not already registered under a tenant
