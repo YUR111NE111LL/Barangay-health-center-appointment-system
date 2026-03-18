@@ -28,25 +28,38 @@
     <link href="https://fonts.bunny.net/css?family=dm-sans:400,500,600,700" rel="stylesheet" />
     <style>
         .login-panel-left { background: linear-gradient(135deg, #0d9488 0%, #0f766e 50%, #115e59 100%); }
+        .login-central-outer { background: linear-gradient(135deg, #0d9488 0%, #0f766e 40%, #0891b2 100%); }
         @media (max-width: 767px) { .login-panel-left { min-height: 12rem; } }
     </style>
 </head>
 <body class="min-h-screen overflow-x-hidden antialiased" style="font-family: 'DM Sans', ui-sans-serif, sans-serif;">
-    <div class="min-h-screen overflow-visible flex items-center justify-center p-4 {{ $loginBgClass }}" @if($loginBgStyle) style="{{ $loginBgStyle }}" @endif>
+    <div class="min-h-screen overflow-visible flex items-center justify-center p-4 {{ $loginBg === 'custom' ? '' : $loginBgClass }} @if($loginBg !== 'custom' && $loginBg !== 'slate') login-central-outer @endif" @if($loginBgStyle) style="{{ $loginBgStyle }}" @endif>
         <div class="w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-300/50 flex flex-col md:flex-row bg-white">
             <div class="login-panel-left md:w-[44%] flex flex-col items-center justify-center p-8 md:p-12 text-white">
-                @if($logoUrl)
-                <img src="{{ $logoUrl }}" alt="{{ config('bhcas.name') }}" class="max-w-full h-auto max-h-48 md:max-h-56 w-auto object-contain" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
-                <div class="hidden text-center">
-                    <span class="text-2xl md:text-3xl font-bold tracking-tight">{{ config('bhcas.acronym') }}</span>
-                    <p class="mt-1 text-sm md:text-base text-white/90">{{ config('bhcas.name') }}</p>
+                <div class="w-full max-w-[280px] rounded-xl bg-white p-6 md:p-8 shadow-lg flex flex-col items-center justify-center text-center">
+                    @if($logoUrl)
+                    <img src="{{ $logoUrl }}" alt="{{ config('bhcas.name') }}" class="max-w-full h-auto max-h-40 md:max-h-48 w-auto object-contain" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
+                    <div class="hidden">
+                        <p class="text-slate-800 text-sm md:text-base font-semibold leading-tight">{{ config('bhcas.name') }}</p>
+                        <div class="mt-3 flex justify-center gap-2 flex-wrap" aria-hidden="true">
+                            <span class="inline-flex rounded bg-slate-100 p-1.5 text-teal-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span>
+                            <span class="inline-flex rounded bg-slate-100 p-1.5 text-teal-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg></span>
+                            <span class="inline-flex rounded bg-slate-100 p-1.5 text-teal-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span>
+                            <span class="inline-flex rounded bg-slate-100 p-1.5 text-teal-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg></span>
+                            <span class="inline-flex rounded bg-slate-100 p-1.5 text-teal-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span>
+                        </div>
+                    </div>
+                    @else
+                    <p class="text-slate-800 text-sm md:text-base font-semibold leading-tight">{{ config('bhcas.name') }}</p>
+                    <div class="mt-3 flex justify-center gap-2 flex-wrap" aria-hidden="true">
+                        <span class="inline-flex rounded bg-slate-100 p-1.5 text-teal-600" title="Records"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span>
+                        <span class="inline-flex rounded bg-slate-100 p-1.5 text-teal-600" title="Home"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg></span>
+                        <span class="inline-flex rounded bg-slate-100 p-1.5 text-teal-600" title="Calendar"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span>
+                        <span class="inline-flex rounded bg-slate-100 p-1.5 text-teal-600" title="Health"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg></span>
+                        <span class="inline-flex rounded bg-slate-100 p-1.5 text-teal-600" title="Mobile"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span>
+                    </div>
+                    @endif
                 </div>
-                @else
-                <div class="text-center">
-                    <span class="text-2xl md:text-3xl font-bold tracking-tight">{{ config('bhcas.acronym') }}</span>
-                    <p class="mt-1 text-sm md:text-base text-white/90">{{ config('bhcas.name') }}</p>
-                </div>
-                @endif
                 <p class="mt-6 text-sm text-white/80 text-center max-w-xs">Central app – platform administration only.</p>
             </div>
             <div class="flex-1 p-6 sm:p-8 md:p-10 flex flex-col justify-center">
@@ -91,6 +104,18 @@
                         <p class="text-center text-xs text-slate-400">Protected by reCAPTCHA</p>
                     @endif
                 </form>
+                @if(config('services.google.client_id'))
+                    <div class="relative my-4">
+                        <span class="relative flex justify-center text-xs text-slate-400"><span class="bg-white px-2">OR</span></span>
+                    </div>
+                    <a href="{{ route('auth.google.redirect', ['for' => 'super-admin', 'intent' => 'signup']) }}" class="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-700 shadow-sm transition hover:bg-slate-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                        Sign in with Google
+                    </a>
+                @endif
+                @if(Route::has('sign-up'))
+                    <p class="mt-4 text-center text-sm text-slate-600">Resident or staff? <a href="{{ route('sign-up') }}" class="font-medium text-teal-600 hover:text-teal-700 hover:underline">Sign up</a> (choose your barangay and role).</p>
+                @endif
             </div>
         </div>
     </div>

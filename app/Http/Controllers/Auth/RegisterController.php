@@ -19,8 +19,10 @@ class RegisterController extends Controller
 {
     public function showRegistrationForm(): View
     {
-        $tenants = Tenant::where('is_active', true)->orderBy('name')->get();
-        return view('auth.register', compact('tenants'));
+        $tenants = Tenant::with('domains')->where('is_active', true)->orderBy('name')->get();
+        $currentTenant = tenant();
+
+        return view('auth.register', compact('tenants', 'currentTenant'));
     }
 
     public function register(Request $request): RedirectResponse
@@ -82,6 +84,7 @@ class RegisterController extends Controller
         if ($user->role === User::ROLE_RESIDENT) {
             return redirect()->route('resident.dashboard');
         }
+
         return redirect()->route('backend.dashboard');
     }
 }

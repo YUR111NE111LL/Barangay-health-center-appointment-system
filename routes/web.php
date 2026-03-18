@@ -35,11 +35,25 @@ Route::middleware(['guest', 'tenancy.by_domain_for_auth'])->group(function (): v
 });
 
 Route::post('/logout', function () {
+    /** @var \App\Models\User|null $user */
+    $user = Auth::user();
     Auth::guard('web')->logout();
     request()->session()->invalidate();
     request()->session()->regenerateToken();
     $message = __('You have logged out successfully.');
-    // Redirect to login on same domain: central shows central login, tenant domain shows tenant login
+
+    if ($user && $user->tenant_id) {
+        $tenant = \App\Models\Tenant::find($user->tenant_id);
+        $domain = $tenant?->domains()->first()?->domain;
+        if ($domain) {
+            $scheme = request()->getScheme();
+            $port = request()->getPort();
+            $portSuffix = ($port && ! in_array((int) $port, [80, 443], true)) ? ':'.$port : '';
+
+            return redirect()->away($scheme.'://'.$domain.$portSuffix.'/login')->with('status', $message);
+        }
+    }
+
     return redirect()->route('login')->with('status', $message);
 })->name('logout')->middleware('auth');
 

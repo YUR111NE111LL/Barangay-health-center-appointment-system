@@ -6,43 +6,90 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 
 class GoogleLoginController extends Controller
 {
+    private const STATE_CACHE_PREFIX = 'google_oauth_state:';
+
+    private const STATE_TTL_SECONDS = 600;
+
+    /**
+     * Build URL-safe base64 state payload. Payload is IN the state so it survives the round-trip (no cache dependency).
+     */
+    private static function encodeState(string $for, ?int $tenantId, string $intent): string
+    {
+        $payload = ['f' => $for, 't' => $tenantId, 'i' => $intent];
+
+        return str_replace(['+', '/', '='], ['-', '_', ''], base64_encode(json_encode($payload)));
+    }
+
+    /**
+     * Decode state payload. Returns [for, tenant_id, intent] or null.
+     */
+    private static function decodeState(string $state): ?array
+    {
+        $state = str_replace(' ', '+', trim($state));
+        $state = str_replace(['-', '_'], ['+', '/'], $state);
+        $state .= str_repeat('=', (4 - strlen($state) % 4) % 4);
+        $decoded = @json_decode(base64_decode($state), true);
+
+        if (! is_array($decoded)) {
+            return null;
+        }
+
+        return [
+            'for' => $decoded['f'] ?? 'resident',
+            'tenant_id' => isset($decoded['t']) ? (int) $decoded['t'] : null,
+            'intent' => ($decoded['i'] ?? 'login') === 'signup' ? 'signup' : 'login',
+        ];
+    }
+
     /**
      * Redirect to Google. Call this with for=resident|tenant|super-admin and optionally tenant_id (required for resident/tenant).
-     * Uses current request host for callback URL so both localhost and 127.0.0.1 work. State carries for/tenant_id.
+     * Puts payload directly in state so chosen barangay is never lost.
      */
     public function redirect(\Illuminate\Http\Request $request): RedirectResponse
     {
         $for = $request->query('for', 'resident');
         $tenantId = $request->query('tenant_id');
         $tenantId = $tenantId !== null && $tenantId !== '' ? (int) $tenantId : null;
-        $intent = $request->query('intent', 'login'); // 'login' = only existing accounts; 'signup' = may create new
+        if (in_array($for, ['tenant', 'resident'], true) && ! $tenantId && tenant()) {
+            $tenantId = (int) tenant()->id;
+        }
+        $intent = $request->query('intent', 'login');
         if (! in_array($intent, ['login', 'signup'], true)) {
             $intent = 'login';
         }
 
-        $state = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode(json_encode([
-            'for' => $for,
-            'tenant_id' => $tenantId,
-            'intent' => $intent,
-        ])));
+        $state = self::encodeState($for, $tenantId, $intent);
+        Cache::put(self::STATE_CACHE_PREFIX.$state, ['for' => $for, 'tenant_id' => $tenantId, 'intent' => $intent], self::STATE_TTL_SECONDS);
 
-        $callbackUrl = $request->getSchemeAndHttpHost() . '/auth/google/callback';
+        $callbackUrl = config('services.google.redirect') ?: (rtrim(config('app.url'), '/').'/auth/google/callback');
+        $clientId = config('services.google.client_id');
+        if (! $clientId) {
+            return redirect()->route('login', ['for' => $for])
+                ->withErrors(['email' => 'Google sign-in is not configured.']);
+        }
 
-        return Socialite::driver('google')
-            ->redirectUrl($callbackUrl)
-            ->stateless()
-            ->with(['state' => $state])
-            ->redirect();
+        $params = [
+            'client_id' => $clientId,
+            'redirect_uri' => $callbackUrl,
+            'response_type' => 'code',
+            'scope' => 'openid email profile',
+            'state' => $state,
+            'prompt' => 'select_account',
+            'access_type' => 'online',
+        ];
+
+        return redirect()->away('https://accounts.google.com/o/oauth2/v2/auth?'.http_build_query($params));
     }
 
     /**
      * Handle Google callback: find or create user, then login with tenant check.
-     * Reads for and tenant_id from state parameter (so we don't rely on session).
+     * State contains encoded payload (f,t,i). Also try cache in case state was altered.
      */
     public function callback(\Illuminate\Http\Request $request): RedirectResponse
     {
@@ -50,14 +97,20 @@ class GoogleLoginController extends Controller
         $tenantId = null;
         $intent = 'login';
         $stateParam = $request->query('state');
-        if ($stateParam) {
-            $stateParam = str_replace(['-', '_'], ['+', '/'], $stateParam);
-            $stateParam .= str_repeat('=', (4 - strlen($stateParam) % 4) % 4);
-            $decoded = @json_decode(base64_decode($stateParam), true);
-            if (is_array($decoded)) {
-                $for = $decoded['for'] ?? 'resident';
-                $tenantId = isset($decoded['tenant_id']) ? (int) $decoded['tenant_id'] : null;
-                $intent = isset($decoded['intent']) && $decoded['intent'] === 'signup' ? 'signup' : 'login';
+        if ($stateParam !== null && $stateParam !== '') {
+            $stateParam = (string) $stateParam;
+            $decoded = self::decodeState($stateParam);
+            if ($decoded !== null) {
+                $for = $decoded['for'];
+                $tenantId = $decoded['tenant_id'];
+                $intent = $decoded['intent'];
+            } else {
+                $cached = Cache::pull(self::STATE_CACHE_PREFIX.$stateParam);
+                if (is_array($cached)) {
+                    $for = $cached['for'] ?? 'resident';
+                    $tenantId = isset($cached['tenant_id']) ? (int) $cached['tenant_id'] : null;
+                    $intent = isset($cached['intent']) && $cached['intent'] === 'signup' ? 'signup' : 'login';
+                }
             }
         }
         if ($tenantId === 0) {
@@ -73,6 +126,7 @@ class GoogleLoginController extends Controller
             $message = $request->get('error') === 'access_denied'
                 ? 'Google sign-in was cancelled. Please try again or use your email and password.'
                 : 'Google login failed. Please try again or use your email and password.';
+
             return redirect()->route('login', ['for' => $for])
                 ->withErrors(['email' => $message])
                 ->withInput($tenantId ? ['tenant_id' => $tenantId] : []);
@@ -84,7 +138,7 @@ class GoogleLoginController extends Controller
                 ->withInput($tenantId ? ['tenant_id' => $tenantId] : []);
         }
 
-        $callbackUrl = $request->getSchemeAndHttpHost() . '/auth/google/callback';
+        $callbackUrl = config('services.google.redirect') ?: (rtrim(config('app.url'), '/').'/auth/google/callback');
 
         try {
             $googleUser = Socialite::driver('google')
@@ -157,6 +211,7 @@ class GoogleLoginController extends Controller
             // Tenant must match for tenant/resident
             if (in_array($for, ['tenant', 'resident'], true) && (int) $user->tenant_id !== (int) $tenantId) {
                 $correct = $user->tenant?->name ?? 'your barangay';
+
                 return redirect()->route('login', ['for' => $for])
                     ->withErrors(['email' => "This Google account is registered under \"{$correct}\". Please select that barangay to log in."])
                     ->withInput($tenantId ? ['tenant_id' => $tenantId] : []);
@@ -167,6 +222,7 @@ class GoogleLoginController extends Controller
             }
             Auth::login($user, true);
             $request->session()->regenerate();
+
             return $this->redirectIntended($user);
         }
 
@@ -199,11 +255,13 @@ class GoogleLoginController extends Controller
             $user->syncRoles([User::ROLE_SUPER_ADMIN]);
             Auth::login($user, true);
             $request->session()->regenerate();
+
             return redirect()->intended(route('super-admin.dashboard'));
         }
 
         if ($for !== 'resident' || ! $tenantId) {
             $message = 'No account found for this Google account. Staff: sign up with email first, then you can link Google. Residents: sign up first (Sign up page → choose barangay → Sign up with Google).';
+
             return redirect()->route('login', ['for' => $for])
                 ->withErrors(['email' => $message])
                 ->withInput($tenantId ? ['tenant_id' => $tenantId] : []);
@@ -217,6 +275,7 @@ class GoogleLoginController extends Controller
             $existing->update(['google_id' => $googleId]);
             Auth::login($existing, true);
             $request->session()->regenerate();
+
             return redirect()->intended(route('resident.dashboard'));
         }
 
@@ -251,6 +310,7 @@ class GoogleLoginController extends Controller
         if ($user->role === 'Resident') {
             return redirect()->intended(route('resident.dashboard'));
         }
+
         return redirect()->intended(route('backend.dashboard'));
     }
 }
