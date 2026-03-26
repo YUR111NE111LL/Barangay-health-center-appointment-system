@@ -6,17 +6,17 @@
 <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <h1 class="text-2xl font-bold text-slate-800">Appointment #{{ $appointment->id }}</h1>
     <div class="flex flex-wrap gap-2">
-        @if(auth()->user()->can('encode appointments') || auth()->user()->can('update visit status') || auth()->user()->can('record notes'))
+        @if(auth()->user()->hasTenantPermission('encode appointments') || auth()->user()->hasTenantPermission('update visit status') || auth()->user()->hasTenantPermission('record notes'))
         <a href="{{ route('backend.appointments.edit', $appointment) }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 hover:bg-slate-50">Edit</a>
         @endif
-        @can('approve appointments')
+        @if(auth()->user()->hasTenantPermission('approve appointments'))
         @if($appointment->status === 'pending')
             <form action="{{ route('backend.appointments.approve', $appointment) }}" method="POST" class="inline">
                 @csrf
                 <button type="submit" class="rounded-xl bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700">Approve</button>
             </form>
         @endif
-        @endcan
+        @endif
     </div>
 </div>
 

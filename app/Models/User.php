@@ -4,12 +4,12 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -18,9 +18,13 @@ class User extends Authenticatable
     use HasFactory, HasRoles, Notifiable;
 
     public const ROLE_SUPER_ADMIN = 'Super Admin';
+
     public const ROLE_HEALTH_CENTER_ADMIN = 'Health Center Admin';
+
     public const ROLE_NURSE = 'Nurse';
+
     public const ROLE_STAFF = 'Staff';
+
     public const ROLE_RESIDENT = 'Resident';
 
     /**
@@ -95,13 +99,13 @@ class User extends Authenticatable
     /** Roles that require admin approval before access. */
     public static function rolesRequiringApproval(): array
     {
-        return [self::ROLE_STAFF, self::ROLE_NURSE, self::ROLE_HEALTH_CENTER_ADMIN, self::ROLE_SUPER_ADMIN];
+        return [self::ROLE_STAFF, self::ROLE_NURSE, self::ROLE_HEALTH_CENTER_ADMIN];
     }
 
-    /** Roles that only Super Admin can approve (new Barangay Admin and new Super Admin). */
+    /** Roles that only Super Admin can approve (new Barangay Admin only). */
     public static function rolesApprovedBySuperAdmin(): array
     {
-        return [self::ROLE_HEALTH_CENTER_ADMIN, self::ROLE_SUPER_ADMIN];
+        return [self::ROLE_HEALTH_CENTER_ADMIN];
     }
 
     /** Roles that Barangay Admin can approve (Staff, Nurse in their tenant). */
@@ -119,8 +123,9 @@ class User extends Authenticatable
         }
         $words = preg_split('/\s+/', $name, 3);
         if (count($words) >= 2) {
-            return strtoupper(mb_substr($words[0], 0, 1) . mb_substr($words[1], 0, 1));
+            return strtoupper(mb_substr($words[0], 0, 1).mb_substr($words[1], 0, 1));
         }
+
         return strtoupper(mb_substr($name, 0, 2));
     }
 

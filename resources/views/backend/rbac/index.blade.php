@@ -6,9 +6,9 @@
 <div class="mb-6">
     <h1 class="text-2xl font-bold text-slate-800">User roles (RBAC)</h1>
     <p class="mt-1 text-slate-500">Assign roles to users in your barangay. Only Barangay (Health Center) Admin can view and manage roles; Nurses and Residents cannot access this page.</p>
-    <p class="mt-1 text-sm text-slate-500">Role permissions (what each role can do) are set by the platform based on your barangay's plan and apply only to this barangay—they do not affect other tenants.</p>
+    <p class="mt-1 text-sm text-slate-500">Role permissions (what each role can do) are managed per role, similar to Super Admin tenant RBAC, but changes here apply only to this barangay's users.</p>
     <p class="mt-3">
-        <a href="{{ route('backend.rbac.permissions.index') }}" class="inline-flex items-center rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">Manage role permissions (enable/disable per role)</a>
+        <a href="{{ route('backend.rbac.permissions.index') }}" class="inline-flex items-center rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">Manage tenant role permissions (per role)</a>
     </p>
 </div>
 

@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('events', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
+            // Tenant DB has no `tenants` table; keep tenant_id as plain indexed column.
+            $table->unsignedBigInteger('tenant_id')->index();
             $table->string('title');
             $table->text('description');
             $table->string('image_path')->nullable();

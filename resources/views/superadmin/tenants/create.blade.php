@@ -7,6 +7,16 @@
 
 <form action="{{ route('super-admin.tenants.store') }}" method="POST" class="max-w-2xl space-y-5 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/60 sm:p-8">
     @csrf
+    <input type="hidden" id="tenant-domain-root" value="{{ config('bhcas.tenant_domain_root', 'localhost') }}">
+    @if($errors->any())
+        <div class="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-200">
+            <ul class="list-disc list-inside">
+                @foreach($errors->all() as $e)
+                    <li>{{ $e }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
     <div>
         <label for="plan_id" class="mb-1 block text-sm font-medium text-slate-700">Plan <span class="text-rose-500">*</span></label>
         <select name="plan_id" id="plan_id" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 focus:border-violet-500 focus:ring-violet-500" required>
@@ -20,6 +30,18 @@
         <label for="name" class="mb-1 block text-sm font-medium text-slate-700">Name <span class="text-rose-500">*</span></label>
         <input type="text" name="name" id="name" value="{{ old('name') }}" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 focus:border-violet-500 focus:ring-violet-500" required>
         @error('name')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
+    </div>
+    <div>
+        <label for="barangay" class="mb-1 block text-sm font-medium text-slate-700">Barangay (for domain) <span class="text-rose-500">*</span></label>
+        <input type="text"
+               name="barangay"
+               id="barangay"
+               value="{{ old('barangay') }}"
+               placeholder="brgy-sumpong"
+               class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 focus:border-violet-500 focus:ring-violet-500"
+               required>
+        <p class="mt-1 text-xs text-slate-500">Used to auto-generate tenant domain: <strong>barangay.{{ config('bhcas.tenant_domain_root', 'localhost') }}</strong></p>
+        @error('barangay')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
     </div>
     <div>
         <label for="domain" class="mb-1 block text-sm font-medium text-slate-700">Domain <span class="text-rose-500">*</span></label>
@@ -57,4 +79,50 @@
         <a href="{{ route('super-admin.tenants.index') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-medium text-slate-700 hover:bg-slate-50">Cancel</a>
     </div>
 </form>
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var barangayEl = document.getElementById('barangay');
+    var domainEl = document.getElementById('domain');
+    if (!barangayEl || !domainEl) return;
+
+    var manuallyEditedDomain = false;
+    domainEl.addEventListener('input', function() {
+        manuallyEditedDomain = true;
+    });
+
+    var tenantDomainRootEl = document.getElementById('tenant-domain-root');
+    var tenantDomainRoot = tenantDomainRootEl ? tenantDomainRootEl.value : 'localhost';
+
+    function slugify(input) {
+        return String(input || '')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    }
+
+    barangayEl.addEventListener('input', function() {
+        if (manuallyEditedDomain) return;
+        var val = String(barangayEl.value || '').trim();
+        if (!val) return;
+
+        // If user types a full domain or URL, normalize as-is.
+        var lowered = val.toLowerCase();
+        var looksLikeDomain = lowered.includes('.') || lowered.includes('://');
+        if (looksLikeDomain) {
+            var normalized = lowered
+                .replace(/^https?:\/\//i, '')
+                .split('/')[0]
+                .split('?')[0]
+                .split('#')[0];
+            domainEl.value = normalized;
+            return;
+        }
+
+        domainEl.value = slugify(val) + '.' + tenantDomainRoot;
+    });
+});
+</script>
+@endpush
 @endsection

@@ -25,7 +25,28 @@
             @endif
         </form>
         <a href="{{ route('super-admin.tenants.rbac.index', $tenant) }}" class="rounded-xl border border-violet-300 bg-violet-50 px-4 py-2 font-medium text-violet-700 hover:bg-violet-100">RBAC for this tenant</a>
+        <form action="{{ route('super-admin.tenants.provision-database', $tenant) }}" method="POST" class="inline">
+            @csrf
+            <button type="submit" class="rounded-xl border border-sky-300 bg-sky-50 px-4 py-2 font-medium text-sky-700 hover:bg-sky-100">
+                Provision Tenant DB
+            </button>
+        </form>
         <a href="{{ route('super-admin.tenants.edit', $tenant) }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 hover:bg-slate-50">Edit</a>
+        <form
+            action="{{ route('super-admin.tenants.destroy', $tenant) }}"
+            method="POST"
+            class="inline"
+            onsubmit="return confirm('Delete this tenant? This will delete the tenant database too.')"
+        >
+            @csrf
+            @method('DELETE')
+            <button
+                type="submit"
+                class="rounded-xl border border-rose-300 bg-rose-50 px-4 py-2 font-medium text-rose-700 hover:bg-rose-100"
+            >
+                Delete Tenant
+            </button>
+        </form>
     </div>
 </div>
 
@@ -153,6 +174,11 @@
 </div>
 
 @push('scripts')
+<div id="tenant-status-meta" class="hidden"
+    data-is-active="{{ $tenant->is_active ? '1' : '0' }}"
+    data-user-count="{{ $tenant->users_count ?? 0 }}"
+    data-tenant-name="{{ $tenant->name }}"
+></div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('tenant-status-modal');
@@ -163,9 +189,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const modalConfirm = document.getElementById('modal-confirm');
     
     const form = document.getElementById('toggle-status-form');
-    const isActive = {{ $tenant->is_active ? 'true' : 'false' }};
-    const userCount = {{ $tenant->users_count ?? 0 }};
-    const tenantName = '{{ $tenant->name }}';
+    const meta = document.getElementById('tenant-status-meta');
+    const isActive = meta && meta.getAttribute('data-is-active') === '1';
+    const userCount = meta ? Number(meta.getAttribute('data-user-count') || 0) : 0;
+    const tenantName = meta ? (meta.getAttribute('data-tenant-name') || '') : '';
     
     let pendingAction = null;
     

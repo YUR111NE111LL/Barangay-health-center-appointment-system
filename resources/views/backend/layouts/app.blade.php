@@ -44,12 +44,12 @@
         @endphp
         <nav class="flex flex-col gap-1 overflow-y-auto p-3">
             <a href="{{ route('backend.dashboard') }}" class="{{ request()->routeIs('backend.dashboard') || request()->routeIs('backend.admin.dashboard') || request()->routeIs('backend.nurse.dashboard') || request()->routeIs('backend.staff.dashboard') ? $sbActive : $sbDefault }}">Dashboard</a>
-            @can('view appointments')
+            @if(auth()->user()->hasTenantPermission('view appointments'))
             <a href="{{ route('backend.appointments.index') }}" class="{{ request()->routeIs('backend.appointments.*') ? $sbActive : $sbDefault }}">Appointments</a>
-            @endcan
-            @can('view reports')
+            @endif
+            @if(auth()->user()->hasTenantPermission('view reports'))
             <a href="{{ route('backend.reports.index') }}" class="{{ request()->routeIs('backend.reports.*') ? $sbActive : $sbDefault }}">Reports</a>
-            @endcan
+            @endif
             <a href="{{ route('backend.users.index') }}" class="{{ request()->routeIs('backend.users.*') ? $sbActive : $sbDefault }}">Users</a>
             @if(auth()->user()->role === 'Health Center Admin')
             <a href="{{ route('backend.pending-approvals.index') }}" class="{{ request()->routeIs('backend.pending-approvals.*') ? $sbActive : $sbDefault }} {{ ($backendPendingCount ?? 0) > 0 ? 'ring-1 ring-amber-400 ring-offset-2 ring-offset-teal-600' : '' }}">Approvals @if(($backendPendingCount ?? 0) > 0)<span class="ml-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-xs font-semibold text-teal-900">{{ $backendPendingCount }}</span>@endif</a>
@@ -61,9 +61,9 @@
             @endif
             @endif
             @planFeature('inventory')
-            @can('manage inventory')
+            @if(auth()->user()->hasTenantPermission('manage inventory'))
             <a href="{{ route('backend.inventory.index') }}" class="{{ request()->routeIs('backend.inventory.*') ? $sbActive : $sbDefault }}">Inventory</a>
-            @endcan
+            @endif
             @endplanFeature
             <div class="mt-auto border-t border-white/20 pt-3">
                 <details class="group">
@@ -101,12 +101,12 @@
                         <button type="button" id="backend-menu-btn" class="flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10 hover:text-white" aria-expanded="false" aria-haspopup="true">Menu <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
                         <div id="backend-menu-dropdown" class="nav-dropdown-panel absolute right-0 top-full z-10 mt-1 hidden min-w-[200px] max-w-[calc(100vw-2rem)] rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5">
                             <a href="{{ route('backend.dashboard') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Dashboard</a>
-                            @can('view appointments')
+                            @if(auth()->user()->hasTenantPermission('view appointments'))
                             <a href="{{ route('backend.appointments.index') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Appointments</a>
-                            @endcan
-                            @can('view reports')
+                            @endif
+                            @if(auth()->user()->hasTenantPermission('view reports'))
                             <a href="{{ route('backend.reports.index') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Reports</a>
-                            @endcan
+                            @endif
                             <a href="{{ route('backend.users.index') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Users</a>
                             @if(auth()->user()->role === 'Health Center Admin')
                             <a href="{{ route('backend.pending-approvals.index') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Approvals</a>
@@ -118,9 +118,9 @@
                             @endif
                             @endif
                             @planFeature('inventory')
-                            @can('manage inventory')
+                            @if(auth()->user()->hasTenantPermission('manage inventory'))
                             <a href="{{ route('backend.inventory.index') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Inventory</a>
-                            @endcan
+                            @endif
                             @endplanFeature
                         </div>
                     </div>
@@ -164,12 +164,12 @@
                 @endphp
                 <div id="nav-links" class="hidden items-center gap-0.5 lg:flex">
                     <a href="{{ route('backend.dashboard') }}" class="{{ request()->routeIs('backend.dashboard') || request()->routeIs('backend.admin.dashboard') || request()->routeIs('backend.nurse.dashboard') || request()->routeIs('backend.staff.dashboard') ? $navActive : $navDefault }}">Dashboard</a>
-                    @can('view appointments')
+                    @if(auth()->user()->hasTenantPermission('view appointments'))
                     <a href="{{ route('backend.appointments.index') }}" class="{{ request()->routeIs('backend.appointments.*') ? $navActive : $navDefault }}">Appointments</a>
-                    @endcan
-                    @can('view reports')
+                    @endif
+                    @if(auth()->user()->hasTenantPermission('view reports'))
                     <a href="{{ route('backend.reports.index') }}" class="{{ request()->routeIs('backend.reports.*') ? $navActive : $navDefault }}">Reports</a>
-                    @endcan
+                    @endif
                     <a href="{{ route('backend.users.index') }}" class="{{ request()->routeIs('backend.users.*') ? $navActive : $navDefault }}">Users</a>
                     @if(auth()->user()->role === 'Health Center Admin')
                     <a href="{{ route('backend.pending-approvals.index') }}" class="relative {{ request()->routeIs('backend.pending-approvals.*') ? $navActive : $navDefault }}">
@@ -196,12 +196,12 @@
                             </a>
                             @endif
                             @planFeature('inventory')
-                            @can('manage inventory')
+                            @if(auth()->user()->hasTenantPermission('manage inventory'))
                             <a href="{{ route('backend.inventory.index') }}" class="flex items-center gap-2 px-3 py-2 text-sm {{ request()->routeIs('backend.inventory.*') ? 'bg-teal-50 font-medium text-teal-700' : 'text-slate-700 hover:bg-slate-50' }}">
                                 <svg class="h-4 w-4 {{ request()->routeIs('backend.inventory.*') ? 'text-teal-500' : 'text-slate-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                                 Inventory
                             </a>
-                            @endcan
+                            @endif
                             @endplanFeature
                         </div>
                     </div>
@@ -245,12 +245,12 @@
             <div id="mobile-menu" class="hidden border-t border-white/20 pb-3 pt-2 lg:hidden">
                 <div class="flex flex-col gap-0.5">
                     <a href="{{ route('backend.dashboard') }}" class="{{ request()->routeIs('backend.dashboard') || request()->routeIs('backend.admin.dashboard') || request()->routeIs('backend.nurse.dashboard') || request()->routeIs('backend.staff.dashboard') ? $mobActive : $mobDefault }}">Dashboard</a>
-                    @can('view appointments')
+                    @if(auth()->user()->hasTenantPermission('view appointments'))
                     <a href="{{ route('backend.appointments.index') }}" class="{{ request()->routeIs('backend.appointments.*') ? $mobActive : $mobDefault }}">Appointments</a>
-                    @endcan
-                    @can('view reports')
+                    @endif
+                    @if(auth()->user()->hasTenantPermission('view reports'))
                     <a href="{{ route('backend.reports.index') }}" class="{{ request()->routeIs('backend.reports.*') ? $mobActive : $mobDefault }}">Reports</a>
-                    @endcan
+                    @endif
                     <a href="{{ route('backend.users.index') }}" class="{{ request()->routeIs('backend.users.*') ? $mobActive : $mobDefault }}">Users</a>
                     @if(auth()->user()->role === 'Health Center Admin')
                     <a href="{{ route('backend.pending-approvals.index') }}" class="{{ request()->routeIs('backend.pending-approvals.*') ? $mobActive : $mobDefault }}">Approvals @if(($backendPendingCount ?? 0) > 0)<span class="ml-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-xs font-semibold text-teal-900">{{ $backendPendingCount }}</span>@endif</a>
@@ -262,9 +262,9 @@
                     @endif
                     @endif
                     @planFeature('inventory')
-                    @can('manage inventory')
+                    @if(auth()->user()->hasTenantPermission('manage inventory'))
                     <a href="{{ route('backend.inventory.index') }}" class="{{ request()->routeIs('backend.inventory.*') ? $mobActive : $mobDefault }}">Inventory</a>
-                    @endcan
+                    @endif
                     @endplanFeature
                     <div class="my-1 border-t border-white/20"></div>
                     <a href="{{ route('backend.profile.show') }}" class="{{ request()->routeIs('backend.profile.*') ? $mobActive : $mobDefault }}">Profile</a>
@@ -355,6 +355,8 @@
             var ch = window.Echo.channel('tenant.' + tenantId);
             ch.listen('.customization.updated', function() { location.reload(); });
             ch.listen('.rbac.updated', function() { location.reload(); });
+            ch.listen('.appointment.updated', function() { location.reload(); });
+            ch.listen('.profile.updated', function() { location.reload(); });
         }
         if (typeof window.Echo !== 'undefined') subscribeRealtime();
         else window.addEventListener('echo-ready', subscribeRealtime);

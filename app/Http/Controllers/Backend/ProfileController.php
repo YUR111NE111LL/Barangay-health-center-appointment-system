@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Backend;
 
+use App\Events\ProfileUpdated;
 use App\Http\Controllers\Controller;
 use App\Services\CloudinaryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\File;
@@ -19,7 +21,8 @@ class ProfileController extends Controller
 {
     public function show(): View
     {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
         $user->load('tenant');
 
         return view('backend.profile.show', compact('user'));
@@ -27,14 +30,16 @@ class ProfileController extends Controller
 
     public function edit(): View
     {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
 
         return view('backend.profile.edit', compact('user'));
     }
 
     public function update(Request $request): RedirectResponse
     {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
 
         $rules = [
             'name' => ['required', 'string', 'max:255'],
@@ -53,7 +58,7 @@ class ProfileController extends Controller
             // Delete old profile picture if exists
             if ($user->profile_picture) {
                 if (str_contains($user->profile_picture, 'cloudinary.com')) {
-                    $publicId = basename(parse_url($user->profile_picture, PHP_URL_PATH), '.' . pathinfo($user->profile_picture, PATHINFO_EXTENSION));
+                    $publicId = basename(parse_url($user->profile_picture, PHP_URL_PATH), '.'.pathinfo($user->profile_picture, PATHINFO_EXTENSION));
                     CloudinaryService::delete($publicId, 'image');
                 } else {
                     Storage::disk('public')->delete($user->profile_picture);
@@ -87,7 +92,7 @@ class ProfileController extends Controller
         if ($request->boolean('remove_profile_picture')) {
             if ($user->profile_picture) {
                 if (str_contains($user->profile_picture, 'cloudinary.com')) {
-                    $publicId = basename(parse_url($user->profile_picture, PHP_URL_PATH), '.' . pathinfo($user->profile_picture, PATHINFO_EXTENSION));
+                    $publicId = basename(parse_url($user->profile_picture, PHP_URL_PATH), '.'.pathinfo($user->profile_picture, PATHINFO_EXTENSION));
                     CloudinaryService::delete($publicId, 'image');
                 } else {
                     Storage::disk('public')->delete($user->profile_picture);
@@ -100,6 +105,7 @@ class ProfileController extends Controller
             $user->password = Hash::make($validated['password']);
         }
         $user->save();
+        event(new ProfileUpdated($user));
 
         return redirect()->route('backend.profile.show')->with('success', 'Profile updated successfully.');
     }

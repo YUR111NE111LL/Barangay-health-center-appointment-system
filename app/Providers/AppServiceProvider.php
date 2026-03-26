@@ -30,6 +30,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (! app()->runningInConsole()) {
+            $host = request()->getHost();
+            $baseCookieName = (string) config('session.cookie', 'laravel-session');
+            $hostCookieSuffix = preg_replace('/[^a-z0-9_]+/i', '_', strtolower($host)) ?? 'app';
+            config(['session.cookie' => $baseCookieName.'_'.$hostCookieSuffix]);
+        }
+
         Paginator::useTailwind();
 
         // Per-tenant RBAC: for tenant users, ONLY tenant_role_permissions (via User::hasTenantPermission). Never Spatie.
@@ -37,6 +44,7 @@ class AppServiceProvider extends ServiceProvider
             if ($user->tenant_id === null) {
                 return null; // Super Admin: use default (Spatie) checks
             }
+
             return $user->hasTenantPermission($ability);
         });
 
@@ -48,11 +56,11 @@ class AppServiceProvider extends ServiceProvider
             $tenant = $user?->tenant;
             $brandColor = $tenant?->getPrimaryColor() ?? '#0d9488';
             $brandName = $tenant ? $tenant->getDisplayName() : config('bhcas.acronym');
-            $brandLogo = $tenant && $tenant->logo_path 
-                ? (str_contains($tenant->logo_path, 'cloudinary.com') ? $tenant->logo_path : asset('storage/' . $tenant->logo_path))
+            $brandLogo = $tenant && $tenant->logo_path
+                ? (str_contains($tenant->logo_path, 'cloudinary.com') ? $tenant->logo_path : asset('storage/'.$tenant->logo_path))
                 : null;
             $theme = $tenant?->theme ?? 'default';
-            $themeClass = 'theme-' . (in_array($theme, ['default', 'modern', 'minimal'], true) ? $theme : 'default');
+            $themeClass = 'theme-'.(in_array($theme, ['default', 'modern', 'minimal'], true) ? $theme : 'default');
             $navLayout = in_array($tenant?->nav_layout ?? 'navbar', ['navbar', 'sidebar', 'dropdown'], true) ? ($tenant?->nav_layout ?? 'navbar') : 'navbar';
             $hasFeatureWebCustomization = $tenant?->hasFeature('web_customization') ?? false;
             $fontUrl = $tenant ? Tenant::fontFamilyGoogleUrl($tenant->font_family) : null;
@@ -71,11 +79,11 @@ class AppServiceProvider extends ServiceProvider
             $tenant = $user?->tenant;
             $brandColor = $tenant?->getPrimaryColor() ?? '#0d9488';
             $brandName = $tenant ? $tenant->getDisplayName() : config('bhcas.acronym');
-            $brandLogo = $tenant && $tenant->logo_path 
-                ? (str_contains($tenant->logo_path, 'cloudinary.com') ? $tenant->logo_path : asset('storage/' . $tenant->logo_path))
+            $brandLogo = $tenant && $tenant->logo_path
+                ? (str_contains($tenant->logo_path, 'cloudinary.com') ? $tenant->logo_path : asset('storage/'.$tenant->logo_path))
                 : null;
             $theme = $tenant?->theme ?? 'default';
-            $themeClass = 'theme-' . (in_array($theme, ['default', 'modern', 'minimal'], true) ? $theme : 'default');
+            $themeClass = 'theme-'.(in_array($theme, ['default', 'modern', 'minimal'], true) ? $theme : 'default');
             $navLayout = in_array($tenant?->nav_layout ?? 'navbar', ['navbar', 'sidebar', 'dropdown'], true) ? ($tenant?->nav_layout ?? 'navbar') : 'navbar';
             $navOrder = $tenant?->nav_order ?? Tenant::residentNavItemKeys();
             $residentNavConfig = [

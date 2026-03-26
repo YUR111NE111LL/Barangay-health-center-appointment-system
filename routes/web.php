@@ -8,12 +8,17 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('landing');
 });
+
+// Keep the old generated landing page available (in case you still need it).
+Route::get('/welcome', function () {
+    return view('welcome');
+})->name('welcome.legacy');
 
 Route::get('/requirements', RequirementsController::class)->name('requirements');
 
-Route::middleware(['guest', 'tenancy.by_domain_for_auth'])->group(function (): void {
+Route::middleware(['tenancy.by_domain_for_auth'])->group(function (): void {
     Route::get('/login', [\App\Http\Controllers\Auth\LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [\App\Http\Controllers\Auth\LoginController::class, 'login']);
     Route::get('/auth/google', [\App\Http\Controllers\Auth\GoogleLoginController::class, 'redirect'])->name('auth.google.redirect');
@@ -68,10 +73,11 @@ Route::get('/dashboard', function () {
     if ($user->role === 'Resident') {
         return redirect()->route('resident.dashboard');
     }
-    return redirect()->route('backend.dashboard');
-})->name('dashboard')->middleware('auth');
 
-Route::middleware(['auth', 'tenant'])->prefix('backend')->name('backend.')->group(function (): void {
+    return redirect()->route('backend.dashboard');
+})->name('dashboard')->middleware(['tenancy.by_domain_for_auth', 'auth']);
+
+Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('backend')->name('backend.')->group(function (): void {
     Route::get('/', [BackendDashboardController::class, 'index'])->name('dashboard');
     Route::get('/admin', [BackendDashboardController::class, 'admin'])->name('admin.dashboard')->middleware('role:Health Center Admin');
     Route::get('/nurse', [BackendDashboardController::class, 'nurse'])->name('nurse.dashboard')->middleware('role:Nurse');
@@ -115,7 +121,7 @@ Route::middleware(['auth', 'tenant'])->prefix('backend')->name('backend.')->grou
     });
 });
 
-Route::middleware(['auth', 'tenant', 'role:Resident'])->prefix('resident')->name('resident.')->group(function (): void {
+Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant', 'role:Resident'])->prefix('resident')->name('resident.')->group(function (): void {
     Route::get('/', [\App\Http\Controllers\Frontend\ResidentController::class, 'dashboard'])->name('dashboard');
     Route::get('/book', [\App\Http\Controllers\Frontend\BookingController::class, 'create'])->name('book')->middleware('permission:book appointments');
     Route::post('/book', [\App\Http\Controllers\Frontend\BookingController::class, 'store'])->name('book.store')->middleware('permission:book appointments');
@@ -134,7 +140,8 @@ Route::middleware(['auth', 'role:Super Admin'])->prefix('super-admin')->name('su
     Route::get('pending-approvals', [\App\Http\Controllers\SuperAdmin\PendingApprovalsController::class, 'index'])->name('pending-approvals.index');
     Route::put('pending-approvals/{user}', [\App\Http\Controllers\SuperAdmin\PendingApprovalsController::class, 'approve'])->name('pending-approvals.approve');
     Route::match(['delete'], 'pending-approvals/{user}', [\App\Http\Controllers\SuperAdmin\PendingApprovalsController::class, 'deny'])->name('pending-approvals.deny');
-    Route::resource('tenants', \App\Http\Controllers\SuperAdmin\TenantManagementController::class)->except('destroy');
+    Route::resource('tenants', \App\Http\Controllers\SuperAdmin\TenantManagementController::class);
+    Route::post('tenants/{tenant}/provision-database', [\App\Http\Controllers\SuperAdmin\TenantManagementController::class, 'provisionDatabase'])->name('tenants.provision-database');
     Route::patch('tenants/{tenant}/toggle-status', [\App\Http\Controllers\SuperAdmin\TenantManagementController::class, 'toggleStatus'])->name('tenants.toggle-status');
     Route::get('tenants/{tenant}/rbac', [\App\Http\Controllers\SuperAdmin\TenantRbacController::class, 'index'])->name('tenants.rbac.index');
     Route::get('tenants/{tenant}/rbac/roles/{role}', [\App\Http\Controllers\SuperAdmin\TenantRbacController::class, 'edit'])->name('tenants.rbac.edit');
@@ -142,7 +149,7 @@ Route::middleware(['auth', 'role:Super Admin'])->prefix('super-admin')->name('su
     Route::get('roles', [\App\Http\Controllers\SuperAdmin\RbacController::class, 'index'])->name('rbac.index');
     Route::get('roles/{role}/edit', [\App\Http\Controllers\SuperAdmin\RbacController::class, 'edit'])->name('rbac.edit');
     Route::put('roles/{role}', [\App\Http\Controllers\SuperAdmin\RbacController::class, 'update'])->name('rbac.update');
-    
+
     // Super Admin user management
     Route::get('users', [\App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('users.index');
     Route::get('users/create', [\App\Http\Controllers\SuperAdmin\UserController::class, 'create'])->name('users.create');

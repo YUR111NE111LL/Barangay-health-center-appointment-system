@@ -14,16 +14,18 @@ return new class extends Migration
         if (! Schema::hasTable('tenant_role_permissions')) {
             Schema::create('tenant_role_permissions', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
+                // Tenant DB has no `tenants` table; keep tenant_id as plain indexed column.
+                $table->unsignedBigInteger('tenant_id')->index();
                 $table->string('role_name', 64);
                 $table->string('permission_name', 128);
                 $table->unique(['tenant_id', 'role_name', 'permission_name'], self::UNIQUE_INDEX);
             });
+
             return;
         }
 
         // Table already exists (e.g. from a failed run); add unique index if missing
-        $indexExists = collect(DB::select("SHOW INDEX FROM tenant_role_permissions WHERE Key_name = ?", [self::UNIQUE_INDEX]))->isNotEmpty();
+        $indexExists = collect(DB::select('SHOW INDEX FROM tenant_role_permissions WHERE Key_name = ?', [self::UNIQUE_INDEX]))->isNotEmpty();
         if (! $indexExists) {
             Schema::table('tenant_role_permissions', function (Blueprint $table) {
                 $table->unique(['tenant_id', 'role_name', 'permission_name'], self::UNIQUE_INDEX);

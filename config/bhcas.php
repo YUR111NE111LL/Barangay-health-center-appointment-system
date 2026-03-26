@@ -32,6 +32,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | System Admin Support Contact
+    |--------------------------------------------------------------------------
+    */
+    'support' => [
+        'phone' => env('BHCAS_SUPPORT_PHONE', '+63 900 000 0000'),
+        'email' => env('BHCAS_SUPPORT_EMAIL', 'support@bhcas.local'),
+        'hours' => env('BHCAS_SUPPORT_HOURS', 'Mon–Fri, 9:00 AM - 5:00 PM'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Final Project Requirements
     |--------------------------------------------------------------------------
     | Used by the requirements page and for feature checks.
@@ -135,5 +146,15 @@ return [
     | Max number of appointments per tenant per day. Null = no limit (or use plan).
     */
     'daily_appointment_limit' => env('BHCAS_DAILY_APPOINTMENT_LIMIT', 30),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Tenant Domain Root
+    |--------------------------------------------------------------------------
+    | Used to auto-generate tenant domains from the barangay value on the
+    | Super Admin "Add Tenant" screen (e.g. {barangay}.localhost).
+    | Set BHCAS_TENANT_DOMAIN_ROOT to your real domain root in production.
+    */
+    'tenant_domain_root' => env('BHCAS_TENANT_DOMAIN_ROOT', 'localhost'),
 
 ];

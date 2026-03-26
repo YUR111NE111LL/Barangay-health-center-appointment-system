@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,7 +30,48 @@ class PendingApprovalsController extends Controller
             return redirect()->route('super-admin.pending-approvals.index')
                 ->with('error', 'That account is not pending approval.');
         }
+
+        // Keep tenant-domain authentication isolated to tenant DB users.
+        // When approving a barangay admin from central pending approvals,
+        // ensure the corresponding account exists in the tenant database.
+        if ($user->role === User::ROLE_HEALTH_CENTER_ADMIN && $user->tenant_id) {
+            $tenant = Tenant::query()->find($user->tenant_id);
+            if ($tenant) {
+                $tenant->run(function () use ($user): void {
+                    $tenantUser = User::query()
+                        ->where('tenant_id', $user->tenant_id)
+                        ->whereRaw('LOWER(email) = ?', [strtolower($user->email)])
+                        ->first();
+
+                    if (! $tenantUser) {
+                        User::query()->create([
+                            'tenant_id' => $user->tenant_id,
+                            'role' => $user->role,
+                            'name' => $user->name,
+                            'purok_address' => $user->purok_address,
+                            'profile_picture' => $user->profile_picture,
+                            'email' => $user->email,
+                            'password' => $user->password,
+                            'google_id' => $user->google_id,
+                            'is_approved' => true,
+                        ]);
+                    } else {
+                        $tenantUser->update([
+                            'role' => $user->role,
+                            'name' => $user->name,
+                            'purok_address' => $user->purok_address,
+                            'profile_picture' => $user->profile_picture,
+                            'password' => $user->password,
+                            'google_id' => $user->google_id,
+                            'is_approved' => true,
+                        ]);
+                    }
+                });
+            }
+        }
+
         $user->update(['is_approved' => true]);
+
         return redirect()->route('super-admin.pending-approvals.index')
             ->with('success', "{$user->name} ({$user->role}) has been approved. They can now log in.");
     }
@@ -42,6 +84,7 @@ class PendingApprovalsController extends Controller
         }
         $name = $user->name;
         $user->delete();
+
         return redirect()->route('super-admin.pending-approvals.index')
             ->with('success', "Registration for {$name} has been denied and removed.");
     }

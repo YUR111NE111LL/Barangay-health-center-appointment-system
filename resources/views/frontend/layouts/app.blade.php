@@ -194,6 +194,8 @@
             var ch = window.Echo.channel('tenant.' + tenantId);
             ch.listen('.customization.updated', function() { location.reload(); });
             ch.listen('.rbac.updated', function() { location.reload(); });
+            ch.listen('.appointment.updated', function() { location.reload(); });
+            ch.listen('.profile.updated', function() { location.reload(); });
         }
         if (typeof window.Echo !== 'undefined') subscribeRealtime();
         else window.addEventListener('echo-ready', subscribeRealtime);

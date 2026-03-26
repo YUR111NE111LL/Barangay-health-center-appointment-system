@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class LoginController extends Controller
@@ -49,19 +51,27 @@ class LoginController extends Controller
         // Central = super-admin only (no tenant_id). Tenant domain = no tenant_id (current tenant).
         $siteKey = config('services.recaptcha.v3.site_key');
         $secretKey = config('services.recaptcha.v3.secret_key');
-        $skipRecaptcha = config('app.debug');
+        $skipRecaptcha = config('app.debug') || app()->environment('local');
         if ($siteKey && $secretKey && ! $skipRecaptcha) {
             $rules['recaptcha_token'] = ['required', 'string'];
         }
         $validated = $request->validate($rules);
 
         if ($siteKey && $secretKey && ! $skipRecaptcha) {
-            $verify = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
-                'secret' => $secretKey,
-                'response' => $validated['recaptcha_token'],
-                'remoteip' => $request->ip(),
-            ]);
-            $body = $verify->json();
+            // Fail fast if Google is slow/unreachable (prevents login page from "hanging").
+            try {
+                $verify = Http::asForm()->timeout(5)->connectTimeout(2)->post('https://www.google.com/recaptcha/api/siteverify', [
+                    'secret' => $secretKey,
+                    'response' => $validated['recaptcha_token'],
+                    'remoteip' => $request->ip(),
+                ]);
+            } catch (ConnectionException $e) {
+                return back()
+                    ->withInput($request->only('email', 'for', 'tenant_id'))
+                    ->withErrors(['email' => 'Unable to verify reCAPTCHA right now. Please try again in a moment.']);
+            }
+
+            $body = $verify->json() ?? [];
             $threshold = (float) config('services.recaptcha.v3.score_threshold', 0.5);
             if (! ($body['success'] ?? false) || (float) ($body['score'] ?? 0) < $threshold) {
                 return back()
@@ -73,9 +83,17 @@ class LoginController extends Controller
         $email = $validated['email'];
         $password = $validated['password'];
         if ($currentTenant) {
+            // Strict tenant isolation: tenant-domain login only authenticates against tenant DB.
+            if (! Schema::hasTable('users')) {
+                return back()
+                    ->withInput($request->only('email', 'for'))
+                    ->withErrors(['email' => 'This barangay is not ready yet. Please contact the Super Admin.']);
+            }
+
             $user = User::where('tenant_id', $currentTenant->id)
                 ->whereRaw('LOWER(email) = ?', [strtolower($email)])
                 ->first();
+
             if (! $user) {
                 return back()
                     ->withInput($request->only('email', 'for'))
@@ -133,17 +151,23 @@ class LoginController extends Controller
         // Super Admin: redirect to super-admin dashboard
         if ($user->isSuperAdmin()) {
             $request->session()->regenerate();
+
             return redirect()->intended(route('super-admin.dashboard'))
                 ->with('success', __('You have logged in successfully.'));
         }
 
-        // Tenant or Resident: already verified they belong to selected barangay
+        // Tenant or Resident: already verified they belong to selected barangay.
+        // Don't use intended() here, because stale central URLs in session (e.g. /super-admin)
+        // can wrongly pull tenant users back to the central app.
         $request->session()->regenerate();
         if ($user->role === 'Resident') {
-            return redirect()->intended(route('resident.dashboard'))
+            // Use relative path to stay on the current tenant host.
+            return redirect()->to('/resident')
                 ->with('success', __('You have logged in successfully.'));
         }
-        return redirect()->intended(route('backend.dashboard'))
+
+        // Use relative path to stay on the current tenant host.
+        return redirect()->to('/backend')
             ->with('success', __('You have logged in successfully.'));
     }
 }

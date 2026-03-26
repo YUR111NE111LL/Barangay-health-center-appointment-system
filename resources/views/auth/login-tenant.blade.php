@@ -17,12 +17,21 @@
         $loginBgStyle = '';
     }
 @endphp
+@php
+    // Display barangay name derived from the current host (tenant domain):
+    // e.g. brgy-bangcud.localhost => Brgy Bangcud
+    $host = (string) request()->getHost();
+    $firstLabel = explode('.', $host)[0] ?? '';
+    $barangayDisplay = $firstLabel !== ''
+        ? ucwords(str_replace('-', ' ', $firstLabel))
+        : $tenant->getDisplayName();
+@endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $pageTitle }} – {{ $tenant->getDisplayName() }}</title>
+    <title>{{ $pageTitle }} – {{ $barangayDisplay }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @if(config('services.recaptcha.v3.site_key') && !config('app.debug'))
     <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.v3.site_key') }}" async defer></script>
@@ -30,30 +39,30 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=dm-sans:400,500,600,700" rel="stylesheet" />
     <style>
-        .login-panel-left { background: linear-gradient(135deg, {{ $tenant->getPrimaryColor() }} 0%, #0f766e 50%, #115e59 100%); }
+        .login-panel-left { }
         @media (max-width: 767px) { .login-panel-left { min-height: 12rem; } }
     </style>
 </head>
 <body class="min-h-screen overflow-x-hidden antialiased" style="font-family: 'DM Sans', ui-sans-serif, sans-serif;">
     <div class="min-h-screen overflow-visible flex items-center justify-center p-4 {{ $loginBgClass }}" @if($loginBgStyle) style="{{ $loginBgStyle }}" @endif>
         <div class="w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-300/50 flex flex-col md:flex-row bg-white">
-            <div class="login-panel-left md:w-[44%] flex flex-col items-center justify-center p-8 md:p-12 text-white">
+            <div class="login-panel-left md:w-[44%] flex flex-col items-center justify-center p-8 md:p-12 text-white" style="background: linear-gradient(135deg, {{ $tenant->getPrimaryColor() }} 0%, #0f766e 50%, #115e59 100%);">
                 @if($logoPath)
-                <img src="{{ $logoPath }}" alt="{{ $tenant->getDisplayName() }}" class="max-w-full h-auto max-h-48 md:max-h-56 w-auto object-contain" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
+                <img src="{{ $logoPath }}" alt="{{ $barangayDisplay }}" class="max-w-full h-auto max-h-48 md:max-h-56 w-auto object-contain" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
                 <div class="hidden text-center">
-                    <span class="text-2xl md:text-3xl font-bold tracking-tight">{{ $tenant->getDisplayName() }}</span>
+                    <span class="text-2xl md:text-3xl font-bold tracking-tight">{{ $barangayDisplay }}</span>
                 </div>
                 @else
                 <div class="text-center">
-                    <span class="text-2xl md:text-3xl font-bold tracking-tight">{{ $tenant->getDisplayName() }}</span>
+                    <span class="text-2xl md:text-3xl font-bold tracking-tight">{{ $barangayDisplay }}</span>
                     @if($tenant->tagline)<p class="mt-1 text-sm text-white/90">{{ $tenant->tagline }}</p>@endif
                 </div>
                 @endif
-                <p class="mt-6 text-sm text-white/80 text-center max-w-xs">Book and manage health center appointments at {{ $tenant->getDisplayName() }}.</p>
+                <p class="mt-6 text-sm text-white/80 text-center max-w-xs">Book and manage health center appointments at {{ $barangayDisplay }}.</p>
             </div>
             <div class="flex-1 p-6 sm:p-8 md:p-10 flex flex-col justify-center">
                 <div class="mb-6">
-                    <p class="text-slate-500 text-sm">{{ $tenant->getDisplayName() }}</p>
+                    <p class="text-slate-500 text-sm">{{ $barangayDisplay }}</p>
                     <h1 class="text-2xl font-bold text-slate-800 mt-0.5">{{ $pageTitle }}</h1>
                     <p class="text-slate-500 text-xs mt-0.5">{{ $subtitle }}</p>
                 </div>
@@ -120,19 +129,85 @@
         var tokenInput = form && document.getElementById('recaptcha_token');
         var submitBtn = form && document.getElementById('login-submit');
         var siteKey = form ? form.getAttribute('data-recaptcha-site-key') : '';
-        function doSubmit(){ if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Logging in...'; } form.removeEventListener('submit', arguments.callee); setTimeout(function(){ (form.requestSubmit && form.requestSubmit()) || form.submit(); }, 50); }
-        if (form && siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.ready) {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                if (tokenInput && tokenInput.value) { doSubmit(); return; }
-                grecaptcha.ready(function() {
-                    grecaptcha.execute(siteKey, { action: 'login' }).then(function(token) {
-                        if (tokenInput && token) tokenInput.value = token;
-                        doSubmit();
-                    }).catch(function() { if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Login'; } });
+        var isSubmitting = false;
+        var tokenPreloaded = false;
+        function waitForRecaptcha(callback) {
+            if (! (form && siteKey)) { return; }
+
+            if (typeof grecaptcha !== 'undefined' && typeof grecaptcha.ready === 'function') {
+                callback();
+                return;
+            }
+
+            // Fast polling until grecaptcha is ready (reduces click delay).
+            var attempts = 0;
+            var maxAttempts = 60; // 60 * 50ms = 3s
+            function check() {
+                if (typeof grecaptcha !== 'undefined' && typeof grecaptcha.ready === 'function') {
+                    callback();
+                    return;
+                }
+                if (attempts < maxAttempts) {
+                    attempts++;
+                    setTimeout(check, 50);
+                }
+            }
+            check();
+        }
+
+        function doSubmit(){
+            if (isSubmitting) { return; }
+            isSubmitting = true;
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Logging in...'; }
+            form.removeEventListener('submit', submitHandler);
+            // Use native submit to avoid re-triggering our submit handler.
+            setTimeout(function(){ form.submit(); }, 50);
+        }
+
+        // Preload token for faster submission.
+        function preloadToken() {
+            waitForRecaptcha(function(){
+                if (tokenPreloaded) { return; }
+                if (! tokenInput || tokenInput.value) { return; }
+                grecaptcha.ready(function(){
+                    grecaptcha.execute(siteKey, { action: 'login' }).then(function(token){
+                        if (tokenInput && token) {
+                            tokenInput.value = token;
+                            tokenPreloaded = true;
+                        }
+                    }).catch(function(){ /* ignore preload failure */ });
                 });
             });
         }
+
+        var submitHandler = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (isSubmitting) { return; }
+
+            if (tokenInput && tokenInput.value) { doSubmit(); return; }
+
+            waitForRecaptcha(function(){
+                if (! tokenInput) { return; }
+                grecaptcha.ready(function(){
+                    grecaptcha.execute(siteKey, { action: 'login' }).then(function(token){
+                        if (tokenInput && token) tokenInput.value = token;
+                        doSubmit();
+                    }).catch(function(){
+                        isSubmitting = false;
+                        tokenPreloaded = false;
+                        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Login'; }
+                    });
+                });
+            });
+        };
+
+        if (form && siteKey) {
+            form.addEventListener('submit', submitHandler);
+        }
+
+        preloadToken();
     })();
     </script>
     @endif

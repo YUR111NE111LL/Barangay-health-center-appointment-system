@@ -5,9 +5,9 @@
 @section('content')
 <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <h1 class="text-2xl font-bold text-slate-800">Appointments</h1>
-    @can('encode appointments')
+    @if(auth()->user()->hasTenantPermission('encode appointments'))
     <a href="{{ route('backend.appointments.create') }}" class="inline-flex items-center rounded-xl bg-teal-600 px-4 py-2.5 font-medium text-white shadow-sm hover:bg-teal-700">New Appointment</a>
-    @endcan
+    @endif
 </div>
 
 <form class="mb-6 flex flex-wrap items-end gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200/60" method="GET">

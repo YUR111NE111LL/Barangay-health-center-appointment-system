@@ -13,7 +13,8 @@
         <table class="min-w-full divide-y divide-slate-200">
             <thead class="bg-slate-50">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Name</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Barangay</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Tenant</th>
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Domain</th>
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Plan</th>
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Subscription Status</th>
@@ -25,6 +26,16 @@
             <tbody class="divide-y divide-slate-200 bg-white">
                 @forelse($tenants as $t)
                 <tr class="hover:bg-slate-50/50">
+                    @php
+                        $primaryDomain = $t->domains->first()?->domain;
+                        // Derive barangay name from the domain (e.g. brgy-bangcud.localhost => Brgy Bangcud).
+                        $barangayDisplay = '—';
+                        if ($primaryDomain) {
+                            $firstLabel = explode('.', (string) $primaryDomain)[0] ?: '';
+                            $barangayDisplay = ucwords(str_replace('-', ' ', $firstLabel));
+                        }
+                    @endphp
+                    <td class="px-4 py-3 text-sm font-medium text-slate-800">{{ $barangayDisplay }}</td>
                     <td class="px-4 py-3 text-sm font-medium text-slate-800">{{ $t->name }}</td>
                     <td class="px-4 py-3">
                         @php
@@ -102,7 +113,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="7" class="px-4 py-12 text-center text-slate-500">No tenants yet.</td></tr>
+                <tr><td colspan="8" class="px-4 py-12 text-center text-slate-500">No tenants yet.</td></tr>
                 @endforelse
             </tbody>
         </table>

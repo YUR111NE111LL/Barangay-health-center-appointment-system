@@ -6,16 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 
 class GoogleLoginController extends Controller
 {
-    private const STATE_CACHE_PREFIX = 'google_oauth_state:';
-
-    private const STATE_TTL_SECONDS = 600;
-
     /**
      * Build URL-safe base64 state payload. Payload is IN the state so it survives the round-trip (no cache dependency).
      */
@@ -65,7 +60,6 @@ class GoogleLoginController extends Controller
         }
 
         $state = self::encodeState($for, $tenantId, $intent);
-        Cache::put(self::STATE_CACHE_PREFIX.$state, ['for' => $for, 'tenant_id' => $tenantId, 'intent' => $intent], self::STATE_TTL_SECONDS);
 
         $callbackUrl = config('services.google.redirect') ?: (rtrim(config('app.url'), '/').'/auth/google/callback');
         $clientId = config('services.google.client_id');
@@ -89,7 +83,7 @@ class GoogleLoginController extends Controller
 
     /**
      * Handle Google callback: find or create user, then login with tenant check.
-     * State contains encoded payload (f,t,i). Also try cache in case state was altered.
+     * State contains encoded payload (f,t,i).
      */
     public function callback(\Illuminate\Http\Request $request): RedirectResponse
     {
@@ -104,13 +98,6 @@ class GoogleLoginController extends Controller
                 $for = $decoded['for'];
                 $tenantId = $decoded['tenant_id'];
                 $intent = $decoded['intent'];
-            } else {
-                $cached = Cache::pull(self::STATE_CACHE_PREFIX.$stateParam);
-                if (is_array($cached)) {
-                    $for = $cached['for'] ?? 'resident';
-                    $tenantId = isset($cached['tenant_id']) ? (int) $cached['tenant_id'] : null;
-                    $intent = isset($cached['intent']) && $cached['intent'] === 'signup' ? 'signup' : 'login';
-                }
             }
         }
         if ($tenantId === 0) {
@@ -138,11 +125,11 @@ class GoogleLoginController extends Controller
                 ->withInput($tenantId ? ['tenant_id' => $tenantId] : []);
         }
 
-        $callbackUrl = config('services.google.redirect') ?: (rtrim(config('app.url'), '/').'/auth/google/callback');
-
         try {
-            $googleUser = Socialite::driver('google')
-                ->redirectUrl($callbackUrl)
+            /** @var \Laravel\Socialite\Two\AbstractProvider $googleDriver */
+            $googleDriver = Socialite::driver('google');
+
+            $googleUser = $googleDriver
                 ->stateless()
                 ->user();
         } catch (\Throwable $e) {
@@ -154,7 +141,7 @@ class GoogleLoginController extends Controller
                 'exception' => get_class($e),
                 'message' => $e->getMessage(),
                 'response_body' => $responseBody ?: null,
-                'callback_url_used' => $callbackUrl,
+                'callback_url_used' => config('services.google.redirect') ?: (rtrim(config('app.url'), '/').'/auth/google/callback'),
                 'for' => $for,
             ]);
 

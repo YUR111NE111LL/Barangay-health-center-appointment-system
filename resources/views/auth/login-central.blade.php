@@ -13,6 +13,20 @@
         $loginBgClass = 'bg-gradient-to-br from-teal-500 via-teal-600 to-cyan-700';
         $loginBgStyle = '';
     }
+
+    $loginOuterExtraClass = ($loginBg !== 'custom' && $loginBg !== 'slate') ? 'login-central-outer' : '';
+    $loginBgOuterClass = $loginBg === 'custom' ? '' : $loginBgClass;
+    $loginBgStyleAttr = $loginBgStyle !== '' ? 'style="' . e($loginBgStyle) . '"' : '';
+
+    // Tenant list for "Sign in as Resident/Staff" quick links (central domain).
+    $tenants = \App\Models\Tenant::with('domains')
+        ->where('is_active', true)
+        ->whereHas('domains', static fn ($q) => $q->whereNotNull('domain')->where('domain', '!=', ''))
+        ->orderBy('name')
+        ->get();
+    $scheme = request()->getScheme();
+    $port = request()->getPort();
+    $portSuffix = ($port && ! in_array((int) $port, [80, 443], true)) ? ':' . $port : '';
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -33,7 +47,7 @@
     </style>
 </head>
 <body class="min-h-screen overflow-x-hidden antialiased" style="font-family: 'DM Sans', ui-sans-serif, sans-serif;">
-    <div class="min-h-screen overflow-visible flex items-center justify-center p-4 {{ $loginBg === 'custom' ? '' : $loginBgClass }} @if($loginBg !== 'custom' && $loginBg !== 'slate') login-central-outer @endif" @if($loginBgStyle) style="{{ $loginBgStyle }}" @endif>
+    <div class="min-h-screen overflow-visible flex items-center justify-center p-4 {{ $loginBgOuterClass }} {{ $loginOuterExtraClass }}" {!! $loginBgStyleAttr !!}>
         <div class="w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-300/50 flex flex-col md:flex-row bg-white">
             <div class="login-panel-left md:w-[44%] flex flex-col items-center justify-center p-8 md:p-12 text-white">
                 <div class="w-full max-w-[280px] rounded-xl bg-white p-6 md:p-8 shadow-lg flex flex-col items-center justify-center text-center">
@@ -59,10 +73,94 @@
                         <span class="inline-flex rounded bg-slate-100 p-1.5 text-teal-600" title="Mobile"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span>
                     </div>
                     @endif
+                    @if($tenants->isNotEmpty())
+                        <div class="mt-4 w-full max-h-[420px] overflow-y-auto pr-1">
+                            <p class="text-xs font-semibold text-teal-700">Sign in at your barangay</p>
+                            <p class="mt-1 text-[11px] text-slate-600">Choose a barangay, then pick Resident or Staff/Nurse.</p>
+
+                            <div class="mt-3 flex flex-col gap-2">
+                                @foreach($tenants as $t)
+                                    @php $domain = $t->domains->first()?->domain; @endphp
+                                    @if($domain)
+                                        @php
+                                            $hostOnly = explode(':', (string) $domain)[0];
+                                            $firstLabel = explode('.', $hostOnly)[0] ?? '';
+                                            $barangayDisplay = ucwords(str_replace('-', ' ', $firstLabel));
+                                            $residentLoginUrl = $scheme . '://' . $domain . $portSuffix . '/login?for=resident';
+                                            $staffLoginUrl = $scheme . '://' . $domain . $portSuffix . '/login?for=tenant';
+                                        @endphp
+                                        <div
+                                            class="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:bg-slate-100 hover:ring-teal-200 hover:shadow-sm cursor-pointer"
+                                            role="link"
+                                            tabindex="0"
+                                            onclick="window.location.href='{{ $residentLoginUrl }}'"
+                                            onkeydown="if(event.key==='Enter' || event.key===' '){ window.location.href='{{ $residentLoginUrl }}'; }"
+                                        >
+                                            <div class="truncate text-[12px] font-semibold text-slate-800">{{ $barangayDisplay }}</div>
+                                            <div class="truncate text-[10px] text-slate-500">{{ $domain }}</div>
+
+                                            <div class="mt-2 flex gap-2">
+                                                <a
+                                                    href="{{ $residentLoginUrl }}"
+                                                    onclick="event.stopPropagation()"
+                                                    class="flex-1 inline-flex items-center justify-center rounded-lg bg-teal-600 px-2 py-1 text-[10px] font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-teal-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                                >
+                                                    Resident
+                                                </a>
+                                                <a
+                                                    href="{{ $staffLoginUrl }}"
+                                                    onclick="event.stopPropagation()"
+                                                    class="flex-1 inline-flex items-center justify-center rounded-lg border border-teal-600/30 bg-white px-2 py-1 text-[10px] font-semibold text-teal-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-teal-50 hover:border-teal-600/50 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                                >
+                                                    Staff / Nurse
+                                                </a>
+                                            </div>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                 </div>
-                <p class="mt-6 text-sm text-white/80 text-center max-w-xs">Central app – platform administration only.</p>
+                @if($tenants->isNotEmpty())
+                    <div class="mt-4 hidden w-full max-w-[280px] rounded-xl bg-white/10 p-4 ring-1 ring-white/20">
+                        <p class="text-sm font-semibold text-white">Sign in at your barangay</p>
+                        <p class="mt-1 text-xs text-white/70">Choose barangay, then pick Resident or Staff/Nurse.</p>
+                        <div class="mt-3 flex flex-col gap-3">
+                            @foreach($tenants as $t)
+                                @php $domain = $t->domains->first()?->domain; @endphp
+                                @if($domain)
+                                    <div class="rounded-lg bg-white/5 p-3 ring-1 ring-white/15">
+                                        @php
+                                            $hostOnly = explode(':', (string) $domain)[0];
+                                            $firstLabel = explode('.', $hostOnly)[0] ?? '';
+                                            $barangayDisplay = ucwords(str_replace('-', ' ', $firstLabel));
+                                        @endphp
+                                        <div class="truncate text-xs font-semibold text-white">{{ $barangayDisplay }}</div>
+                                        <div class="truncate text-[11px] text-white/60">{{ $domain }}</div>
+                                        <div class="mt-2 flex gap-2">
+                                            <a
+                                                href="{{ $scheme . '://' . $domain . $portSuffix . '/login?for=resident' }}"
+                                                class="flex-1 inline-flex items-center justify-center rounded-lg bg-teal-600 px-2.5 py-1.5 text-[11px] font-semibold text-white shadow-sm transition hover:bg-teal-700"
+                                            >
+                                                Resident
+                                            </a>
+                                            <a
+                                                href="{{ $scheme . '://' . $domain . $portSuffix . '/login?for=tenant' }}"
+                                                class="flex-1 inline-flex items-center justify-center rounded-lg border border-teal-600/30 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-teal-800 shadow-sm transition hover:bg-teal-50 hover:border-teal-600/40"
+                                            >
+                                                Staff / Nurse
+                                            </a>
+                                        </div>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+                {{-- Platform note removed by request --}}
             </div>
-            <div class="flex-1 p-6 sm:p-8 md:p-10 flex flex-col justify-center">
+            <div class="flex-1 p-6 sm:p-8 md:p-10 flex flex-col justify-start">
                 <div class="mb-6">
                     <p class="text-slate-500 text-sm">Central app</p>
                     <h1 class="text-2xl font-bold text-slate-800 mt-0.5">Super Admin Login</h1>
@@ -104,6 +202,46 @@
                         <p class="text-center text-xs text-slate-400">Protected by reCAPTCHA</p>
                     @endif
                 </form>
+
+                @if($tenants->isNotEmpty())
+                    <div class="mt-2 hidden rounded-xl bg-slate-50/60 p-4 ring-1 ring-slate-200">
+                        <p class="text-sm font-semibold text-slate-800">Sign in at your barangay</p>
+                        <p class="mt-1 text-xs text-slate-600">Choose a barangay, then pick Resident or Staff/Nurse.</p>
+                        <div class="mt-3 flex flex-col gap-3">
+                            @foreach($tenants as $t)
+                                @php $domain = $t->domains->first()?->domain; @endphp
+                                @if($domain)
+                                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <div class="min-w-0">
+                                            @php
+                                                $hostOnly = explode(':', (string) $domain)[0];
+                                                $firstLabel = explode('.', $hostOnly)[0] ?? '';
+                                                $barangayDisplay = ucwords(str_replace('-', ' ', $firstLabel));
+                                            @endphp
+                                            <div class="truncate text-sm font-semibold text-slate-800">{{ $barangayDisplay }}</div>
+                                            <div class="truncate text-xs text-slate-500">{{ $domain }}</div>
+                                        </div>
+                                        <div class="flex flex-wrap items-center justify-end gap-2">
+                                            <a
+                                                href="{{ $scheme . '://' . $domain . $portSuffix . '/login?for=resident' }}"
+                                                class="inline-flex items-center justify-center rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-teal-700"
+                                            >
+                                                Resident
+                                            </a>
+                                            <a
+                                                href="{{ $scheme . '://' . $domain . $portSuffix . '/login?for=tenant' }}"
+                                                class="inline-flex items-center justify-center rounded-lg border border-teal-600/30 bg-white px-3 py-1.5 text-xs font-semibold text-teal-800 shadow-sm transition hover:bg-teal-50 hover:border-teal-600/40"
+                                            >
+                                                Staff / Nurse
+                                            </a>
+                                        </div>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 @if(config('services.google.client_id'))
                     <div class="relative my-4">
                         <span class="relative flex justify-center text-xs text-slate-400"><span class="bg-white px-2">OR</span></span>
@@ -113,8 +251,12 @@
                         Sign in with Google
                     </a>
                 @endif
+
                 @if(Route::has('sign-up'))
                     <p class="mt-4 text-center text-sm text-slate-600">Resident or staff? <a href="{{ route('sign-up') }}" class="font-medium text-teal-600 hover:text-teal-700 hover:underline">Sign up</a> (choose your barangay and role).</p>
+                    <a href="{{ route('sign-up') }}" class="mt-3 flex w-full items-center justify-center rounded-xl bg-teal-50 px-4 py-2.5 text-sm font-semibold text-teal-800 shadow-sm ring-1 ring-teal-500/10 transition hover:bg-teal-100">
+                        Create an account
+                    </a>
                 @endif
             </div>
         </div>
@@ -127,19 +269,90 @@
         var tokenInput = form && document.getElementById('recaptcha_token');
         var submitBtn = form && document.getElementById('login-submit');
         var siteKey = form ? form.getAttribute('data-recaptcha-site-key') : '';
-        function doSubmit(){ if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Logging in...'; } form.removeEventListener('submit', arguments.callee); setTimeout(function(){ (form.requestSubmit && form.requestSubmit()) || form.submit(); }, 50); }
-        if (form && siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.ready) {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                if (tokenInput && tokenInput.value) { doSubmit(); return; }
-                grecaptcha.ready(function() {
-                    grecaptcha.execute(siteKey, { action: 'login' }).then(function(token) {
-                        if (tokenInput && token) tokenInput.value = token;
-                        doSubmit();
-                    }).catch(function() { if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Login'; } });
-                });
+        var isSubmitting = false;
+        var tokenPreloaded = false;
+
+        function doSubmit(){
+            if (isSubmitting) { return; }
+            isSubmitting = true;
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Logging in...'; }
+            form.removeEventListener('submit', submitHandler);
+            // Use native submit to avoid re-triggering our submit handler.
+            setTimeout(function(){ form.submit(); }, 50);
+        }
+
+        function waitForRecaptcha(callback) {
+            if (! (form && siteKey)) { return; }
+
+            if (typeof grecaptcha !== 'undefined' && typeof grecaptcha.ready === 'function') {
+                callback();
+                return;
+            }
+
+            // Fast polling until grecaptcha is ready (so we don't delay on click).
+            var attempts = 0;
+            var maxAttempts = 60; // 60 * 50ms = 3s
+            function check() {
+                if (typeof grecaptcha !== 'undefined' && typeof grecaptcha.ready === 'function') {
+                    callback();
+                    return;
+                }
+                if (attempts < maxAttempts) {
+                    attempts++;
+                    setTimeout(check, 50);
+                }
+            }
+            check();
+        }
+
+        // Preload token for faster submit.
+        function preloadToken() {
+            waitForRecaptcha(function(){
+                if (tokenPreloaded) { return; }
+                if (! tokenInput || ! tokenInput.value) {
+                    grecaptcha.ready(function(){
+                        grecaptcha.execute(siteKey, { action: 'login' }).then(function(token){
+                            if (tokenInput && token) {
+                                tokenInput.value = token;
+                                tokenPreloaded = true;
+                            }
+                        }).catch(function(){ /* ignore preload failure */ });
+                    });
+                }
             });
         }
+
+        var submitHandler = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (isSubmitting) { return; }
+
+            // If token already exists (preloaded), submit immediately.
+            if (tokenInput && tokenInput.value) { doSubmit(); return; }
+
+            // Otherwise, generate one right now.
+            waitForRecaptcha(function(){
+                if (! tokenInput) { return; }
+                grecaptcha.ready(function(){
+                    grecaptcha.execute(siteKey, { action: 'login' }).then(function(token){
+                        if (tokenInput && token) tokenInput.value = token;
+                        doSubmit();
+                    }).catch(function(){
+                        isSubmitting = false;
+                        tokenPreloaded = false;
+                        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Login'; }
+                    });
+                });
+            });
+        };
+
+        // Attach immediately; grecaptcha may load later.
+        if (form && siteKey) {
+            form.addEventListener('submit', submitHandler);
+        }
+
+        preloadToken();
     })();
     </script>
     @endif

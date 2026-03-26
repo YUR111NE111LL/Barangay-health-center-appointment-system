@@ -13,8 +13,10 @@ return new class extends Migration
     {
         Schema::create('appointments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete(); // Resident (patient)
+            // Tenant DB has no `tenants` table; keep tenant_id as plain indexed column.
+            $table->unsignedBigInteger('tenant_id')->index();
+            // Tenant auth tables may be provisioned separately; avoid FK hard dependency here.
+            $table->unsignedBigInteger('user_id')->index(); // Resident (patient)
             $table->foreignId('service_id')->constrained()->cascadeOnDelete();
             $table->date('scheduled_date');
             $table->time('scheduled_time');
@@ -22,7 +24,7 @@ return new class extends Migration
             $table->text('complaint')->nullable();
             $table->text('notes')->nullable(); // Staff/Nurse notes
             $table->timestamp('approved_at')->nullable();
-            $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('approved_by')->nullable()->index();
             $table->timestamp('visited_at')->nullable();
             $table->timestamps();
         });

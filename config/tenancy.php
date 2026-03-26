@@ -29,7 +29,6 @@ return [
      */
     'bootstrappers' => [
         Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper::class,
-        Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper::class,
         Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper::class,
         Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper::class,
         // Stancl\Tenancy\Bootstrappers\RedisTenancyBootstrapper::class, // Note: phpredis is needed
@@ -39,13 +38,13 @@ return [
      * Database tenancy config. Used by DatabaseTenancyBootstrapper.
      */
     'database' => [
-        'central_connection' => env('DB_CONNECTION', 'central'),
+        'central_connection' => env('TENANCY_CENTRAL_CONNECTION', 'central'),
 
         /**
          * Connection used as a "template" for the dynamically created tenant database connection.
          * Note: don't name your template connection tenant. That name is reserved by package.
          */
-        'template_tenant_connection' => null,
+        'template_tenant_connection' => env('TENANCY_TEMPLATE_TENANT_CONNECTION', 'central'),
 
         /**
          * Tenant database names are created like this:
@@ -185,7 +184,16 @@ return [
      */
     'migration_parameters' => [
         '--force' => true, // This needs to be true to run migrations in production.
-        '--path' => [database_path('migrations/tenant')],
+        // Only tenant-safe schema should run inside tenant databases.
+        // Keep central-only tables (tenants, domains, plans, etc.) out of tenant DBs.
+        '--path' => [
+            database_path('migrations/2026_02_27_030632_create_permission_tables.php'),
+            database_path('migrations/2026_02_27_200000_create_tenant_role_permissions_table.php'),
+            database_path('migrations/0001_01_01_000006_create_services_table.php'),
+            database_path('migrations/0001_01_01_000007_create_appointments_table.php'),
+            database_path('migrations/2026_02_27_140000_create_announcements_table.php'),
+            database_path('migrations/2026_02_27_140001_create_events_table.php'),
+        ],
         '--realpath' => true,
     ],
 

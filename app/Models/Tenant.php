@@ -6,28 +6,43 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Stancl\Tenancy\Contracts\Tenant as TenantContract;
+use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
+use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Concerns\TenantRun;
 use Stancl\Tenancy\Database\Models\Domain;
+use Stancl\Tenancy\Events;
 
-class Tenant extends Model implements TenantContract
+class Tenant extends Model implements TenantWithDatabase
 {
     use CentralConnection;
+    use HasDatabase;
     use HasFactory;
     use TenantRun;
+
+    /**
+     * Ensure Stancl tenancy events are dispatched from this custom tenant model.
+     *
+     * Without this, Stancl will not fire `TenantCreated`/`TenantDeleted`, and your
+     * DB provisioning jobs (`CreateDatabase`, `MigrateDatabase`) won't run.
+     */
+    protected $dispatchesEvents = [
+        'saving' => Events\SavingTenant::class,
+        'saved' => Events\TenantSaved::class,
+        'creating' => Events\CreatingTenant::class,
+        'created' => Events\TenantCreated::class,
+        'updating' => Events\UpdatingTenant::class,
+        'updated' => Events\TenantUpdated::class,
+        'deleting' => Events\DeletingTenant::class,
+        'deleted' => Events\TenantDeleted::class,
+    ];
 
     /**
      * Tenants are not scoped by tenant_id (they define the tenant).
      * Do not use BelongsToTenant on this model.
      */
 
-    protected static function booted(): void
-    {
-        static::created(function (Tenant $tenant): void {
-            \App\Services\TenantRbacSeeder::seedTenant($tenant->id);
-        });
-    }
+    // No automatic tenant seeding here; real barangay data is added manually.
 
     protected $fillable = [
         'data',
@@ -76,17 +91,28 @@ class Tenant extends Model implements TenantContract
         return $this->getAttribute($this->getTenantKeyName());
     }
 
+    /**
+     * Stancl Tenancy internal keys prefix used by the database bootstrapper.
+     *
+     * This project stores internal tenancy values inside the `data` column
+     * (e.g. `data.tenancy_db_name`), so we only need the prefix for Stancl.
+     */
+    public static function internalPrefix(): string
+    {
+        return 'tenancy_';
+    }
+
     public function getInternal(string $key): mixed
     {
         $data = $this->getAttribute('data') ?? [];
 
-        return $data['tenancy_' . $key] ?? null;
+        return $data['tenancy_'.$key] ?? null;
     }
 
     public function setInternal(string $key, mixed $value): static
     {
         $data = $this->getAttribute('data') ?? [];
-        $data['tenancy_' . $key] = $value;
+        $data['tenancy_'.$key] = $value;
         $this->setAttribute('data', $data);
 
         return $this;
@@ -321,6 +347,7 @@ class Tenant extends Model implements TenantContract
         if ($this->hasFeature('web_customization')) {
             return ['navbar', 'dropdown'];
         }
+
         return ['navbar'];
     }
 
@@ -337,9 +364,10 @@ class Tenant extends Model implements TenantContract
      */
     public function isExpired(): bool
     {
-        if (!$this->subscription_ends_at) {
+        if (! $this->subscription_ends_at) {
             return false;
         }
+
         return $this->subscription_ends_at->isPast();
     }
 
@@ -348,9 +376,10 @@ class Tenant extends Model implements TenantContract
      */
     public function isInGracePeriod(): bool
     {
-        if (!$this->isExpired() || !$this->grace_period_ends_at) {
+        if (! $this->isExpired() || ! $this->grace_period_ends_at) {
             return false;
         }
+
         return $this->grace_period_ends_at->isFuture();
     }
 
@@ -359,9 +388,10 @@ class Tenant extends Model implements TenantContract
      */
     public function isPastGracePeriod(): bool
     {
-        if (!$this->grace_period_ends_at) {
+        if (! $this->grace_period_ends_at) {
             return false;
         }
+
         return $this->grace_period_ends_at->isPast();
     }
 
@@ -370,9 +400,10 @@ class Tenant extends Model implements TenantContract
      */
     public function daysUntilExpiry(): ?int
     {
-        if (!$this->subscription_ends_at) {
+        if (! $this->subscription_ends_at) {
             return null;
         }
+
         return now()->diffInDays($this->subscription_ends_at, false);
     }
 
@@ -381,9 +412,10 @@ class Tenant extends Model implements TenantContract
      */
     public function daysRemainingInGracePeriod(): ?int
     {
-        if (!$this->isInGracePeriod()) {
+        if (! $this->isInGracePeriod()) {
             return null;
         }
+
         return max(0, now()->diffInDays($this->grace_period_ends_at, false));
     }
 
@@ -392,27 +424,27 @@ class Tenant extends Model implements TenantContract
      */
     public function getSubscriptionStatus(): string
     {
-        if (!$this->subscription_ends_at) {
+        if (! $this->subscription_ends_at) {
             return 'active';
         }
-        
+
         if ($this->isPastGracePeriod()) {
             return 'deactivated';
         }
-        
+
         if ($this->isInGracePeriod()) {
             return 'grace_period';
         }
-        
+
         if ($this->isExpired()) {
             return 'expired';
         }
-        
+
         $daysUntil = $this->daysUntilExpiry();
         if ($daysUntil <= 7) {
             return 'expiring_soon';
         }
-        
+
         return 'active';
     }
 }
