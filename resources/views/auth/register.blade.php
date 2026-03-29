@@ -9,7 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Sign up – {{ config('bhcas.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @if(\App\Support\Recaptcha::shouldProcess())
+    @if(\App\Support\Recaptcha::shouldLoadClient())
     <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.v3.site_key') }}" async defer></script>
     @endif
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -65,10 +65,15 @@
                         <ul class="list-inside list-disc space-y-1">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
                     </div>
                 @endif
+                @if(session('status'))
+                    <div class="mb-4 rounded-xl bg-teal-50 px-4 py-3 text-sm text-teal-800 ring-1 ring-teal-200">
+                        {{ session('status') }}
+                    </div>
+                @endif
                 <form method="POST" action="{{ route('register') }}" id="register-form" class="space-y-4"
-                    @if(\App\Support\Recaptcha::shouldProcess()) data-recaptcha-site-key="{{ config('services.recaptcha.v3.site_key') }}" @endif>
+                    @if(\App\Support\Recaptcha::shouldLoadClient()) data-recaptcha-site-key="{{ config('services.recaptcha.v3.site_key') }}" @endif>
                     @csrf
-                    @if(\App\Support\Recaptcha::shouldProcess())
+                    @if(\App\Support\Recaptcha::shouldLoadClient())
                         <input type="hidden" name="recaptcha_token" id="recaptcha_token" value="">
                     @endif
                     @php
@@ -117,7 +122,7 @@
                                                 ? str($tenantDomain)->before('.')->replace('-', ' ')->title()->toString()
                                                 : ($t->site_name ?: 'Tenant #'.$t->id);
                                         @endphp
-                                        <option value="{{ $t->id }}" {{ old('tenant_id') == $t->id ? 'selected' : '' }}>
+                                        <option value="{{ $t->id }}" {{ (string) old('tenant_id', request('tenant_id')) === (string) $t->id ? 'selected' : '' }}>
                                             {{ $tenantLabel }}@if($tenantDomain) ({{ $tenantDomain }})@endif
                                         </option>
                                     @endforeach
@@ -144,9 +149,6 @@
                     <button type="submit" id="register-submit" class="w-full rounded-xl bg-teal-600 px-4 py-3 font-semibold text-white shadow-lg shadow-teal-600/30 transition hover:bg-teal-700 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">
                         Sign up
                     </button>
-                    @if(\App\Support\Recaptcha::shouldProcess())
-                        <p class="text-center text-xs text-slate-400">Protected by reCAPTCHA</p>
-                    @endif
                     @if(config('services.google.client_id'))
                         <div id="google-signup-wrap" class="relative my-4">
                             <span class="relative flex justify-center text-xs text-slate-400"><span class="bg-white px-2">OR</span></span>
@@ -199,7 +201,7 @@
             </div>
         </div>
     </div>
-    @if(\App\Support\Recaptcha::shouldProcess())
+    @if(\App\Support\Recaptcha::shouldLoadClient())
     <script>
     (function() {
         var form = document.getElementById('register-form');

@@ -8,14 +8,23 @@ use App\Support\Recaptcha;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class LoginController extends Controller
 {
-    public function showLoginForm(Request $request): View
+    public function showLoginForm(Request $request): View|RedirectResponse
     {
+        if ($request->filled('oauth_flash')) {
+            $payload = Cache::pull('oauth_login_flash:'.$request->query('oauth_flash'));
+            if (is_array($payload) && isset($payload['email'])) {
+                return redirect()->route('login', $request->except('oauth_flash'))
+                    ->withErrors(['email' => $payload['email']]);
+            }
+        }
+
         $tenant = tenant();
 
         if ($tenant) {

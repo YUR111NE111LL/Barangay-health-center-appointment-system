@@ -28,6 +28,7 @@ Route::middleware(['tenancy.by_domain_for_auth'])->group(function (): void {
     Route::post('/login', [\App\Http\Controllers\Auth\LoginController::class, 'login']);
     Route::get('/auth/google', [\App\Http\Controllers\Auth\GoogleLoginController::class, 'redirect'])->name('auth.google.redirect');
     Route::get('/auth/google/callback', [\App\Http\Controllers\Auth\GoogleLoginController::class, 'callback'])->name('auth.google.callback');
+    Route::get('/auth/google/tenant-session', [\App\Http\Controllers\Auth\GoogleLoginController::class, 'completeTenantSession'])->name('auth.google.tenant-session');
     Route::get('/super-admin/login', fn () => redirect()->route('login', ['for' => 'super-admin']))->name('login.super-admin');
     Route::get('/backend/login', fn () => redirect()->route('login', ['for' => 'tenant']))->name('login.tenant');
     Route::get('/resident/login', fn () => redirect()->route('login', ['for' => 'resident']))->name('login.resident');
@@ -94,6 +95,7 @@ Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('bac
 
     Route::resource('appointments', BackendAppointmentController::class);
     Route::post('appointments/{appointment}/approve', [BackendAppointmentController::class, 'approve'])->name('appointments.approve');
+    Route::post('appointments/{appointment}/reject', [BackendAppointmentController::class, 'reject'])->name('appointments.reject');
 
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('inventory', [\App\Http\Controllers\Backend\InventoryController::class, 'index'])->name('inventory.index');
@@ -119,6 +121,7 @@ Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('bac
 
         Route::resource('announcements', \App\Http\Controllers\Backend\AnnouncementController::class);
         Route::resource('events', \App\Http\Controllers\Backend\EventController::class);
+        Route::resource('services', \App\Http\Controllers\Backend\ServiceController::class)->except(['show']);
 
         // Plan-based web customization (only when tenant's plan has web_customization)
         Route::get('customize-web', [\App\Http\Controllers\Backend\CustomizeWebController::class, 'edit'])->name('customize-web.edit');
@@ -149,6 +152,7 @@ Route::middleware(['auth', 'role:Super Admin'])->prefix('super-admin')->name('su
     Route::get('tenant-applications/{tenant_application}', [\App\Http\Controllers\SuperAdmin\TenantApplicationReviewController::class, 'show'])->name('tenant-applications.show');
     Route::post('tenant-applications/{tenant_application}/approve', [\App\Http\Controllers\SuperAdmin\TenantApplicationReviewController::class, 'approve'])->name('tenant-applications.approve');
     Route::post('tenant-applications/{tenant_application}/reject', [\App\Http\Controllers\SuperAdmin\TenantApplicationReviewController::class, 'reject'])->name('tenant-applications.reject');
+    Route::delete('tenant-applications/{tenant_application}', [\App\Http\Controllers\SuperAdmin\TenantApplicationReviewController::class, 'destroy'])->name('tenant-applications.destroy');
 
     Route::resource('tenants', \App\Http\Controllers\SuperAdmin\TenantManagementController::class);
     Route::post('tenants/{tenant}/provision-database', [\App\Http\Controllers\SuperAdmin\TenantManagementController::class, 'provisionDatabase'])->name('tenants.provision-database');

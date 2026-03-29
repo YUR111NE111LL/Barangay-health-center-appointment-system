@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 use Stancl\Tenancy\Database\Concerns\HasDatabase;
@@ -264,6 +265,27 @@ class Tenant extends Model implements TenantWithDatabase
     public function getDisplayName(): string
     {
         return $this->site_name ?: $this->name;
+    }
+
+    /**
+     * Human-friendly barangay label for emails (same idea as login/register: subdomain from domain,
+     * then public site name — not the internal tenant record name alone).
+     */
+    public function barangayDisplayName(): string
+    {
+        $domain = $this->relationLoaded('domains')
+            ? $this->domains->first()?->domain
+            : $this->domains()->first()?->domain;
+
+        if (is_string($domain) && $domain !== '') {
+            return Str::of($domain)->before('.')->replace('-', ' ')->title()->toString();
+        }
+
+        if (filled($this->site_name)) {
+            return $this->site_name;
+        }
+
+        return (string) ($this->name ?? '');
     }
 
     /**

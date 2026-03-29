@@ -19,7 +19,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $pageTitle }} – {{ config('bhcas.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @if(\App\Support\Recaptcha::shouldProcess())
+    @if(\App\Support\Recaptcha::shouldLoadClient())
     <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.v3.site_key') }}" async defer></script>
     @endif
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -30,6 +30,7 @@
         <div class="w-full max-w-md">
             <div class="rounded-2xl bg-white/95 p-6 shadow-xl shadow-slate-900/10 ring-1 ring-white/20 backdrop-blur sm:p-8">
                 <div class="mb-6 text-center">
+                    <x-auth-brand-logo class="mb-4" />
                     <h1 class="text-2xl font-bold text-slate-800">{{ $pageTitle }}</h1>
                     <p class="mt-1 text-sm text-slate-500">{{ $subtitle }}</p>
                 </div>
@@ -44,9 +45,9 @@
                     </div>
                 @endif
                 <form method="POST" action="{{ route('password.email') }}" id="forgot-password-form" class="space-y-4"
-                    @if(\App\Support\Recaptcha::shouldProcess()) data-recaptcha-site-key="{{ config('services.recaptcha.v3.site_key') }}" @endif>
+                    @if(\App\Support\Recaptcha::shouldLoadClient()) data-recaptcha-site-key="{{ config('services.recaptcha.v3.site_key') }}" @endif>
                     @csrf
-                    @if(\App\Support\Recaptcha::shouldProcess())
+                    @if(\App\Support\Recaptcha::shouldLoadClient())
                         <input type="hidden" name="recaptcha_token" id="recaptcha_token" value="">
                     @endif
                     @if(!empty($for))
@@ -70,9 +71,6 @@
                     <button type="submit" id="forgot-submit" class="w-full rounded-xl bg-teal-600 px-4 py-3 font-semibold text-white shadow-lg shadow-teal-600/30 transition hover:bg-teal-700 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">
                         Send password reset link
                     </button>
-                    @if(\App\Support\Recaptcha::shouldProcess())
-                        <p class="text-center text-xs text-slate-400">Protected by reCAPTCHA</p>
-                    @endif
                 </form>
                 <p class="mt-4 text-center text-sm text-slate-600">
                     <a href="{{ route('login', ['for' => $for ?? 'resident']) }}" class="font-medium text-teal-600 hover:text-teal-700 hover:underline">Back to login</a>
@@ -80,7 +78,7 @@
             </div>
         </div>
     </div>
-    @if(\App\Support\Recaptcha::shouldProcess())
+    @if(\App\Support\Recaptcha::shouldLoadClient())
     <script>
     (function() {
         var form = document.getElementById('forgot-password-form');

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Events\AppointmentSaved;
 use App\Listeners\SendAppointmentNotification;
+use App\Models\Appointment;
 use App\Models\Tenant;
 use App\Models\TenantApplication;
 use App\Models\User;
@@ -73,7 +74,13 @@ class AppServiceProvider extends ServiceProvider
                     ->where('is_approved', false)
                     ->count();
             }
-            $view->with(compact('tenant', 'brandColor', 'brandName', 'brandLogo', 'themeClass', 'navLayout', 'hasFeatureWebCustomization', 'fontUrl', 'backendPendingCount'));
+            $backendPendingAppointmentsCount = 0;
+            if ($user && $user->tenant_id && $user->hasTenantPermission('view appointments')) {
+                $backendPendingAppointmentsCount = Appointment::query()
+                    ->where('status', Appointment::STATUS_PENDING)
+                    ->count();
+            }
+            $view->with(compact('tenant', 'brandColor', 'brandName', 'brandLogo', 'themeClass', 'navLayout', 'hasFeatureWebCustomization', 'fontUrl', 'backendPendingCount', 'backendPendingAppointmentsCount'));
         });
         View::composer('frontend.layouts.app', function (\Illuminate\View\View $view): void {
             $user = auth()->user();

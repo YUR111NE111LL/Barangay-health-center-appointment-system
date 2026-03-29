@@ -6,6 +6,12 @@
 <h1 class="mb-2 text-2xl font-bold text-slate-800">Book an Appointment</h1>
 <p class="mb-6 text-slate-500">{{ $tenant->name }}</p>
 
+@if($services->isEmpty())
+    <div class="max-w-xl rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+        <p class="font-medium">{{ __('No services are available yet.') }}</p>
+        <p class="mt-1 text-amber-800/90">{{ __('Your barangay health center has not added appointment services, or they are all hidden. Please contact your health center admin.') }}</p>
+    </div>
+@else
 <form action="{{ route('resident.book.store') }}" method="POST" class="max-w-xl space-y-5 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/60 sm:p-8">
     @csrf
     <div>
@@ -40,4 +46,5 @@
         <a href="{{ route('resident.dashboard') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-medium text-slate-700 hover:bg-slate-50">Cancel</a>
     </div>
 </form>
+@endif
 @endsection

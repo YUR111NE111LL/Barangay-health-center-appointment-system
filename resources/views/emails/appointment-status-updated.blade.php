@@ -23,15 +23,24 @@
         <p style="margin: 4px 0 0 0; opacity: 0.9;">Appointment Status Update</p>
     </div>
     <div class="content">
-        <p>Hello {{ $appointment->resident->name }},</p>
-        @if($appointment->status === 'approved')
-        <p>Your appointment has been <strong>approved</strong>. You may come on the scheduled date and time.</p>
-        @elseif($appointment->status === 'cancelled' || $appointment->status === 'no_show')
-        <p>Your appointment has been <strong>cancelled</strong> or was not completed. You may book again if needed.</p>
-        @else
-        <p>Your appointment status has been updated.</p>
+        <p>Hello {{ $appointment->resident?->name ?? __('Patient') }},</p>
+        @if($appointment->status === \App\Models\Appointment::STATUS_APPROVED)
+        <p>{!! __('Your appointment has been <strong>approved</strong>. You may come on the scheduled date and time.') !!}</p>
+        @elseif($appointment->status === \App\Models\Appointment::STATUS_CANCELLED)
+        <p>{{ __('Your appointment request was not approved. You may book again if you still need a visit.') }}</p>
+        @if(filled($appointment->rejection_reason))
+        <div style="margin-top:12px;padding:12px;background:#fff;border:1px solid #dee2e6;border-radius:6px;">
+            <strong>{{ __('Note from the health center') }}</strong>
+            <p style="margin:8px 0 0 0;white-space:pre-wrap;">{{ $appointment->rejection_reason }}</p>
+        </div>
         @endif
-        <div class="detail"><strong>Service:</strong> {{ $appointment->service->name }}</div>
+        @elseif($appointment->status === \App\Models\Appointment::STATUS_NO_SHOW)
+        <p>{{ __('Your appointment was marked as not completed. You may book again if needed.') }}</p>
+        @else
+        <p>{{ __('Your appointment status has been updated.') }}</p>
+        @endif
+        <div class="detail"><strong>{{ __('Barangay') }}:</strong> {{ $appointment->tenant?->barangayDisplayName() ?: '—' }}</div>
+        <div class="detail"><strong>Service:</strong> {{ $appointment->service?->name ?? '—' }}</div>
         <div class="detail"><strong>Date:</strong> {{ $appointment->scheduled_date->format('l, F j, Y') }}</div>
         <div class="detail"><strong>Time:</strong> {{ \Carbon\Carbon::parse($appointment->scheduled_time)->format('g:i A') }}</div>
         <div class="detail"><strong>Status:</strong> <span class="status {{ $appointment->status }}">{{ ucfirst($appointment->status) }}</span></div>

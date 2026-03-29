@@ -12,7 +12,10 @@
     <div class="min-h-screen bg-gradient-to-br from-amber-500 via-orange-500 to-rose-600 p-4 flex items-center justify-center">
         <div class="w-full max-w-md">
             <div class="rounded-2xl bg-white/95 p-6 shadow-xl shadow-slate-900/10 ring-1 ring-white/20 backdrop-blur sm:p-8">
-                <h1 class="mb-6 text-center text-2xl font-bold text-slate-800">Account pending approval</h1>
+                <div class="mb-6 text-center">
+                    <x-auth-brand-logo class="mb-4" />
+                    <h1 class="text-2xl font-bold text-slate-800">Account pending approval</h1>
+                </div>
                 @if(session('status'))
                     <p class="mb-6 text-center text-slate-600">{{ session('status') }}</p>
                 @else

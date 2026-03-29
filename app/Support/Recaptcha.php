@@ -7,12 +7,24 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
 /**
- * reCAPTCHA v3: one place for "when to show / require" and server-side verification.
+ * reCAPTCHA v3: client script / badge vs server verification.
  *
- * Skips processing in local/debug so dev matches login behavior and keys are not required locally.
+ * - {@see shouldLoadClient()} loads the Google script (floating badge) whenever a site key exists,
+ *   including local — so developers see the same UI as production.
+ * - {@see shouldProcess()} controls server-side verification (skipped in local/debug).
  */
 final class Recaptcha
 {
+    /**
+     * Load reCAPTCHA v3 script and show the floating badge when a site key is configured.
+     */
+    public static function shouldLoadClient(): bool
+    {
+        $siteKey = config('services.recaptcha.v3.site_key');
+
+        return is_string($siteKey) && $siteKey !== '';
+    }
+
     public static function shouldProcess(): bool
     {
         $siteKey = config('services.recaptcha.v3.site_key');

@@ -13,6 +13,7 @@
         <div class="w-full max-w-md">
             <div class="rounded-2xl bg-white/95 p-6 shadow-xl shadow-slate-900/10 ring-1 ring-white/20 backdrop-blur sm:p-8">
                 <div class="mb-6 text-center">
+                    <x-auth-brand-logo class="mb-4" />
                     <h1 class="text-2xl font-bold text-slate-800">Reset password</h1>
                     <p class="mt-1 text-sm text-slate-500">Enter your new password below.</p>
                 </div>

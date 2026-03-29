@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\RejectAppointmentRequest;
 use App\Models\Appointment;
 use App\Models\Service;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -123,13 +125,58 @@ class AppointmentController extends Controller
             return back()->with('error', 'Only pending appointments can be approved.');
         }
 
-        $appointment->update([
+        $payload = [
             'status' => Appointment::STATUS_APPROVED,
             'approved_at' => now(),
             'approved_by' => auth()->id(),
-        ]);
+        ];
+        if ($this->appointmentsTableHasRejectionReasonColumn($appointment)) {
+            $payload['rejection_reason'] = null;
+        }
 
-        return back()->with('success', 'Appointment approved.');
+        $appointment->update($payload);
+
+        return back()->with('success', __('Appointment approved. The resident will be notified by email if their plan includes notifications.'));
+    }
+
+    /**
+     * Reject a pending appointment (same permission as approve). Sets status to cancelled and notifies the resident like tenant-application rejection.
+     */
+    public function reject(RejectAppointmentRequest $request, Appointment $appointment): RedirectResponse
+    {
+        $this->authorize('approve appointments');
+        if ($appointment->status !== Appointment::STATUS_PENDING) {
+            return back()->with('error', __('Only pending appointments can be rejected.'));
+        }
+
+        $validated = $request->validated();
+
+        $payload = [
+            'status' => Appointment::STATUS_CANCELLED,
+            'approved_at' => null,
+            'approved_by' => null,
+        ];
+        $reason = $validated['rejection_reason'] ?? null;
+        if ($this->appointmentsTableHasRejectionReasonColumn($appointment)) {
+            $payload['rejection_reason'] = $reason;
+        } elseif (filled($reason)) {
+            $payload['notes'] = trim(($appointment->notes ?? '')."\n\n[".__('Rejection note')."]\n".$reason);
+        }
+
+        $appointment->update($payload);
+
+        return back()->with('success', __('Appointment request rejected. The resident will be notified by email if their plan includes notifications.'));
+    }
+
+    /**
+     * Tenant DBs created before the rejection_reason migration do not have the column until tenants:migrate is run.
+     */
+    private function appointmentsTableHasRejectionReasonColumn(Appointment $appointment): bool
+    {
+        return Schema::connection($appointment->getConnectionName())->hasColumn(
+            $appointment->getTable(),
+            'rejection_reason',
+        );
     }
 
     /** Allow edit/update if user has any of: encode appointments, update visit status, record notes. */

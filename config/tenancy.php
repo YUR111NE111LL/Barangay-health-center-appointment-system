@@ -191,6 +191,7 @@ return [
             database_path('migrations/2026_02_27_200000_create_tenant_role_permissions_table.php'),
             database_path('migrations/0001_01_01_000006_create_services_table.php'),
             database_path('migrations/0001_01_01_000007_create_appointments_table.php'),
+            database_path('migrations/2026_03_29_133528_add_rejection_reason_to_appointments_table.php'),
             database_path('migrations/2026_02_27_140000_create_announcements_table.php'),
             database_path('migrations/2026_02_27_140001_create_events_table.php'),
         ],

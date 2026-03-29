@@ -26,9 +26,13 @@ class Appointment extends Model
     }
 
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_COMPLETED = 'completed';
+
     public const STATUS_CANCELLED = 'cancelled';
+
     public const STATUS_NO_SHOW = 'no_show';
 
     public static function statuses(): array
@@ -51,6 +55,7 @@ class Appointment extends Model
         'status',
         'complaint',
         'notes',
+        'rejection_reason',
         'approved_at',
         'approved_by',
         'visited_at',

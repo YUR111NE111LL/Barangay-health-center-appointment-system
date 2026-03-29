@@ -48,6 +48,21 @@
                         </td>
                         <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                             <a href="{{ route('super-admin.tenant-applications.show', $a) }}" class="font-medium text-violet-600 hover:text-violet-800">View</a>
+                            <form action="{{ route('super-admin.tenant-applications.destroy', $a) }}" method="POST" class="inline ml-3">
+                                @csrf
+                                @method('DELETE')
+                                @if($status !== null && $status !== '')
+                                    <input type="hidden" name="redirect_status" value="{{ $status }}">
+                                @endif
+                                <button
+                                    type="button"
+                                    class="font-medium text-rose-600 hover:text-rose-800"
+                                    data-confirm-title="{{ e(__('Remove application record')) }}"
+                                    data-confirm-message="{{ e(__('Remove this row from the list? If a tenant was already created, it stays under Tenants.')) }}"
+                                    data-confirm-text="{{ e(__('Delete')) }}"
+                                    onclick="confirmFormSubmit(this.closest('form'), { title: this.dataset.confirmTitle, message: this.dataset.confirmMessage, confirmText: this.dataset.confirmText, type: 'danger' })"
+                                >Delete</button>
+                            </form>
                         </td>
                     </tr>
                 @empty

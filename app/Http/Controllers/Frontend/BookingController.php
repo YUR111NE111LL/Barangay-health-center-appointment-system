@@ -8,6 +8,7 @@ use App\Models\Service;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class BookingController extends Controller
@@ -37,7 +38,10 @@ class BookingController extends Controller
         }
 
         $validated = $request->validate([
-            'service_id' => ['required', 'exists:services,id'],
+            'service_id' => [
+                'required',
+                Rule::exists('services', 'id')->where(fn ($query) => $query->where('is_active', true)),
+            ],
             'scheduled_date' => ['required', 'date', 'after_or_equal:today'],
             'scheduled_time' => ['required', 'date_format:H:i'],
             'complaint' => ['nullable', 'string', 'max:1000'],

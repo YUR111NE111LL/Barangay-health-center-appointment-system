@@ -13,6 +13,7 @@ use App\Support\TenantDomainInput;
 use App\Support\TenantPortalLoginUrls;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 
@@ -84,7 +85,7 @@ class TenantApplicationReviewController extends Controller
                 'domain' => $domain,
                 'status' => TenantApplication::STATUS_APPROVED,
                 'tenant_id' => $createdTenant->getTenantKey(),
-                'reviewed_by' => auth()->id(),
+                'reviewed_by' => Auth::id(),
                 'reviewed_at' => now(),
                 'rejection_reason' => null,
             ]);
@@ -144,7 +145,7 @@ class TenantApplicationReviewController extends Controller
 
         $tenantApplication->update([
             'status' => TenantApplication::STATUS_REJECTED,
-            'reviewed_by' => auth()->id(),
+            'reviewed_by' => Auth::id(),
             'reviewed_at' => now(),
             'rejection_reason' => $validated['rejection_reason'] ?? null,
         ]);
@@ -180,5 +181,27 @@ class TenantApplicationReviewController extends Controller
         return redirect()
             ->route('super-admin.tenant-applications.show', $freshApplication)
             ->with('success', $success);
+    }
+
+    /**
+     * Remove the application record from the list only. Does not delete an existing tenant site.
+     */
+    public function destroy(Request $request, TenantApplication $tenantApplication): RedirectResponse
+    {
+        $tenantApplication->delete();
+
+        $query = [];
+        $status = $request->input('redirect_status');
+        if (is_string($status) && in_array($status, [
+            TenantApplication::STATUS_PENDING,
+            TenantApplication::STATUS_APPROVED,
+            TenantApplication::STATUS_REJECTED,
+        ], true)) {
+            $query['status'] = $status;
+        }
+
+        return redirect()
+            ->route('super-admin.tenant-applications.index', $query)
+            ->with('success', __('Application record removed. Existing barangay tenants are not affected.'));
     }
 }

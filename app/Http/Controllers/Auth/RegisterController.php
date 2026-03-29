@@ -10,6 +10,7 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
@@ -62,8 +63,18 @@ class RegisterController extends Controller
         });
     }
 
-    public function showRegistrationForm(): View
+    public function showRegistrationForm(): View|RedirectResponse
     {
+        $request = request();
+
+        if ($request->filled('oauth_flash')) {
+            $payload = Cache::pull('oauth_register_flash:'.$request->query('oauth_flash'));
+            if (is_array($payload) && isset($payload['status'])) {
+                return redirect()->route('sign-up', $request->except('oauth_flash'))
+                    ->with('status', $payload['status']);
+            }
+        }
+
         $tenants = Tenant::with('domains')->where('is_active', true)->orderBy('name')->get();
         $currentTenant = tenant();
 

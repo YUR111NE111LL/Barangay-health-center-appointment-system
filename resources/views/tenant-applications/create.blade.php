@@ -10,7 +10,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ __('Apply for tenant') }} – {{ config('bhcas.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @if(\App\Support\Recaptcha::shouldProcess())
+    @if(\App\Support\Recaptcha::shouldLoadClient())
     <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.v3.site_key') }}" async defer></script>
     @endif
 </head>
@@ -57,10 +57,10 @@
                 method="POST"
                 class="mt-8 space-y-5"
                 id="tenant-application-form"
-                @if(\App\Support\Recaptcha::shouldProcess()) data-recaptcha-site-key="{{ config('services.recaptcha.v3.site_key') }}" @endif
+                @if(\App\Support\Recaptcha::shouldLoadClient()) data-recaptcha-site-key="{{ config('services.recaptcha.v3.site_key') }}" @endif
             >
                 @csrf
-                @if(\App\Support\Recaptcha::shouldProcess())
+                @if(\App\Support\Recaptcha::shouldLoadClient())
                     <input type="hidden" name="recaptcha_token" id="recaptcha_token" value="">
                 @endif
 
@@ -137,10 +137,6 @@
                     </div>
                 </div>
 
-                @if(\App\Support\Recaptcha::shouldProcess())
-                    <p class="text-center text-xs text-slate-400">{{ __('Protected by reCAPTCHA') }}</p>
-                @endif
-
                 <div class="flex flex-wrap gap-3">
                     <button
                         type="submit"
@@ -184,7 +180,7 @@
         </div>
     </main>
 
-    @if(\App\Support\Recaptcha::shouldProcess())
+    @if(\App\Support\Recaptcha::shouldLoadClient())
     <script>
     (function(){
         var form = document.getElementById('tenant-application-form');

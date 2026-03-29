@@ -4,7 +4,7 @@
 
 @section('content')
 <h1 class="mb-2 text-2xl font-bold text-slate-800">Edit Appointment #{{ $appointment->id }}</h1>
-<p class="mb-6 text-slate-500">Patient: {{ $appointment->resident->name }}</p>
+<p class="mb-6 text-slate-500">Patient: {{ $appointment->resident?->name ?? '—' }}</p>
 
 <form action="{{ route('backend.appointments.update', $appointment) }}" method="POST" class="max-w-2xl space-y-5 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/60">
     @csrf
