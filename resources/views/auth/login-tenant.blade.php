@@ -21,11 +21,12 @@
 @php
     // Display barangay name derived from the current host (tenant domain):
     // e.g. brgy-bangcud.localhost => Brgy Bangcud
+    $tenant->loadMissing('domains');
     $host = (string) request()->getHost();
     $firstLabel = explode('.', $host)[0] ?? '';
     $barangayDisplay = $firstLabel !== ''
         ? ucwords(str_replace('-', ' ', $firstLabel))
-        : $tenant->getDisplayName();
+        : $tenant->barangayDisplayName();
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">

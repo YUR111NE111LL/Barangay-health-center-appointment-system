@@ -19,6 +19,7 @@ class BookingController extends Controller
             throw new AuthorizationException(__('Your health center admin has disabled booking for your account. Permissions are set per tenant plan. Contact your health center if you need this access.'));
         }
         $tenant = auth()->user()->tenant;
+        $tenant?->loadMissing('domains');
         $services = Service::orderBy('sort_order')->orderBy('name')->get();
 
         return view('frontend.resident.book', compact('services', 'tenant'));

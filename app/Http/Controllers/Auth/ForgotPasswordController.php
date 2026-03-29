@@ -18,7 +18,7 @@ class ForgotPasswordController extends Controller
     {
         $for = $request->query('for', 'resident');
         $tenants = in_array($for, ['tenant', 'resident'], true)
-            ? Tenant::where('is_active', true)->orderBy('name')->get()
+            ? Tenant::with('domains')->where('is_active', true)->orderBy('name')->get()
             : collect();
 
         return view('auth.passwords.email', [

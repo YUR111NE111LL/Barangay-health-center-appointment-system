@@ -95,7 +95,7 @@
                     </svg>
                     Barangay / Health center
                 </dt>
-                <dd class="mt-1 text-sm text-slate-800 sm:col-span-2 sm:mt-0">{{ $user->tenant->getDisplayName() }}</dd>
+                <dd class="mt-1 text-sm text-slate-800 sm:col-span-2 sm:mt-0">{{ $user->tenant->barangayDisplayName() }}</dd>
             </div>
             @endif
             <div class="px-6 py-4 sm:grid sm:grid-cols-3 sm:gap-4">

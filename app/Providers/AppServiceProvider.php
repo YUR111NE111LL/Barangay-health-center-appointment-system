@@ -56,8 +56,11 @@ class AppServiceProvider extends ServiceProvider
         View::composer('backend.layouts.app', function (\Illuminate\View\View $view): void {
             $user = auth()->user();
             $tenant = $user?->tenant;
+            if ($tenant) {
+                $tenant->loadMissing('domains');
+            }
             $brandColor = $tenant?->getPrimaryColor() ?? '#0d9488';
-            $brandName = $tenant ? $tenant->getDisplayName() : config('bhcas.acronym');
+            $brandName = $tenant ? $tenant->barangayDisplayName() : config('bhcas.acronym');
             $brandLogo = $tenant && $tenant->logo_path
                 ? (str_contains($tenant->logo_path, 'cloudinary.com') ? $tenant->logo_path : asset('storage/'.$tenant->logo_path))
                 : null;
@@ -85,8 +88,11 @@ class AppServiceProvider extends ServiceProvider
         View::composer('frontend.layouts.app', function (\Illuminate\View\View $view): void {
             $user = auth()->user();
             $tenant = $user?->tenant;
+            if ($tenant) {
+                $tenant->loadMissing('domains');
+            }
             $brandColor = $tenant?->getPrimaryColor() ?? '#0d9488';
-            $brandName = $tenant ? $tenant->getDisplayName() : config('bhcas.acronym');
+            $brandName = $tenant ? $tenant->barangayDisplayName() : config('bhcas.acronym');
             $brandLogo = $tenant && $tenant->logo_path
                 ? (str_contains($tenant->logo_path, 'cloudinary.com') ? $tenant->logo_path : asset('storage/'.$tenant->logo_path))
                 : null;
@@ -154,14 +160,25 @@ class AppServiceProvider extends ServiceProvider
                 'token' => $token,
                 'email' => $notifiable->getEmailForPasswordReset(),
             ];
+            $barangayLabel = '';
             if (property_exists($notifiable, 'tenant_id') && $notifiable->tenant_id !== null) {
                 $params['tenant_id'] = $notifiable->tenant_id;
+                $tenant = Tenant::query()->with('domains')->find($notifiable->tenant_id);
+                if ($tenant) {
+                    $barangayLabel = $tenant->barangayDisplayName();
+                }
             }
             $url = url(route('password.reset', $params, false));
 
-            return (new MailMessage)
+            $mail = (new MailMessage)
                 ->subject(__('Reset Password Notification'))
-                ->line(__('You are receiving this email because we received a password reset request for your account.'))
+                ->line(__('You are receiving this email because we received a password reset request for your account.'));
+            if ($barangayLabel !== '') {
+                $mail->line(__('Barangay: :barangay', ['barangay' => $barangayLabel]));
+                $mail->line(__('If you use Gmail, check Spam and Promotions for this message.'));
+            }
+
+            return $mail
                 ->action(__('Reset Password'), $url)
                 ->line(__('This password reset link will expire in :count minutes.', ['count' => config('auth.passwords.users.expire')]))
                 ->line(__('If you did not request a password reset, no further action is required.'));

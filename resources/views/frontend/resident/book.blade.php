@@ -4,7 +4,7 @@
 
 @section('content')
 <h1 class="mb-2 text-2xl font-bold text-slate-800">Book an Appointment</h1>
-<p class="mb-6 text-slate-500">{{ $tenant->name }}</p>
+<p class="mb-6 text-slate-500">{{ $tenant->barangayDisplayName() }}</p>
 
 @if($services->isEmpty())
     <div class="max-w-xl rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">

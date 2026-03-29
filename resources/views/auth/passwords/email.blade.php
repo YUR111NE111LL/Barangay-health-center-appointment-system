@@ -59,7 +59,7 @@
                             <select name="tenant_id" id="tenant_id" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-800 shadow-sm focus:border-teal-500 focus:ring-teal-500" required>
                                 <option value="">— Choose barangay —</option>
                                 @foreach($tenants as $t)
-                                    <option value="{{ $t->id }}" {{ (string) old('tenant_id') === (string) $t->id ? 'selected' : '' }}>{{ $t->name }}</option>
+                                    <option value="{{ $t->id }}" {{ (string) old('tenant_id') === (string) $t->id ? 'selected' : '' }}>{{ $t->barangayDisplayName() }}</option>
                                 @endforeach
                             </select>
                         </div>

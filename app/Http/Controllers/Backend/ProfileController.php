@@ -23,7 +23,7 @@ class ProfileController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        $user->load('tenant');
+        $user->load(['tenant.domains']);
 
         return view('backend.profile.show', compact('user'));
     }
