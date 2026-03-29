@@ -44,7 +44,7 @@
         <div class="sm:col-span-2"><dt class="text-sm font-medium text-slate-500">Notes</dt><dd class="mt-1 text-slate-800">{{ $appointment->notes }}</dd></div>
         @endif
         @if($appointment->approved_at)
-        <div class="sm:col-span-2"><dt class="text-sm font-medium text-slate-500">Approved</dt><dd class="mt-1 text-sm text-slate-600">By {{ $appointment->approvedByUser?->name ?? 'N/A' }} on {{ $appointment->approved_at->format('M j, Y g:i A') }}</dd></div>
+        <div class="sm:col-span-2"><dt class="text-sm font-medium text-slate-500">Approved</dt><dd class="mt-1 text-sm text-slate-600">By {{ $appointment->approvedByUser?->name ?? 'N/A' }} on {{ \App\Support\DateDisplay::format($appointment->approved_at) }}</dd></div>
         @endif
     </dl>
 </div>

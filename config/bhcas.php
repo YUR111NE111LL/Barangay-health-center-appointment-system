@@ -43,6 +43,31 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Pricing display (apply-for-tenant, marketing)
+    |--------------------------------------------------------------------------
+    */
+    'currency_symbol' => env('BHCAS_CURRENCY_SYMBOL', '₱'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Central app URL (landing, apply-for-tenant cancel/back)
+    |--------------------------------------------------------------------------
+    | Used for links that must always hit the central domain (not the tenant host).
+    | Defaults to APP_URL; set CENTRAL_APP_URL if APP_URL is not the central site.
+    */
+    'central_app_url' => rtrim((string) env('CENTRAL_APP_URL', env('APP_URL', 'http://localhost')), '/'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Display timezone (UI)
+    |--------------------------------------------------------------------------
+    | Laravel typically stores UTC in the database; this timezone is used when
+    | formatting dates/times for staff (e.g. Philippines: Asia/Manila).
+    */
+    'display_timezone' => env('BHCAS_DISPLAY_TIMEZONE', 'Asia/Manila'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Final Project Requirements
     |--------------------------------------------------------------------------
     | Used by the requirements page and for feature checks.

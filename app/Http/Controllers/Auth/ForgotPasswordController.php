@@ -5,12 +5,12 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Recaptcha;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Password;
 use Illuminate\View\View;
-use Illuminate\Support\Facades\Config;
 
 class ForgotPasswordController extends Controller
 {
@@ -34,25 +34,17 @@ class ForgotPasswordController extends Controller
         if (in_array($for, ['tenant', 'resident'], true)) {
             $rules['tenant_id'] = ['required', 'exists:tenants,id'];
         }
-        $siteKey = config('services.recaptcha.v3.site_key');
-        $secretKey = config('services.recaptcha.v3.secret_key');
-        if ($siteKey && $secretKey && ! config('app.debug')) {
+        if (Recaptcha::shouldProcess()) {
             $rules['recaptcha_token'] = ['required', 'string'];
         }
         $validated = $request->validate($rules);
 
-        if ($siteKey && $secretKey && ! config('app.debug')) {
-            $verify = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
-                'secret' => $secretKey,
-                'response' => $validated['recaptcha_token'],
-                'remoteip' => $request->ip(),
-            ]);
-            $body = $verify->json();
-            $threshold = (float) config('services.recaptcha.v3.score_threshold', 0.5);
-            if (! ($body['success'] ?? false) || (float) ($body['score'] ?? 0) < $threshold) {
+        if (Recaptcha::shouldProcess()) {
+            $result = Recaptcha::verifyV3($request, $validated['recaptcha_token'], 'forgot_password');
+            if (! $result['ok']) {
                 return back()
                     ->withInput($request->only('email', 'for', 'tenant_id'))
-                    ->withErrors(['email' => 'reCAPTCHA verification failed. Please try again.']);
+                    ->withErrors(['email' => __('reCAPTCHA verification failed. Please try again.')]);
             }
         }
 

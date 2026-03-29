@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\TenantSiteReady;
 use App\Models\Plan;
 use App\Models\Tenant;
+use App\Services\TenantCreationService;
+use App\Support\TenantPortalLoginUrls;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -88,31 +92,6 @@ class TenantManagementController extends Controller
         return $this->normalizeDomain($slug.'.'.$root);
     }
 
-    /**
-     * Ensure the tenant database name is a valid/simple identifier for DB creation.
-     * Stancl tenancy uses this value directly for the tenant database manager.
-     */
-    private function sanitizeTenantDatabaseName(string $dbName): string
-    {
-        $dbName = trim($dbName);
-        $dbName = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $dbName) ?: '';
-
-        // MySQL database names should be <= 64 chars.
-        if (strlen($dbName) > 64) {
-            $dbName = substr($dbName, 0, 64);
-        }
-
-        // Ensure it starts with a letter to avoid edge-case SQL dialect rules.
-        if ($dbName !== '' && ! preg_match('/^[a-zA-Z]/', $dbName)) {
-            $dbName = 'tenant_'.$dbName;
-            if (strlen($dbName) > 64) {
-                $dbName = substr($dbName, 0, 64);
-            }
-        }
-
-        return $dbName;
-    }
-
     public function index(): View
     {
         $tenants = Tenant::with('plan', 'domains')->orderBy('name')->paginate(15);
@@ -152,47 +131,36 @@ class TenantManagementController extends Controller
             ]);
             $validated['is_active'] = $request->boolean('is_active');
 
-            $plan = Plan::findOrFail($validated['plan_id']);
-            $planSlug = $plan->slug ? Str::slug((string) $plan->slug) : Str::slug((string) $plan->name);
-            // Tenant DB name should be based on the barangay input (fallback to "name" for backward-compat).
-            $barangaySlugSource = $request->input('barangay') ?: $validated['name'];
-            $barangaySlug = Str::slug((string) $barangaySlugSource);
-            $domainSlug = Str::slug($validated['domain']);
+            $barangaySlugSource = (string) ($request->input('barangay') ?: $validated['name']);
 
-            // Tenant DB name must be safe and must avoid collisions if a tenant is deleted
-            // but the previous tenant database remains (or a previous migration partially ran).
-            // We intentionally add a random segment so new tenant creations get a fresh DB.
-            $randomDbSegment = Str::lower(Str::random(6));
-            $dbName = str_replace('-', '_', 'tenant_'.$randomDbSegment.'_'.$planSlug.'_'.$barangaySlug.'_'.$domainSlug);
-            $dbName = $this->sanitizeTenantDatabaseName($dbName);
+            $tenant = app(TenantCreationService::class)->createFromValidatedData($validated, $barangaySlugSource);
+            $tenant->load('plan', 'domains');
 
-            $tenant = Tenant::create([
-                'plan_id' => $validated['plan_id'],
-                'name' => $validated['name'],
-                'address' => $validated['address'] ?? null,
-                'contact_number' => $validated['contact_number'] ?? null,
-                'email' => $validated['email'] ?? null,
-                'is_active' => $validated['is_active'],
-                'subscription_ends_at' => $validated['subscription_ends_at'] ?? null,
-                'data' => [
-                    // Stancl tenancy reads `data.tenancy_db_name` when creating/migrating tenant DB.
-                    'tenancy_db_name' => $dbName,
-                ],
-            ]);
-
-            $tenant->domains()->create([
-                'domain' => Str::lower($validated['domain']),
-            ]);
-
-            // Safety net: ensure tenant DB exists even if event listeners were skipped.
-            $tenantDatabaseName = $tenant->database()->getName();
-            $tenantDatabaseManager = $tenant->database()->manager();
-            if (! $tenantDatabaseManager->databaseExists($tenantDatabaseName)) {
-                $tenant->database()->makeCredentials();
-                $tenantDatabaseManager->createDatabase($tenant);
+            $domain = $tenant->domains->first()?->domain;
+            if ($domain !== null && filled($validated['email'] ?? null)) {
+                $urls = TenantPortalLoginUrls::forDomain($domain);
+                try {
+                    Mail::mailer(config('mail.default'))->to((string) $validated['email'])->send(new TenantSiteReady(
+                        $tenant->name,
+                        $domain,
+                        $tenant->plan,
+                        $urls['staff'],
+                        $urls['resident'],
+                    ));
+                } catch (\Throwable $e) {
+                    report($e);
+                }
             }
 
-            return redirect()->route('super-admin.tenants.index')->with('success', 'Tenant created.');
+            $message = __('Tenant created.');
+            if (filled($validated['email'] ?? null)) {
+                $message .= ' '.__('A welcome email was sent to :email.', ['email' => $validated['email']]);
+            }
+            if (config('mail.default') === 'log' && config('app.debug')) {
+                $message .= ' '.__('Note: MAIL_MAILER is log — emails go to the log file, not an inbox. Use MAIL_MAILER=smtp to send real mail.');
+            }
+
+            return redirect()->route('super-admin.tenants.index')->with('success', $message);
         } catch (\Throwable $e) {
             return back()
                 ->withInput()

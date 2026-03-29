@@ -19,7 +19,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $pageTitle }} – {{ config('bhcas.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @if(config('services.recaptcha.v3.site_key') && !config('app.debug'))
+    @if(\App\Support\Recaptcha::shouldProcess())
     <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.v3.site_key') }}" async defer></script>
     @endif
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -44,9 +44,9 @@
                     </div>
                 @endif
                 <form method="POST" action="{{ route('password.email') }}" id="forgot-password-form" class="space-y-4"
-                    @if(config('services.recaptcha.v3.site_key') && !config('app.debug')) data-recaptcha-site-key="{{ config('services.recaptcha.v3.site_key') }}" @endif>
+                    @if(\App\Support\Recaptcha::shouldProcess()) data-recaptcha-site-key="{{ config('services.recaptcha.v3.site_key') }}" @endif>
                     @csrf
-                    @if(config('services.recaptcha.v3.site_key') && !config('app.debug'))
+                    @if(\App\Support\Recaptcha::shouldProcess())
                         <input type="hidden" name="recaptcha_token" id="recaptcha_token" value="">
                     @endif
                     @if(!empty($for))
@@ -70,7 +70,7 @@
                     <button type="submit" id="forgot-submit" class="w-full rounded-xl bg-teal-600 px-4 py-3 font-semibold text-white shadow-lg shadow-teal-600/30 transition hover:bg-teal-700 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">
                         Send password reset link
                     </button>
-                    @if(config('services.recaptcha.v3.site_key') && !config('app.debug'))
+                    @if(\App\Support\Recaptcha::shouldProcess())
                         <p class="text-center text-xs text-slate-400">Protected by reCAPTCHA</p>
                     @endif
                 </form>
@@ -80,7 +80,7 @@
             </div>
         </div>
     </div>
-    @if(config('services.recaptcha.v3.site_key') && !config('app.debug'))
+    @if(\App\Support\Recaptcha::shouldProcess())
     <script>
     (function() {
         var form = document.getElementById('forgot-password-form');

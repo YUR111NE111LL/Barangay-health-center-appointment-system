@@ -10,12 +10,12 @@ class TenantSeeder extends Seeder
 {
     public function run(): void
     {
-        $basic = Plan::firstOrCreate(
+        $basic = Plan::updateOrCreate(
             ['slug' => 'basic'],
             [
                 'name' => 'Basic',
                 'max_appointments_per_month' => 50,
-                'max_users' => 5,
+                'max_users' => 250,
                 'has_automated_approval' => false,
                 'has_appointment_history' => true,
                 'has_monthly_reports' => false,
@@ -25,16 +25,16 @@ class TenantSeeder extends Seeder
                 'has_data_export' => false,
                 'has_email_notifications' => true,
                 'has_web_customization' => false,
-                'price' => 0,
+                'price' => 250,
             ]
         );
 
-        $standard = Plan::firstOrCreate(
+        $standard = Plan::updateOrCreate(
             ['slug' => 'standard'],
             [
                 'name' => 'Standard',
                 'max_appointments_per_month' => 300,
-                'max_users' => 15,
+                'max_users' => 1500,
                 'has_automated_approval' => true,
                 'has_appointment_history' => true,
                 'has_monthly_reports' => true,
@@ -44,11 +44,11 @@ class TenantSeeder extends Seeder
                 'has_data_export' => false,
                 'has_email_notifications' => true,
                 'has_web_customization' => true,
-                'price' => 0,
+                'price' => 650,
             ]
         );
 
-        $premium = Plan::firstOrCreate(
+        $premium = Plan::updateOrCreate(
             ['slug' => 'premium'],
             [
                 'name' => 'Premium',
@@ -63,7 +63,7 @@ class TenantSeeder extends Seeder
                 'has_data_export' => true,
                 'has_email_notifications' => true,
                 'has_web_customization' => true,
-                'price' => 0,
+                'price' => 1000,
             ]
         );
 
@@ -79,7 +79,6 @@ class TenantSeeder extends Seeder
         );
         $sumpong->domains()->firstOrCreate(['domain' => 'brgy-sumpong.test']);
 
-
         $casisang = Tenant::firstOrCreate(
             ['name' => 'Brgy Casisang'],
             [
@@ -91,7 +90,6 @@ class TenantSeeder extends Seeder
             ]
         );
         $casisang->domains()->firstOrCreate(['domain' => 'brgy-casisang.test']);
-
 
         // Premium plan tenant (full web customization, etc.)
         $kalasungay = Tenant::firstOrCreate(

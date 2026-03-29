@@ -35,7 +35,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Central Login – {{ config('bhcas.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @if(config('services.recaptcha.v3.site_key') && !config('app.debug'))
+    @if(\App\Support\Recaptcha::shouldProcess())
     <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.v3.site_key') }}" async defer></script>
     @endif
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -165,6 +165,7 @@
                     <p class="text-slate-500 text-sm">Central app</p>
                     <h1 class="text-2xl font-bold text-slate-800 mt-0.5">Super Admin Login</h1>
                     <p class="text-slate-500 text-xs mt-0.5">Platform administrator access. Staff or residents? Use your barangay’s own website to log in.</p>
+                    <p class="text-slate-400 text-[11px] mt-2 leading-snug">{{ __('To test two accounts at once, use two browsers or two browser profiles. Private/Incognito windows usually share one session, so the latest sign-in applies everywhere.') }}</p>
                 </div>
                 @if($errors->any())
                     <div class="mb-4 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-200">{{ $errors->first() }}</div>
@@ -176,10 +177,10 @@
                     </div>
                 @endif
                 <form method="POST" action="{{ route('login') }}" id="login-form" class="space-y-4"
-                    @if(config('services.recaptcha.v3.site_key') && !config('app.debug')) data-recaptcha-site-key="{{ config('services.recaptcha.v3.site_key') }}" @endif>
+                    @if(\App\Support\Recaptcha::shouldProcess()) data-recaptcha-site-key="{{ config('services.recaptcha.v3.site_key') }}" @endif>
                     @csrf
                     <input type="hidden" name="for" value="super-admin">
-                    @if(config('services.recaptcha.v3.site_key') && !config('app.debug'))
+                    @if(\App\Support\Recaptcha::shouldProcess())
                         <input type="hidden" name="recaptcha_token" id="recaptcha_token" value="">
                     @endif
                     <div>
@@ -198,7 +199,7 @@
                         <a href="{{ route('password.request', ['for' => 'super-admin']) }}" class="text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline">Forgot password?</a>
                     </div>
                     <button type="submit" id="login-submit" class="w-full rounded-xl bg-teal-600 px-4 py-3 font-semibold text-white shadow-lg shadow-teal-600/25 transition hover:bg-teal-700 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">Login</button>
-                    @if(config('services.recaptcha.v3.site_key') && !config('app.debug'))
+                    @if(\App\Support\Recaptcha::shouldProcess())
                         <p class="text-center text-xs text-slate-400">Protected by reCAPTCHA</p>
                     @endif
                 </form>
@@ -258,11 +259,16 @@
                         Create an account
                     </a>
                 @endif
+                @if(Route::has('tenant-applications.create'))
+                    <a href="{{ route('tenant-applications.create') }}" class="mt-3 flex w-full items-center justify-center rounded-xl border border-teal-600/25 bg-white px-4 py-2.5 text-sm font-semibold text-teal-800 shadow-sm transition hover:bg-teal-50">
+                        Apply for tenant
+                    </a>
+                @endif
             </div>
         </div>
     </div>
     @include('components.professional-alerts')
-    @if(config('services.recaptcha.v3.site_key') && !config('app.debug'))
+    @if(\App\Support\Recaptcha::shouldProcess())
     <script>
     (function(){
         var form = document.getElementById('login-form');

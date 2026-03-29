@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('landing');
-});
+})->name('landing');
 
 // Keep the old generated landing page available (in case you still need it).
 Route::get('/welcome', function () {
@@ -17,6 +17,11 @@ Route::get('/welcome', function () {
 })->name('welcome.legacy');
 
 Route::get('/requirements', RequirementsController::class)->name('requirements');
+
+Route::get('/apply-for-tenant', [\App\Http\Controllers\TenantApplicationController::class, 'create'])->name('tenant-applications.create');
+Route::post('/apply-for-tenant', [\App\Http\Controllers\TenantApplicationController::class, 'store'])
+    ->middleware('throttle:12,1')
+    ->name('tenant-applications.store');
 
 Route::middleware(['tenancy.by_domain_for_auth'])->group(function (): void {
     Route::get('/login', [\App\Http\Controllers\Auth\LoginController::class, 'showLoginForm'])->name('login');
@@ -60,7 +65,7 @@ Route::post('/logout', function () {
     }
 
     return redirect()->route('login')->with('status', $message);
-})->name('logout')->middleware('auth');
+})->name('logout')->middleware(['tenancy.by_domain_for_auth', 'auth']);
 
 Route::get('/tenant-custom.css', \App\Http\Controllers\TenantCustomCssController::class)->name('tenant.custom-css')->middleware('auth');
 
@@ -140,6 +145,11 @@ Route::middleware(['auth', 'role:Super Admin'])->prefix('super-admin')->name('su
     Route::get('pending-approvals', [\App\Http\Controllers\SuperAdmin\PendingApprovalsController::class, 'index'])->name('pending-approvals.index');
     Route::put('pending-approvals/{user}', [\App\Http\Controllers\SuperAdmin\PendingApprovalsController::class, 'approve'])->name('pending-approvals.approve');
     Route::match(['delete'], 'pending-approvals/{user}', [\App\Http\Controllers\SuperAdmin\PendingApprovalsController::class, 'deny'])->name('pending-approvals.deny');
+    Route::get('tenant-applications', [\App\Http\Controllers\SuperAdmin\TenantApplicationReviewController::class, 'index'])->name('tenant-applications.index');
+    Route::get('tenant-applications/{tenant_application}', [\App\Http\Controllers\SuperAdmin\TenantApplicationReviewController::class, 'show'])->name('tenant-applications.show');
+    Route::post('tenant-applications/{tenant_application}/approve', [\App\Http\Controllers\SuperAdmin\TenantApplicationReviewController::class, 'approve'])->name('tenant-applications.approve');
+    Route::post('tenant-applications/{tenant_application}/reject', [\App\Http\Controllers\SuperAdmin\TenantApplicationReviewController::class, 'reject'])->name('tenant-applications.reject');
+
     Route::resource('tenants', \App\Http\Controllers\SuperAdmin\TenantManagementController::class);
     Route::post('tenants/{tenant}/provision-database', [\App\Http\Controllers\SuperAdmin\TenantManagementController::class, 'provisionDatabase'])->name('tenants.provision-database');
     Route::patch('tenants/{tenant}/toggle-status', [\App\Http\Controllers\SuperAdmin\TenantManagementController::class, 'toggleStatus'])->name('tenants.toggle-status');

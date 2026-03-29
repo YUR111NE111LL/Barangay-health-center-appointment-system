@@ -4,12 +4,11 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Http\Client\ConnectionException;
+use App\Support\Recaptcha;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
@@ -49,34 +48,21 @@ class LoginController extends Controller
             $rules['for'] = ['required', 'in:tenant,resident'];
         }
         // Central = super-admin only (no tenant_id). Tenant domain = no tenant_id (current tenant).
-        $siteKey = config('services.recaptcha.v3.site_key');
-        $secretKey = config('services.recaptcha.v3.secret_key');
-        $skipRecaptcha = config('app.debug') || app()->environment('local');
-        if ($siteKey && $secretKey && ! $skipRecaptcha) {
+        if (Recaptcha::shouldProcess()) {
             $rules['recaptcha_token'] = ['required', 'string'];
         }
         $validated = $request->validate($rules);
 
-        if ($siteKey && $secretKey && ! $skipRecaptcha) {
-            // Fail fast if Google is slow/unreachable (prevents login page from "hanging").
-            try {
-                $verify = Http::asForm()->timeout(5)->connectTimeout(2)->post('https://www.google.com/recaptcha/api/siteverify', [
-                    'secret' => $secretKey,
-                    'response' => $validated['recaptcha_token'],
-                    'remoteip' => $request->ip(),
-                ]);
-            } catch (ConnectionException $e) {
-                return back()
-                    ->withInput($request->only('email', 'for', 'tenant_id'))
-                    ->withErrors(['email' => 'Unable to verify reCAPTCHA right now. Please try again in a moment.']);
-            }
+        if (Recaptcha::shouldProcess()) {
+            $result = Recaptcha::verifyV3($request, $validated['recaptcha_token'], 'login');
+            if (! $result['ok']) {
+                $message = ($result['reason'] ?? '') === 'network'
+                    ? __('Unable to verify reCAPTCHA right now. Please try again in a moment.')
+                    : __('reCAPTCHA verification failed. Please try again.');
 
-            $body = $verify->json() ?? [];
-            $threshold = (float) config('services.recaptcha.v3.score_threshold', 0.5);
-            if (! ($body['success'] ?? false) || (float) ($body['score'] ?? 0) < $threshold) {
                 return back()
                     ->withInput($request->only('email', 'for', 'tenant_id'))
-                    ->withErrors(['email' => 'reCAPTCHA verification failed. Please try again.']);
+                    ->withErrors(['email' => $message]);
             }
         }
 

@@ -72,12 +72,18 @@
                             @endif
                         </div>
 
-                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                             <a
                                 href="{{ route('login', ['for' => 'super-admin']) }}"
                                 class="inline-flex w-full items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-teal-800 shadow-sm ring-1 ring-white/20 transition hover:bg-slate-100 hover:shadow-md sm:w-auto"
                             >
                                 Log in to Central app
+                            </a>
+                            <a
+                                href="{{ route('tenant-applications.create') }}"
+                                class="inline-flex w-full items-center justify-center rounded-xl border border-white/40 bg-white/10 px-5 py-3 text-sm font-semibold text-white shadow-sm ring-1 ring-white/15 transition hover:bg-white/15 sm:w-auto"
+                            >
+                                Apply for tenant
                             </a>
                         </div>
 
@@ -160,6 +166,16 @@
                                 </div>
                             </div>
                         @endif
+
+                        <div class="mt-2 rounded-xl border border-dashed border-teal-200/80 bg-white/60 p-4 text-center ring-1 ring-teal-100">
+                            <p class="text-xs text-slate-600">New barangay on the platform?</p>
+                            <a
+                                href="{{ route('tenant-applications.create') }}"
+                                class="mt-2 inline-flex w-full items-center justify-center rounded-xl border border-teal-600/30 bg-white px-4 py-2 text-sm font-semibold text-teal-800 shadow-sm transition hover:bg-teal-50 sm:w-auto"
+                            >
+                                Apply for tenant
+                            </a>
+                        </div>
                     </div>
                 </section>
             </div>

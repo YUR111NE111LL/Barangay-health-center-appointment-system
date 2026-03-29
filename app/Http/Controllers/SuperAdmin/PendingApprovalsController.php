@@ -18,7 +18,7 @@ class PendingApprovalsController extends Controller
             ->whereIn('role', User::rolesApprovedBySuperAdmin())
             ->where('is_approved', false)
             ->orderBy('created_at', 'desc')
-            ->with('tenant')
+            ->with(['tenant.domains'])
             ->get();
 
         return view('superadmin.pending-approvals.index', compact('pending'));

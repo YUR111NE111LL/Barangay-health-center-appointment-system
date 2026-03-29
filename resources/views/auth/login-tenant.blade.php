@@ -16,6 +16,7 @@
         $loginBgClass = 'bg-gradient-to-br from-teal-500 via-teal-600 to-cyan-700';
         $loginBgStyle = '';
     }
+    $outerWrapperStyleAttr = $loginBgStyle ? ' style="'.e($loginBgStyle).'"' : '';
 @endphp
 @php
     // Display barangay name derived from the current host (tenant domain):
@@ -33,20 +34,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $pageTitle }} – {{ $barangayDisplay }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @if(config('services.recaptcha.v3.site_key') && !config('app.debug'))
+    @if(\App\Support\Recaptcha::shouldProcess())
     <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.v3.site_key') }}" async defer></script>
     @endif
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=dm-sans:400,500,600,700" rel="stylesheet" />
     <style>
-        .login-panel-left { }
+        body.tenant-login-body { font-family: 'DM Sans', ui-sans-serif, sans-serif; }
+        .login-panel-left.tenant-brand-gradient {
+            background: linear-gradient(135deg, var(--tenant-brand, #0d9488) 0%, #0f766e 50%, #115e59 100%);
+        }
         @media (max-width: 767px) { .login-panel-left { min-height: 12rem; } }
     </style>
 </head>
-<body class="min-h-screen overflow-x-hidden antialiased" style="font-family: 'DM Sans', ui-sans-serif, sans-serif;">
-    <div class="min-h-screen overflow-visible flex items-center justify-center p-4 {{ $loginBgClass }}" @if($loginBgStyle) style="{{ $loginBgStyle }}" @endif>
+<body class="tenant-login-body min-h-screen overflow-x-hidden antialiased">
+    <div class="min-h-screen overflow-visible flex items-center justify-center p-4 {{ $loginBgClass }}"{!! $outerWrapperStyleAttr !!}>
         <div class="w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-300/50 flex flex-col md:flex-row bg-white">
-            <div class="login-panel-left md:w-[44%] flex flex-col items-center justify-center p-8 md:p-12 text-white" style="background: linear-gradient(135deg, {{ $tenant->getPrimaryColor() }} 0%, #0f766e 50%, #115e59 100%);">
+            <div class="login-panel-left tenant-brand-gradient md:w-[44%] flex flex-col items-center justify-center p-8 md:p-12 text-white" style="--tenant-brand: {{ e($tenant->getPrimaryColor()) }}">
                 @if($logoPath)
                 <img src="{{ $logoPath }}" alt="{{ $barangayDisplay }}" class="max-w-full h-auto max-h-48 md:max-h-56 w-auto object-contain" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
                 <div class="hidden text-center">
@@ -65,6 +69,7 @@
                     <p class="text-slate-500 text-sm">{{ $barangayDisplay }}</p>
                     <h1 class="text-2xl font-bold text-slate-800 mt-0.5">{{ $pageTitle }}</h1>
                     <p class="text-slate-500 text-xs mt-0.5">{{ $subtitle }}</p>
+                    <p class="text-slate-400 text-[11px] mt-2 leading-snug">{{ __('Only one signed-in user per browser session. For two accounts at once, use another browser or a separate browser profile—not another tab in the same private window.') }}</p>
                 </div>
                 <div class="mb-4 flex rounded-xl bg-slate-100 p-1">
                     <a href="{{ url()->current() }}?for=resident" class="flex-1 rounded-lg py-2 text-center text-sm font-medium {{ ($for ?? '') === 'resident' ? 'bg-white text-slate-800 shadow' : 'text-slate-600 hover:text-slate-800' }}">Resident</a>
@@ -80,10 +85,10 @@
                     </div>
                 @endif
                 <form method="POST" action="{{ route('login') }}" id="login-form" class="space-y-4"
-                    @if(config('services.recaptcha.v3.site_key') && !config('app.debug')) data-recaptcha-site-key="{{ config('services.recaptcha.v3.site_key') }}" @endif>
+                    @if(\App\Support\Recaptcha::shouldProcess()) data-recaptcha-site-key="{{ config('services.recaptcha.v3.site_key') }}" @endif>
                     @csrf
                     <input type="hidden" name="for" value="{{ $for ?? 'resident' }}">
-                    @if(config('services.recaptcha.v3.site_key') && !config('app.debug'))
+                    @if(\App\Support\Recaptcha::shouldProcess())
                         <input type="hidden" name="recaptcha_token" id="recaptcha_token" value="">
                     @endif
                     <div>
@@ -102,7 +107,7 @@
                         <a href="{{ route('password.request', ['for' => $for ?? 'resident']) }}" class="text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline">Forgot password?</a>
                     </div>
                     <button type="submit" id="login-submit" class="w-full rounded-xl bg-teal-600 px-4 py-3 font-semibold text-white shadow-lg shadow-teal-600/25 transition hover:bg-teal-700 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">Login</button>
-                    @if(config('services.recaptcha.v3.site_key') && !config('app.debug'))
+                    @if(\App\Support\Recaptcha::shouldProcess())
                         <p class="text-center text-xs text-slate-400">Protected by reCAPTCHA</p>
                     @endif
                 </form>
@@ -122,7 +127,7 @@
         </div>
     </div>
     @include('components.professional-alerts')
-    @if(config('services.recaptcha.v3.site_key') && !config('app.debug'))
+    @if(\App\Support\Recaptcha::shouldProcess())
     <script>
     (function(){
         var form = document.getElementById('login-form');

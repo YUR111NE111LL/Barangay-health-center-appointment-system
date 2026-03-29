@@ -23,7 +23,7 @@
     <link rel="stylesheet" href="{{ route('tenant.custom-css') }}">
     @endif
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-800 antialiased {{ $themeClass }} @if($navLayout === 'sidebar')layout-sidebar @endif" data-theme="{{ e($tenant?->theme ?? 'default') }}" data-nav-layout="{{ e($navLayout) }}" @if($tenant) data-tenant-id="{{ $tenant->id }}" @endif>
+<body class="min-h-screen bg-slate-50 text-slate-800 antialiased {{ $themeClass }} @if($navLayout === 'sidebar')layout-sidebar @endif" data-theme="{{ e($tenant?->theme ?? 'default') }}" data-nav-layout="{{ e($navLayout) }}" @if($tenant) data-tenant-id="{{ $tenant->id }}" @endif @if(auth()->check()) data-current-user-id="{{ auth()->id() }}" @endif>
     @if($navLayout === 'sidebar')
     <div class="sidebar-overlay" id="resident-sidebar-overlay" aria-hidden="true"></div>
     <aside class="tenant-brand-nav sidebar-drawer fixed left-0 top-0 z-40 h-full w-56 border-r border-white/10 bg-teal-600 shadow-lg md:translate-x-0" id="resident-nav" data-brand-color="{{ e($brandColor) }}">
@@ -189,13 +189,23 @@
         }
 
         var tenantId = document.body.getAttribute('data-tenant-id');
+        var currentUserId = document.body.getAttribute('data-current-user-id');
         function subscribeRealtime() {
             if (!tenantId || typeof window.Echo === 'undefined') return;
+            var reloadTimer = null;
+            function debouncedReload() {
+                if (reloadTimer) clearTimeout(reloadTimer);
+                reloadTimer = setTimeout(function() { location.reload(); }, 450);
+            }
             var ch = window.Echo.channel('tenant.' + tenantId);
-            ch.listen('.customization.updated', function() { location.reload(); });
-            ch.listen('.rbac.updated', function() { location.reload(); });
-            ch.listen('.appointment.updated', function() { location.reload(); });
-            ch.listen('.profile.updated', function() { location.reload(); });
+            ch.listen('.customization.updated', debouncedReload);
+            ch.listen('.rbac.updated', debouncedReload);
+            ch.listen('.appointment.updated', debouncedReload);
+            ch.listen('.profile.updated', function(e) {
+                if (!currentUserId || !e || e.user_id === undefined || e.user_id === null) return;
+                if (String(e.user_id) !== String(currentUserId)) return;
+                debouncedReload();
+            });
         }
         if (typeof window.Echo !== 'undefined') subscribeRealtime();
         else window.addEventListener('echo-ready', subscribeRealtime);

@@ -29,6 +29,7 @@
         $loginBgClass = 'bg-gradient-to-br from-teal-500 via-teal-600 to-cyan-700';
         $loginBgStyle = '';
     }
+    $outerWrapperStyleAttr = $loginBgStyle ? ' style="'.e($loginBgStyle).'"' : '';
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -37,20 +38,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $pageTitle }} – {{ config('bhcas.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @if(config('services.recaptcha.v3.site_key') && !config('app.debug'))
+    @if(\App\Support\Recaptcha::shouldProcess())
     <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.v3.site_key') }}" async defer></script>
     @endif
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=dm-sans:400,500,600,700" rel="stylesheet" />
     <style>
         .login-panel-left { background: linear-gradient(135deg, #0d9488 0%, #0f766e 50%, #115e59 100%); }
+        body.auth-login-body { font-family: 'DM Sans', ui-sans-serif, sans-serif; }
         @media (max-width: 767px) {
             .login-panel-left { min-height: 12rem; }
         }
     </style>
 </head>
-<body class="min-h-screen overflow-x-hidden antialiased" style="font-family: 'DM Sans', ui-sans-serif, sans-serif;">
-    <div class="min-h-screen overflow-visible flex items-center justify-center p-4 {{ $loginBgClass }}" @if($loginBgStyle) style="{{ $loginBgStyle }}" @endif>
+<body class="auth-login-body min-h-screen overflow-x-hidden antialiased">
+    <div class="min-h-screen overflow-visible flex items-center justify-center p-4 {{ $loginBgClass }}"{!! $outerWrapperStyleAttr !!}>
         <div class="w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-300/50 flex flex-col md:flex-row bg-white">
             {{-- Left: Logo / branding --}}
             <div class="login-panel-left md:w-[44%] flex flex-col items-center justify-center p-8 md:p-12 text-white">
@@ -93,13 +95,13 @@
                 @endif
 
                 <form method="POST" action="{{ route('login') }}" id="login-form" class="space-y-4"
-                    @if(config('services.recaptcha.v3.site_key') && !config('app.debug')) data-recaptcha-site-key="{{ config('services.recaptcha.v3.site_key') }}" @endif
+                    @if(\App\Support\Recaptcha::shouldProcess()) data-recaptcha-site-key="{{ config('services.recaptcha.v3.site_key') }}" @endif
                     @if($errors->has('tenant_id')) data-tenant-error="{{ e($errors->first('tenant_id')) }}" @endif>
                     @csrf
                     @if(!empty($for))
                         <input type="hidden" name="for" value="{{ $for }}">
                     @endif
-                    @if(config('services.recaptcha.v3.site_key') && !config('app.debug'))
+                    @if(\App\Support\Recaptcha::shouldProcess())
                         <input type="hidden" name="recaptcha_token" id="recaptcha_token" value="">
                     @endif
                     @if(in_array($for ?? '', ['tenant', 'resident']) && $tenants->isNotEmpty())
@@ -133,7 +135,7 @@
                     <button type="submit" id="login-submit" class="w-full rounded-xl bg-teal-600 px-4 py-3 font-semibold text-white shadow-lg shadow-teal-600/25 transition hover:bg-teal-700 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">
                         Login
                     </button>
-                    @if(config('services.recaptcha.v3.site_key') && !config('app.debug'))
+                    @if(\App\Support\Recaptcha::shouldProcess())
                         <p class="text-center text-xs text-slate-400">Protected by reCAPTCHA</p>
                     @endif
                 </form>
@@ -179,7 +181,7 @@
     })();
     </script>
     @endif
-    @if(config('services.recaptcha.v3.site_key') && !config('app.debug'))
+    @if(\App\Support\Recaptcha::shouldProcess())
     <script>
     (function() {
         var form = document.getElementById('login-form');

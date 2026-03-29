@@ -21,7 +21,7 @@
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Name</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Email</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Role</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Barangay / Tenant</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">{{ __('Barangay') }} / {{ __('Tenant domain') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Signed up</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600">Actions</th>
                     </tr>
@@ -32,8 +32,17 @@
                         <td class="px-4 py-3 text-sm font-medium text-slate-800">{{ $u->name }}</td>
                         <td class="px-4 py-3 text-sm text-slate-600">{{ $u->email }}</td>
                         <td class="px-4 py-3"><span class="inline-flex rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-medium text-violet-800">{{ $u->role }}</span></td>
-                        <td class="px-4 py-3 text-sm text-slate-600">{{ $u->tenant?->name ?? '—' }}</td>
-                        <td class="px-4 py-3 text-sm text-slate-500">{{ $u->created_at->format('M j, Y g:i A') }}</td>
+                        <td class="px-4 py-3 text-sm text-slate-600">
+                            @if($u->tenant)
+                                <div class="space-y-1">
+                                    <div><span class="text-slate-400">{{ __('Barangay') }}:</span> <span class="font-medium text-slate-800">{{ $u->tenant->name }}</span></div>
+                                    <div><span class="text-slate-400">{{ __('Tenant domain') }}:</span> <span class="font-mono text-xs text-slate-700">{{ $u->tenant->domains->first()?->domain ?? '—' }}</span></div>
+                                </div>
+                            @else
+                                —
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 text-sm text-slate-500">{{ \App\Support\DateDisplay::format($u->created_at) }}</td>
                         <td class="px-4 py-3 text-right">
                             <form action="{{ route('super-admin.pending-approvals.approve', $u) }}" method="POST" class="inline">
                                 @csrf

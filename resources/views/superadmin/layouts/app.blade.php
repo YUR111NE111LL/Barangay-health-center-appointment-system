@@ -23,6 +23,10 @@
                 <div id="sa-nav-links" class="hidden items-center gap-1 lg:flex">
                     <a href="{{ route('super-admin.dashboard') }}" class="{{ request()->routeIs('super-admin.dashboard') ? $saActive : $saDefault }}">Dashboard</a>
                     <a href="{{ route('super-admin.tenants.index') }}" class="{{ request()->routeIs('super-admin.tenants.*') ? $saActive : $saDefault }}">Tenants</a>
+                    <a href="{{ route('super-admin.tenant-applications.index') }}" class="relative {{ request()->routeIs('super-admin.tenant-applications.*') ? $saActive : $saDefault }}">
+                        Tenant requests
+                        @if(($tenantApplicationPendingCount ?? 0) > 0)<span class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold text-violet-900">{{ $tenantApplicationPendingCount }}</span>@endif
+                    </a>
                     <a href="{{ route('super-admin.accounts.index') }}" class="{{ request()->routeIs('super-admin.accounts.*') ? $saActive : $saDefault }}">Accounts</a>
                     <a href="{{ route('super-admin.users.index') }}" class="{{ request()->routeIs('super-admin.users.*') ? $saActive : $saDefault }}">Users</a>
                     <a href="{{ route('super-admin.pending-approvals.index') }}" class="relative {{ request()->routeIs('super-admin.pending-approvals.*') ? $saActive : $saDefault }}">
@@ -49,6 +53,7 @@
                 <div class="flex flex-col gap-0.5">
                     <a href="{{ route('super-admin.dashboard') }}" class="{{ request()->routeIs('super-admin.dashboard') ? $saMobActive : $saMobDefault }}">Dashboard</a>
                     <a href="{{ route('super-admin.tenants.index') }}" class="{{ request()->routeIs('super-admin.tenants.*') ? $saMobActive : $saMobDefault }}">Tenants</a>
+                    <a href="{{ route('super-admin.tenant-applications.index') }}" class="{{ request()->routeIs('super-admin.tenant-applications.*') ? $saMobActive : $saMobDefault }}">Tenant requests @if(($tenantApplicationPendingCount ?? 0) > 0)<span class="ml-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-xs font-semibold text-violet-900">{{ $tenantApplicationPendingCount }}</span>@endif</a>
                     <a href="{{ route('super-admin.accounts.index') }}" class="{{ request()->routeIs('super-admin.accounts.*') ? $saMobActive : $saMobDefault }}">Accounts</a>
                     <a href="{{ route('super-admin.users.index') }}" class="{{ request()->routeIs('super-admin.users.*') ? $saMobActive : $saMobDefault }}">Users</a>
                     <a href="{{ route('super-admin.pending-approvals.index') }}" class="{{ request()->routeIs('super-admin.pending-approvals.*') ? $saMobActive : $saMobDefault }}">Pending approvals @if(($pendingCount ?? 0) > 0)<span class="ml-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-xs font-semibold text-violet-900">{{ $pendingCount }}</span>@endif</a>

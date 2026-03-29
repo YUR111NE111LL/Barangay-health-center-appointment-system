@@ -11,10 +11,9 @@ use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 | Tenant Routes
 |--------------------------------------------------------------------------
 |
-| Here you can register the tenant routes for your application.
-| These routes are loaded by the TenantRouteServiceProvider.
-|
-| Feel free to customize them however you want. Good luck!
+| Here you can register routes for tenant domains. Do not register GET /
+| here — it would overwrite the central `landing` route in routes/web.php
+| and cause 404 on central hosts (Stancl's PreventAccessFromCentralDomains).
 |
 */
 
@@ -22,8 +21,6 @@ Route::middleware([
     'web',
     InitializeTenancyByDomain::class,
     PreventAccessFromCentralDomains::class,
-])->group(function () {
-    Route::get('/', function () {
-        return 'This is your multi-tenant application. The id of the current tenant is ' . tenant('id');
-    });
+])->group(function (): void {
+    //
 });

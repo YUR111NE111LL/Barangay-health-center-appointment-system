@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Events\AppointmentSaved;
 use App\Listeners\SendAppointmentNotification;
 use App\Models\Tenant;
+use App\Models\TenantApplication;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -120,7 +121,16 @@ class AppServiceProvider extends ServiceProvider
                     ->where('is_approved', false)
                     ->count();
             }
-            $view->with('pendingCount', $count);
+            $tenantApplicationPendingCount = 0;
+            if (auth()->check()) {
+                $tenantApplicationPendingCount = TenantApplication::query()
+                    ->where('status', TenantApplication::STATUS_PENDING)
+                    ->count();
+            }
+            $view->with([
+                'pendingCount' => $count,
+                'tenantApplicationPendingCount' => $tenantApplicationPendingCount,
+            ]);
         });
 
         // @planFeature('inventory') ... @endplanFeature — show content only if tenant's plan has the feature

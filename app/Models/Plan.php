@@ -61,4 +61,39 @@ class Plan extends Model
     {
         return $this->max_appointments_per_month === 0;
     }
+
+    /**
+     * Formatted subscription price for public pricing UI (stored `price` is monthly).
+     */
+    public function formattedPrice(): string
+    {
+        if ($this->price === null) {
+            return __('Contact us');
+        }
+
+        $symbol = (string) config('bhcas.currency_symbol', '₱');
+
+        return $symbol.number_format((float) $this->price, 2);
+    }
+
+    /**
+     * Short limits line for plan comparison (appointments + users).
+     */
+    public function pricingSummaryLine(): string
+    {
+        $parts = [];
+        if ($this->max_appointments_per_month === 0) {
+            $parts[] = __('Unlimited appointments/mo');
+        } else {
+            $parts[] = __(':count appointments/mo', ['count' => $this->max_appointments_per_month]);
+        }
+
+        if ($this->max_users === 0) {
+            $parts[] = __('Unlimited users');
+        } else {
+            $parts[] = __('Up to :count users', ['count' => $this->max_users]);
+        }
+
+        return implode(' · ', $parts);
+    }
 }

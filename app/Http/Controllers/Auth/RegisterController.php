@@ -5,12 +5,12 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Recaptcha;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -126,9 +126,7 @@ class RegisterController extends Controller
 
             $rules['email'][] = Rule::unique('users')->where('tenant_id', $tenantIdForUnique);
 
-            $siteKey = config('services.recaptcha.v3.site_key');
-            $secretKey = config('services.recaptcha.v3.secret_key');
-            if ($siteKey && $secretKey && ! config('app.debug')) {
+            if (Recaptcha::shouldProcess()) {
                 $rules['recaptcha_token'] = ['required', 'string'];
             }
 
@@ -139,18 +137,12 @@ class RegisterController extends Controller
                 $validated['tenant_id'] = (int) $currentTenant->id;
             }
 
-            if ($siteKey && $secretKey && ! config('app.debug')) {
-                $verify = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
-                    'secret' => $secretKey,
-                    'response' => $validated['recaptcha_token'],
-                    'remoteip' => $request->ip(),
-                ]);
-                $body = $verify->json();
-                $threshold = (float) config('services.recaptcha.v3.score_threshold', 0.5);
-                if (! ($body['success'] ?? false) || (float) ($body['score'] ?? 0) < $threshold) {
+            if (Recaptcha::shouldProcess()) {
+                $result = Recaptcha::verifyV3($request, $validated['recaptcha_token'], 'register');
+                if (! $result['ok']) {
                     return back()
                         ->withInput($request->only('name', 'email', 'tenant_id', 'role'))
-                        ->withErrors(['email' => 'reCAPTCHA verification failed. Please try again.']);
+                        ->withErrors(['email' => __('reCAPTCHA verification failed. Please try again.')]);
                 }
             }
 

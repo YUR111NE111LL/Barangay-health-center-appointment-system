@@ -24,7 +24,7 @@
     <link rel="stylesheet" href="{{ route('tenant.custom-css') }}">
     @endif
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-800 antialiased {{ $themeClass }} @if($navLayout === 'sidebar')layout-sidebar @endif" data-theme="{{ e($tenant?->theme ?? 'default') }}" data-nav-layout="{{ e($navLayout) }}" @if($tenant) data-tenant-id="{{ $tenant->id }}" @endif>
+<body class="min-h-screen bg-slate-50 text-slate-800 antialiased {{ $themeClass }} @if($navLayout === 'sidebar')layout-sidebar @endif" data-theme="{{ e($tenant?->theme ?? 'default') }}" data-nav-layout="{{ e($navLayout) }}" @if($tenant) data-tenant-id="{{ $tenant->id }}" @endif @if(auth()->check()) data-current-user-id="{{ auth()->id() }}" @endif>
     @if($navLayout === 'sidebar')
     <div class="sidebar-overlay" id="backend-sidebar-overlay" aria-hidden="true"></div>
     <!-- Sidebar: drawer on mobile, fixed on md+ -->
@@ -348,15 +348,25 @@
         if (sidebarClose) sidebarClose.addEventListener('click', closeBackendSidebar);
         if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeBackendSidebar);
 
-        // Real-time updates via WebSockets (Reverb): reload when RBAC or web customization changes
+        // Real-time updates (Reverb): debounced reload for tenant-wide changes; profile only for the signed-in user.
         var tenantId = document.body.getAttribute('data-tenant-id');
+        var currentUserId = document.body.getAttribute('data-current-user-id');
         function subscribeRealtime() {
             if (!tenantId || typeof window.Echo === 'undefined') return;
+            var reloadTimer = null;
+            function debouncedReload() {
+                if (reloadTimer) clearTimeout(reloadTimer);
+                reloadTimer = setTimeout(function() { location.reload(); }, 450);
+            }
             var ch = window.Echo.channel('tenant.' + tenantId);
-            ch.listen('.customization.updated', function() { location.reload(); });
-            ch.listen('.rbac.updated', function() { location.reload(); });
-            ch.listen('.appointment.updated', function() { location.reload(); });
-            ch.listen('.profile.updated', function() { location.reload(); });
+            ch.listen('.customization.updated', debouncedReload);
+            ch.listen('.rbac.updated', debouncedReload);
+            ch.listen('.appointment.updated', debouncedReload);
+            ch.listen('.profile.updated', function(e) {
+                if (!currentUserId || !e || e.user_id === undefined || e.user_id === null) return;
+                if (String(e.user_id) !== String(currentUserId)) return;
+                debouncedReload();
+            });
         }
         if (typeof window.Echo !== 'undefined') subscribeRealtime();
         else window.addEventListener('echo-ready', subscribeRealtime);

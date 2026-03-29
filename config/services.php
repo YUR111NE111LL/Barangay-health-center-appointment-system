@@ -45,7 +45,9 @@ return [
         'v3' => [
             'site_key' => env('RECAPTCHA_V3_SITE_KEY'),
             'secret_key' => env('RECAPTCHA_V3_SECRET_KEY'),
-            'score_threshold' => (float) (env('RECAPTCHA_V3_SCORE_THRESHOLD', 0.5)),
+            'score_threshold' => (float) (env('RECAPTCHA_V3_SCORE_THRESHOLD', 0.35)),
+            /** Set false if verification fails behind proxies (IP mismatch with Google). */
+            'verify_remote_ip' => filter_var(env('RECAPTCHA_VERIFY_REMOTE_IP', true), FILTER_VALIDATE_BOOL),
         ],
     ],
 

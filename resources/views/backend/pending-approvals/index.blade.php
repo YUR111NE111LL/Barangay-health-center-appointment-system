@@ -31,7 +31,7 @@
                         <td class="px-4 py-3 text-sm font-medium text-slate-800">{{ $u->name }}</td>
                         <td class="px-4 py-3 text-sm text-slate-600">{{ $u->email }}</td>
                         <td class="px-4 py-3"><span class="inline-flex rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-medium text-teal-800">{{ $u->role }}</span></td>
-                        <td class="px-4 py-3 text-sm text-slate-500">{{ $u->created_at->format('M j, Y g:i A') }}</td>
+                        <td class="px-4 py-3 text-sm text-slate-500">{{ \App\Support\DateDisplay::format($u->created_at) }}</td>
                         <td class="px-4 py-3 text-right">
                             <form action="{{ route('backend.pending-approvals.approve', $u) }}" method="POST" class="inline">
                                 @csrf
