@@ -17,13 +17,15 @@ class ForgotPasswordController extends Controller
     public function showLinkRequestForm(Request $request): View
     {
         $for = $request->query('for', 'resident');
-        $tenants = in_array($for, ['tenant', 'resident'], true)
+        $currentTenant = tenant();
+        $tenants = (in_array($for, ['tenant', 'resident'], true) && ! $currentTenant)
             ? Tenant::with('domains')->where('is_active', true)->orderBy('name')->get()
             : collect();
 
         return view('auth.passwords.email', [
             'for' => $for,
             'tenants' => $tenants,
+            'currentTenant' => $currentTenant,
         ]);
     }
 
@@ -31,8 +33,24 @@ class ForgotPasswordController extends Controller
     {
         $for = $request->input('for', 'resident');
         $rules = ['email' => ['required', 'email']];
-        if (in_array($for, ['tenant', 'resident'], true)) {
-            $rules['tenant_id'] = ['required', 'exists:tenants,id'];
+        $currentTenant = tenant();
+        if (in_array($for, ['tenant', 'resident'], true) && ! $currentTenant) {
+            // Validate tenant_id against the central DB (avoid running exists() against tenant DB).
+            $rules['tenant_id'] = [
+                'required',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($value === null || $value === '') {
+                        $fail('The selected '.$attribute.' is invalid.');
+
+                        return;
+                    }
+
+                    $exists = Tenant::query()->whereKey((int) $value)->exists();
+                    if (! $exists) {
+                        $fail('The selected '.$attribute.' is invalid.');
+                    }
+                },
+            ];
         }
         if (Recaptcha::shouldProcess()) {
             $rules['recaptcha_token'] = ['required', 'string'];
@@ -52,7 +70,8 @@ class ForgotPasswordController extends Controller
         $user = User::withoutGlobalScopes()
             ->whereRaw('LOWER(email) = ?', [$emailNormalized]);
         if (in_array($for, ['tenant', 'resident'], true)) {
-            $user->where('tenant_id', $validated['tenant_id']);
+            $tenantId = $currentTenant ? (int) $currentTenant->id : (int) ($validated['tenant_id'] ?? 0);
+            $user->where('tenant_id', $tenantId);
         } else {
             $user->whereNull('tenant_id');
         }

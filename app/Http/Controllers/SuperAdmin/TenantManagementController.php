@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Mail\TenantSiteReady;
 use App\Models\Plan;
 use App\Models\Tenant;
+use App\Models\TenantApplication;
+use App\Models\User;
 use App\Services\TenantCreationService;
 use App\Support\TenantPortalLoginUrls;
 use Illuminate\Http\RedirectResponse;
@@ -142,6 +144,7 @@ class TenantManagementController extends Controller
                 try {
                     Mail::mailer(config('mail.default'))->to((string) $validated['email'])->send(new TenantSiteReady(
                         $tenant->name,
+                        $request->filled('barangay') ? (string) $request->input('barangay') : $tenant->name,
                         $domain,
                         $tenant->plan,
                         $urls['staff'],
@@ -280,6 +283,16 @@ class TenantManagementController extends Controller
             // `TenantDeleted` job, which provisions the tenant DB deletion).
             $tenant->domains()->delete();
             $tenant->delete();
+
+            // Also remove any tenant application rows pointing at this tenant (central DB).
+            TenantApplication::query()
+                ->where('tenant_id', $tenant->getTenantKey())
+                ->delete();
+
+            // Remove central mirrored users for this tenant only (tenant DB users remain inside tenant DB).
+            User::withoutGlobalScopes()
+                ->where('tenant_id', $tenant->getTenantKey())
+                ->delete();
         } catch (\Throwable $e) {
             return redirect()
                 ->route('super-admin.tenants.show', $tenant)

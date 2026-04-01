@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -36,7 +37,18 @@ class AppServiceProvider extends ServiceProvider
             $host = request()->getHost();
             $baseCookieName = (string) config('session.cookie', 'laravel-session');
             $hostCookieSuffix = preg_replace('/[^a-z0-9_]+/i', '_', strtolower($host)) ?? 'app';
-            config(['session.cookie' => $baseCookieName.'_'.$hostCookieSuffix]);
+            $path = '/'.ltrim((string) request()->path(), '/');
+            $for = (string) request()->query('for', request()->input('for', ''));
+            $portal = 'public';
+            if (str_starts_with($path, '/super-admin') || $for === 'super-admin') {
+                $portal = 'superadmin';
+            } elseif (str_starts_with($path, '/backend') || $for === 'tenant') {
+                $portal = 'staff';
+            } elseif (str_starts_with($path, '/resident') || $for === 'resident') {
+                $portal = 'resident';
+            }
+
+            config(['session.cookie' => $baseCookieName.'_'.$hostCookieSuffix.'_'.$portal]);
         }
 
         Paginator::useTailwind();
@@ -54,7 +66,7 @@ class AppServiceProvider extends ServiceProvider
 
         // View composers: inject data into layouts so views don't run queries (MVC: data from controller/composer, not view)
         View::composer('backend.layouts.app', function (\Illuminate\View\View $view): void {
-            $user = auth()->user();
+            $user = Auth::user();
             $tenant = $user?->tenant;
             if ($tenant) {
                 $tenant->loadMissing('domains');
@@ -78,7 +90,7 @@ class AppServiceProvider extends ServiceProvider
                     ->count();
             }
             $backendPendingAppointmentsCount = 0;
-            if ($user && $user->tenant_id && $user->hasTenantPermission('view appointments')) {
+            if ($user && $user->tenant_id && $user instanceof User && $user->hasTenantPermission('view appointments')) {
                 $backendPendingAppointmentsCount = Appointment::query()
                     ->where('status', Appointment::STATUS_PENDING)
                     ->count();
@@ -86,7 +98,7 @@ class AppServiceProvider extends ServiceProvider
             $view->with(compact('tenant', 'brandColor', 'brandName', 'brandLogo', 'themeClass', 'navLayout', 'hasFeatureWebCustomization', 'fontUrl', 'backendPendingCount', 'backendPendingAppointmentsCount'));
         });
         View::composer('frontend.layouts.app', function (\Illuminate\View\View $view): void {
-            $user = auth()->user();
+            $user = Auth::user();
             $tenant = $user?->tenant;
             if ($tenant) {
                 $tenant->loadMissing('domains');
@@ -107,7 +119,7 @@ class AppServiceProvider extends ServiceProvider
                 'events' => ['route' => 'resident.events.index', 'label' => 'Events'],
                 'profile' => ['route' => 'resident.profile.show', 'label' => 'Profile'],
             ];
-            if ($user && ! $user->hasTenantPermission('book appointments')) {
+            if ($user instanceof User && ! $user->hasTenantPermission('book appointments')) {
                 unset($residentNavConfig['book']);
             }
             $residentNavItems = [];
@@ -128,14 +140,14 @@ class AppServiceProvider extends ServiceProvider
         });
         View::composer('superadmin.layouts.app', function (\Illuminate\View\View $view): void {
             $count = 0;
-            if (auth()->check()) {
+            if (Auth::check()) {
                 $count = User::withoutGlobalScopes()
                     ->whereIn('role', User::rolesApprovedBySuperAdmin())
                     ->where('is_approved', false)
                     ->count();
             }
             $tenantApplicationPendingCount = 0;
-            if (auth()->check()) {
+            if (Auth::check()) {
                 $tenantApplicationPendingCount = TenantApplication::query()
                     ->where('status', TenantApplication::STATUS_PENDING)
                     ->count();

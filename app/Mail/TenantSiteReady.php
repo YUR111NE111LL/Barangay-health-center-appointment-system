@@ -16,6 +16,7 @@ class TenantSiteReady extends Mailable
 
     public function __construct(
         public string $organizationName,
+        public ?string $barangayName,
         public string $domain,
         public ?Plan $plan,
         public string $staffLoginUrl,

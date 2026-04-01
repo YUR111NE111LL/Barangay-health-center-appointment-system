@@ -182,4 +182,51 @@ return [
     */
     'tenant_domain_root' => env('BHCAS_TENANT_DOMAIN_ROOT', 'localhost'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Auto-provision tenant: Barangay Admin Google allowlist
+    |--------------------------------------------------------------------------
+    | Comma-separated list of Google emails allowed to auto-create a tenant from
+    | the "Apply for tenant" page using Google OAuth.
+    |
+    | Example: BARANGAY_ADMIN_GOOGLE_EMAILS=brgy.admin@gmail.com,another.admin@gmail.com
+    */
+    'barangay_admin_google_emails' => array_values(array_filter(array_map(
+        static fn (string $email): string => strtolower(trim($email)),
+        preg_split('/\s*,\s*/', (string) env('BARANGAY_ADMIN_GOOGLE_EMAILS', ''), -1, PREG_SPLIT_NO_EMPTY) ?: [],
+    ))),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Auto-provision tenant on application (Gmail)
+    |--------------------------------------------------------------------------
+    | If true, when someone applies for a tenant using an @gmail.com email in the
+    | application form, the tenant is created immediately and an initial Health
+    | Center Admin user is created with that email (approved). The applicant is
+    | emailed the tenant portal login links.
+    |
+    | Safety: keep this false in production unless you trust the signup channel.
+    */
+    'auto_provision_tenant_for_gmail_applications' => filter_var(
+        env('BHCAS_AUTO_PROVISION_TENANT_FOR_GMAIL_APPLICATIONS', false),
+        FILTER_VALIDATE_BOOL,
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Auto-provision tenant on application (Any email)
+    |--------------------------------------------------------------------------
+    | If true, when someone applies for a tenant (regardless of email domain),
+    | the tenant is created immediately and the provided email is created as the
+    | first Health Center Admin user (approved). The applicant is emailed a
+    | one-click dashboard link.
+    |
+    | This keeps the original Gmail-only toggle intact; if both are true, this
+    | broader setting takes precedence.
+    */
+    'auto_provision_tenant_for_any_email_applications' => filter_var(
+        env('BHCAS_AUTO_PROVISION_TENANT_FOR_ANY_EMAIL_APPLICATIONS', false),
+        FILTER_VALIDATE_BOOL,
+    ),
+
 ];

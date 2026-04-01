@@ -22,6 +22,9 @@ Route::get('/apply-for-tenant', [\App\Http\Controllers\TenantApplicationControll
 Route::post('/apply-for-tenant', [\App\Http\Controllers\TenantApplicationController::class, 'store'])
     ->middleware('throttle:12,1')
     ->name('tenant-applications.store');
+Route::post('/apply-for-tenant/google', [\App\Http\Controllers\TenantApplicationController::class, 'startGoogle'])
+    ->middleware('throttle:12,1')
+    ->name('tenant-applications.google.start');
 
 Route::middleware(['tenancy.by_domain_for_auth'])->group(function (): void {
     Route::get('/login', [\App\Http\Controllers\Auth\LoginController::class, 'showLoginForm'])->name('login');
@@ -29,6 +32,7 @@ Route::middleware(['tenancy.by_domain_for_auth'])->group(function (): void {
     Route::get('/auth/google', [\App\Http\Controllers\Auth\GoogleLoginController::class, 'redirect'])->name('auth.google.redirect');
     Route::get('/auth/google/callback', [\App\Http\Controllers\Auth\GoogleLoginController::class, 'callback'])->name('auth.google.callback');
     Route::get('/auth/google/tenant-session', [\App\Http\Controllers\Auth\GoogleLoginController::class, 'completeTenantSession'])->name('auth.google.tenant-session');
+    Route::get('/auth/email/tenant-session', [\App\Http\Controllers\Auth\GoogleLoginController::class, 'completeEmailTenantSession'])->name('auth.email.tenant-session');
     Route::get('/super-admin/login', fn () => redirect()->route('login', ['for' => 'super-admin']))->name('login.super-admin');
     Route::get('/backend/login', fn () => redirect()->route('login', ['for' => 'tenant']))->name('login.tenant');
     Route::get('/resident/login', fn () => redirect()->route('login', ['for' => 'resident']))->name('login.resident');

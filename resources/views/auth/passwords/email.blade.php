@@ -53,7 +53,7 @@
                     @if(!empty($for))
                         <input type="hidden" name="for" value="{{ $for }}">
                     @endif
-                    @if(in_array($for ?? '', ['tenant', 'resident']) && $tenants->isNotEmpty())
+                    @if(in_array($for ?? '', ['tenant', 'resident']) && empty($currentTenant) && $tenants->isNotEmpty())
                         <div>
                             <label for="tenant_id" class="mb-1 block text-sm font-medium text-slate-700">Select your barangay <span class="text-rose-500">*</span></label>
                             <select name="tenant_id" id="tenant_id" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-800 shadow-sm focus:border-teal-500 focus:ring-teal-500" required>

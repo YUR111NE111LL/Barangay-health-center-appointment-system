@@ -19,9 +19,17 @@
         <p style="margin: 4px 0 0 0; opacity: 0.9;">{{ __('Your barangay health center site') }}</p>
     </div>
     <div class="content">
-        <p>{{ __('Hello,') }}</p>
-        <p>{{ __('Your barangay site is ready. You can sign in using the links below.') }}</p>
-        <div class="detail"><strong>{{ __('Barangay / organization') }}:</strong> {{ $organizationName }}</div>
+        <p>{{ __('Hello, :name,', ['name' => $organizationName]) }}</p>
+        @php($isDashboardLink = is_string($staffLoginUrl) && str_contains($staffLoginUrl, '/auth/email/tenant-session'))
+        <p>
+            {{ __('Your barangay site is ready.') }}
+            @if($isDashboardLink)
+                {{ __('Your Barangay Admin account was created automatically using the email you entered in the application.') }}
+            @else
+                {{ __('You can sign in using the links below.') }}
+            @endif
+        </p>
+        <div class="detail"><strong>{{ __('Barangay') }}:</strong> {{ $barangayName ?: $organizationName }}</div>
         <div class="detail"><strong>{{ __('Your site address (domain)') }}:</strong> {{ $domain }}</div>
         @if($plan)
             <div class="detail"><strong>{{ __('Plan') }}:</strong> {{ $plan->name }}</div>
@@ -29,10 +37,10 @@
                 <div class="detail"><strong>{{ __('Plan price') }}:</strong> {{ $plan->formattedPrice() }} {{ __('/ month') }}</div>
             @endif
         @endif
-        <p style="margin-top: 20px;">{{ __('You can sign in at your barangay’s URL:') }}</p>
+        <p style="margin-top: 20px;">{{ __('Use the links below to access your barangay site:') }}</p>
         <p>
-            <a class="btn" href="{{ $staffLoginUrl }}">{{ __('Staff / Nurse login') }}</a>
-            <a class="btn" href="{{ $residentLoginUrl }}">{{ __('Resident login') }}</a>
+            <a class="btn" href="{{ $staffLoginUrl }}">{{ $isDashboardLink ? __('Open dashboard') : __('Staff / Nurse login') }}</a>
+            <a class="btn" href="{{ $residentLoginUrl }}">{{ $isDashboardLink ? __('Central login') : __('Resident login') }}</a>
         </p>
         <p class="footer">{{ __('If the buttons do not work, copy these links into your browser:') }}</p>
         <p class="footer" style="word-break: break-all;">{{ $staffLoginUrl }}<br>{{ $residentLoginUrl }}</p>

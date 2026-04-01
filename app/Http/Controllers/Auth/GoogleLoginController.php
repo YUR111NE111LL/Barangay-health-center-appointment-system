@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
+use App\Models\TenantApplication;
 use App\Models\User;
+use App\Services\TenantCreationService;
+use App\Support\TenantDomainInput;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -151,11 +154,54 @@ class GoogleLoginController extends Controller
     }
 
     /**
+     * Finish email magic-link sign-in on the tenant host (session is created here).
+     * Used for auto-provisioned tenants where the first admin user is created from the application email.
+     */
+    public function completeEmailTenantSession(Request $request): RedirectResponse
+    {
+        $token = $request->query('token');
+        if (! is_string($token) || strlen($token) < 32) {
+            return redirect()->route('login', ['for' => 'tenant'])
+                ->withErrors(['email' => __('Invalid or expired sign-in link. Please request a new link.')]);
+        }
+
+        $payload = Cache::pull('email_sso:'.$token);
+        if (! is_array($payload) || ! isset($payload['tenant_id'], $payload['user_id'])) {
+            return redirect()->route('login', ['for' => 'tenant'])
+                ->withErrors(['email' => __('Invalid or expired sign-in link. Please request a new link.')]);
+        }
+
+        $currentTenant = tenant();
+        if (! $currentTenant || (int) $payload['tenant_id'] !== (int) $currentTenant->id) {
+            return redirect()->route('login', ['for' => 'tenant'])
+                ->withErrors(['email' => __('This sign-in link is for a different barangay. Open your barangay URL and try again.')]);
+        }
+
+        $user = User::withoutGlobalScopes()->find($payload['user_id']);
+        if (! $user) {
+            return redirect()->route('login', ['for' => 'tenant'])
+                ->withErrors(['email' => __('Your account could not be found. Please contact support.')]);
+        }
+        if ($user->isPendingApproval()) {
+            return redirect()->route('login', ['for' => 'tenant'])
+                ->withErrors(['email' => __('Your account is pending approval. An admin must approve it before you can log in.')]);
+        }
+
+        Auth::login($user, true);
+        $request->session()->regenerate();
+
+        return redirect()->to('/backend');
+    }
+
+    /**
      * Build URL-safe base64 state payload. Payload is IN the state so it survives the round-trip (no cache dependency).
      */
-    private static function encodeState(string $for, ?int $tenantId, string $intent): string
+    private static function encodeState(string $for, ?int $tenantId, string $intent, ?string $key = null): string
     {
         $payload = ['f' => $for, 't' => $tenantId, 'i' => $intent];
+        if (is_string($key) && $key !== '') {
+            $payload['k'] = $key;
+        }
 
         return str_replace(['+', '/', '='], ['-', '_', ''], base64_encode(json_encode($payload)));
     }
@@ -178,6 +224,7 @@ class GoogleLoginController extends Controller
             'for' => $decoded['f'] ?? 'resident',
             'tenant_id' => isset($decoded['t']) ? (int) $decoded['t'] : null,
             'intent' => ($decoded['i'] ?? 'login') === 'signup' ? 'signup' : 'login',
+            'key' => isset($decoded['k']) && is_string($decoded['k']) ? $decoded['k'] : null,
         ];
     }
 
@@ -197,8 +244,10 @@ class GoogleLoginController extends Controller
         if (! in_array($intent, ['login', 'signup'], true)) {
             $intent = 'login';
         }
+        $key = $request->query('app_key');
+        $key = is_string($key) && $key !== '' ? $key : null;
 
-        $state = self::encodeState($for, $tenantId, $intent);
+        $state = self::encodeState($for, $tenantId, $intent, $key);
 
         $callbackUrl = $this->googleOAuthRedirectUri();
         $clientId = config('services.google.client_id');
@@ -232,6 +281,7 @@ class GoogleLoginController extends Controller
         $for = 'resident';
         $tenantId = null;
         $intent = 'login';
+        $key = null;
         $stateParam = $request->query('state');
         if ($stateParam !== null && $stateParam !== '') {
             $stateParam = (string) $stateParam;
@@ -240,6 +290,7 @@ class GoogleLoginController extends Controller
                 $for = $decoded['for'];
                 $tenantId = $decoded['tenant_id'];
                 $intent = $decoded['intent'];
+                $key = $decoded['key'] ?? null;
             }
         }
         if ($tenantId === 0) {
@@ -305,6 +356,10 @@ class GoogleLoginController extends Controller
 
         if ($for === 'super-admin') {
             return $this->handleGoogleSuperAdminCallback($request, $intent, $email, $emailNormalized, $name, $googleId);
+        }
+
+        if ($for === 'tenant-application') {
+            return $this->handleGoogleTenantApplicationCallback($request, $intent, $email, $emailNormalized, $name, $googleId, $key);
         }
 
         if (in_array($for, ['tenant', 'resident'], true) && $tenantId) {
@@ -550,5 +605,210 @@ class GoogleLoginController extends Controller
         }
 
         return redirect()->to('/backend');
+    }
+
+    private function isAllowedAutoProvisionGoogleAdmin(string $emailNormalized): bool
+    {
+        if ($emailNormalized === '') {
+            return false;
+        }
+        $allowed = config('bhcas.barangay_admin_google_emails', []);
+        if (! is_array($allowed)) {
+            return false;
+        }
+
+        return in_array($emailNormalized, $allowed, true);
+    }
+
+    private function ensureTenantAuthTablesExistForGoogleProvisioning(Tenant $tenant): void
+    {
+        $tenant->run(function (): void {
+            $schema = Schema::connection('tenant');
+
+            if (! $schema->hasTable('users')) {
+                $schema->create('users', function ($table): void {
+                    $table->id();
+                    $table->unsignedBigInteger('tenant_id')->nullable()->index();
+                    $table->string('role')->default(User::ROLE_RESIDENT);
+                    $table->string('name');
+                    $table->string('purok_address')->nullable();
+                    $table->string('profile_picture')->nullable();
+                    $table->string('email');
+                    $table->timestamp('email_verified_at')->nullable();
+                    $table->string('password')->nullable();
+                    $table->rememberToken();
+                    $table->string('google_id')->nullable();
+                    $table->boolean('is_approved')->default(false);
+                    $table->timestamps();
+                    $table->unique(['tenant_id', 'email']);
+                });
+            }
+
+            if (! $schema->hasTable('password_reset_tokens')) {
+                $schema->create('password_reset_tokens', function ($table): void {
+                    $table->string('email')->primary();
+                    $table->string('token');
+                    $table->timestamp('created_at')->nullable();
+                });
+            }
+
+            if (! $schema->hasTable('sessions')) {
+                $schema->create('sessions', function ($table): void {
+                    $table->string('id')->primary();
+                    $table->foreignId('user_id')->nullable()->index();
+                    $table->string('ip_address', 45)->nullable();
+                    $table->text('user_agent')->nullable();
+                    $table->longText('payload');
+                    $table->integer('last_activity')->index();
+                });
+            }
+        });
+    }
+
+    private function handleGoogleTenantApplicationCallback(
+        Request $request,
+        string $intent,
+        ?string $email,
+        string $emailNormalized,
+        string $name,
+        string $googleId,
+        ?string $key,
+    ): RedirectResponse {
+        if (empty($emailNormalized) || empty($email)) {
+            return redirect()
+                ->route('tenant-applications.create')
+                ->withErrors(['email' => __('Google did not provide an email. Please use email and password to apply.')]);
+        }
+
+        if (! is_string($key) || $key === '') {
+            return redirect()
+                ->route('tenant-applications.create')
+                ->withErrors(['email' => __('Invalid or expired application session. Please try “Apply with Google” again.')]);
+        }
+
+        $payload = Cache::pull('tenant_application_google:'.$key);
+        if (! is_array($payload)) {
+            return redirect()
+                ->route('tenant-applications.create')
+                ->withErrors(['email' => __('Invalid or expired application session. Please try “Apply with Google” again.')]);
+        }
+
+        $planId = isset($payload['plan_id']) ? (int) $payload['plan_id'] : null;
+        $tenantName = isset($payload['name']) ? trim((string) $payload['name']) : '';
+        $barangay = isset($payload['barangay']) ? trim((string) $payload['barangay']) : '';
+        $address = isset($payload['address']) ? trim((string) $payload['address']) : null;
+        $contact = isset($payload['contact_number']) ? trim((string) $payload['contact_number']) : null;
+
+        if (! $planId || $tenantName === '' || $barangay === '') {
+            return redirect()
+                ->route('tenant-applications.create')
+                ->withErrors(['email' => __('Invalid application details. Please submit again.')]);
+        }
+
+        $domain = TenantDomainInput::deriveDomainFromBarangay($barangay);
+        if ($domain === '') {
+            return redirect()
+                ->route('tenant-applications.create')
+                ->withErrors(['barangay' => __('Could not derive a website address from the barangay. Please contact support.')]);
+        }
+
+        $autoAllowed = $this->isAllowedAutoProvisionGoogleAdmin($emailNormalized);
+
+        $tenantApplication = TenantApplication::query()->create([
+            'plan_id' => $planId,
+            'name' => $tenantName,
+            'barangay' => $barangay,
+            'domain' => $domain,
+            'address' => $address !== '' ? $address : null,
+            'contact_number' => $contact !== '' ? $contact : null,
+            'email' => $emailNormalized,
+            'status' => $autoAllowed ? TenantApplication::STATUS_APPROVED : TenantApplication::STATUS_PENDING,
+            'reviewed_by' => null,
+            'reviewed_at' => $autoAllowed ? now() : null,
+            'rejection_reason' => null,
+        ]);
+
+        if (! $autoAllowed) {
+            return redirect()
+                ->route('tenant-applications.create')
+                ->with('status', __('Thank you. Your barangay application has been submitted. A Super Admin must approve it before your site is created.'));
+        }
+
+        try {
+            $tenant = app(TenantCreationService::class)->createFromValidatedData([
+                'plan_id' => $planId,
+                'name' => $tenantName,
+                'domain' => $domain,
+                'address' => $address !== '' ? $address : null,
+                'contact_number' => $contact !== '' ? $contact : null,
+                'email' => $emailNormalized,
+                'is_active' => true,
+                'subscription_ends_at' => null,
+            ], $barangay);
+
+            $tenantApplication->update([
+                'tenant_id' => $tenant->getTenantKey(),
+            ]);
+
+            $this->ensureTenantAuthTablesExistForGoogleProvisioning($tenant);
+
+            $tenantAdminUser = $tenant->run(function () use ($tenant, $emailNormalized, $email, $name, $googleId) {
+                $user = User::withoutGlobalScopes()
+                    ->where('tenant_id', (int) $tenant->id)
+                    ->whereRaw('LOWER(email) = ?', [$emailNormalized])
+                    ->first();
+
+                if (! $user) {
+                    $user = User::create([
+                        'tenant_id' => (int) $tenant->id,
+                        'role' => User::ROLE_HEALTH_CENTER_ADMIN,
+                        'name' => $name,
+                        'email' => $emailNormalized ?: $email,
+                        'password' => null,
+                        'google_id' => $googleId,
+                        'is_approved' => true,
+                    ]);
+                } else {
+                    $user->update([
+                        'role' => User::ROLE_HEALTH_CENTER_ADMIN,
+                        'name' => $name,
+                        'google_id' => $user->google_id ?: $googleId,
+                        'is_approved' => true,
+                    ]);
+                }
+
+                $rolesTable = config('permission.table_names.roles', 'roles');
+                $modelHasRolesTable = config('permission.table_names.model_has_roles', 'model_has_roles');
+                $roleExists = Schema::hasTable($rolesTable)
+                    && Role::query()
+                        ->where('name', User::ROLE_HEALTH_CENTER_ADMIN)
+                        ->where('guard_name', config('auth.defaults.guard', 'web'))
+                        ->exists();
+                if ($roleExists && Schema::hasTable($modelHasRolesTable)) {
+                    $user->syncRoles([User::ROLE_HEALTH_CENTER_ADMIN]);
+                }
+
+                return $user;
+            });
+
+            $this->syncTenantGoogleUserMirrorToCentral($tenant, $tenantAdminUser);
+
+            return $this->redirectToTenantSessionAfterGoogle($request, $tenant, $tenantAdminUser);
+        } catch (\Throwable $e) {
+            Log::warning('Auto-provision tenant from Google application failed.', [
+                'email' => $emailNormalized,
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+
+            $tenantApplication->update([
+                'status' => TenantApplication::STATUS_PENDING,
+                'reviewed_at' => null,
+            ]);
+
+            return redirect()
+                ->route('tenant-applications.create')
+                ->withErrors(['email' => __('We could not auto-create your barangay site. Your application was saved for Super Admin review.')]);
+        }
     }
 }

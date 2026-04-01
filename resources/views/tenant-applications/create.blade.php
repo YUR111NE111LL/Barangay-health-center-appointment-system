@@ -33,7 +33,12 @@
                     <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">{{ __('Central app') }}</p>
                     <h1 class="mt-1 text-2xl font-bold text-slate-900">{{ __('Apply for tenant') }}</h1>
                     <p class="mt-2 text-sm text-slate-600 leading-relaxed">
-                        {{ __('Request a new barangay (tenant) on this platform. Enter your barangay name and contact details. The website address (domain) is set only by a Super Admin when they approve your request.') }}
+                        {{ __('Request a new barangay (tenant) on this platform. Enter your barangay name and contact details.') }}
+                        @if((bool) config('bhcas.auto_provision_tenant_for_any_email_applications', false) || (bool) config('bhcas.auto_provision_tenant_for_gmail_applications', false))
+                            {{ __('When you submit, the system will automatically create your barangay site and your Barangay Admin account using the email you entered.') }}
+                        @else
+                            {{ __('The website address (domain) is set only by a Super Admin when they approve your request.') }}
+                        @endif
                     </p>
                 </div>
                 @if($logoUrl)
@@ -147,6 +152,16 @@
                     >
                         {{ __('Submit application') }}
                     </button>
+                    <button
+                        type="submit"
+                        formaction="{{ route('tenant-applications.google.start') }}"
+                        formmethod="POST"
+                        class="rounded-xl bg-white px-5 py-2.5 font-medium text-slate-700 shadow-sm ring-1 ring-slate-300 hover:bg-slate-50 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                        data-label-default="{{ e(__('Apply with Google')) }}"
+                        data-label-submitting="{{ e(__('Redirecting…')) }}"
+                    >
+                        {{ __('Apply with Google') }}
+                    </button>
                     <a href="{{ $centralAppUrl }}/" class="rounded-xl border border-slate-300 bg-white px-5 py-2.5 font-medium text-slate-700 hover:bg-slate-50">{{ __('Cancel') }}</a>
                 </div>
             </form>
@@ -235,6 +250,19 @@
             e.preventDefault();
             e.stopPropagation();
             if (isSubmitting) { return; }
+            // Preserve clicked submit button's formaction (e.g. "Apply with Google").
+            var submitter = e.submitter || null;
+            if (submitter && submitter.getAttribute) {
+                submitBtn = submitter;
+                var fa = submitter.getAttribute('formaction');
+                if (fa) {
+                    form.setAttribute('action', fa);
+                }
+                var defaultLabel = submitter.getAttribute('data-label-default');
+                var submittingLabel = submitter.getAttribute('data-label-submitting');
+                if (defaultLabel) { labelDefault = defaultLabel; }
+                if (submittingLabel) { labelSubmitting = submittingLabel; }
+            }
             if (tokenInput && tokenInput.value) { doSubmit(); return; }
             waitForRecaptcha(function(){
                 if (! tokenInput) { return; }

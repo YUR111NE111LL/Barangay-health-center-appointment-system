@@ -7,18 +7,131 @@ use App\Http\Requests\ApproveTenantApplicationRequest;
 use App\Http\Requests\RejectTenantApplicationRequest;
 use App\Mail\TenantApplicationRejected;
 use App\Mail\TenantSiteReady;
+use App\Models\Tenant;
 use App\Models\TenantApplication;
+use App\Models\User;
 use App\Services\TenantCreationService;
 use App\Support\TenantDomainInput;
 use App\Support\TenantPortalLoginUrls;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
+use Spatie\Permission\Models\Role;
 
 class TenantApplicationReviewController extends Controller
 {
+    private function ensureTenantAuthTablesExist(Tenant $tenant): void
+    {
+        $tenant->run(function (): void {
+            $schema = Schema::connection('tenant');
+
+            if (! $schema->hasTable('users')) {
+                $schema->create('users', function ($table): void {
+                    $table->id();
+                    $table->unsignedBigInteger('tenant_id')->nullable()->index();
+                    $table->string('role')->default(User::ROLE_RESIDENT);
+                    $table->string('name');
+                    $table->string('purok_address')->nullable();
+                    $table->string('profile_picture')->nullable();
+                    $table->string('email');
+                    $table->timestamp('email_verified_at')->nullable();
+                    $table->string('password')->nullable();
+                    $table->rememberToken();
+                    $table->string('google_id')->nullable();
+                    $table->boolean('is_approved')->default(false);
+                    $table->timestamps();
+                    $table->unique(['tenant_id', 'email']);
+                });
+            }
+
+            if (! $schema->hasTable('password_reset_tokens')) {
+                $schema->create('password_reset_tokens', function ($table): void {
+                    $table->string('email')->primary();
+                    $table->string('token');
+                    $table->timestamp('created_at')->nullable();
+                });
+            }
+
+            if (! $schema->hasTable('sessions')) {
+                $schema->create('sessions', function ($table): void {
+                    $table->string('id')->primary();
+                    $table->foreignId('user_id')->nullable()->index();
+                    $table->string('ip_address', 45)->nullable();
+                    $table->text('user_agent')->nullable();
+                    $table->longText('payload');
+                    $table->integer('last_activity')->index();
+                });
+            }
+        });
+    }
+
+    private function createOrUpdateFirstTenantAdminUser(Tenant $tenant, string $email, string $tenantName): int
+    {
+        $email = strtolower(trim($email));
+
+        return $tenant->run(function () use ($tenant, $email, $tenantName): int {
+            $user = User::withoutGlobalScopes()
+                ->where('tenant_id', (int) $tenant->id)
+                ->whereRaw('LOWER(email) = ?', [$email])
+                ->first();
+
+            if (! $user) {
+                $user = User::create([
+                    'tenant_id' => (int) $tenant->id,
+                    'role' => User::ROLE_HEALTH_CENTER_ADMIN,
+                    'name' => $tenantName,
+                    'email' => $email,
+                    'password' => null,
+                    'google_id' => null,
+                    'is_approved' => true,
+                ]);
+            } else {
+                $user->update([
+                    'role' => User::ROLE_HEALTH_CENTER_ADMIN,
+                    'is_approved' => true,
+                ]);
+            }
+
+            $rolesTable = config('permission.table_names.roles', 'roles');
+            $modelHasRolesTable = config('permission.table_names.model_has_roles', 'model_has_roles');
+            $roleExists = Schema::hasTable($rolesTable)
+                && Role::query()
+                    ->where('name', User::ROLE_HEALTH_CENTER_ADMIN)
+                    ->where('guard_name', config('auth.defaults.guard', 'web'))
+                    ->exists();
+            if ($roleExists && Schema::hasTable($modelHasRolesTable)) {
+                $user->syncRoles([User::ROLE_HEALTH_CENTER_ADMIN]);
+            }
+
+            return (int) $user->id;
+        });
+    }
+
+    private function dashboardMagicLinkForTenant(Tenant $tenant, int $tenantAdminUserId): ?string
+    {
+        $domain = $tenant->domains()->first()?->domain;
+        if (! is_string($domain) || $domain === '') {
+            return null;
+        }
+
+        $token = bin2hex(random_bytes(32));
+        Cache::put('email_sso:'.$token, [
+            'tenant_id' => (int) $tenant->id,
+            'user_id' => $tenantAdminUserId,
+        ], now()->addMinutes(30));
+
+        $scheme = request()->getScheme();
+        $port = request()->getPort();
+        $portSuffix = ($port && ! in_array((int) $port, [80, 443], true)) ? ':'.$port : '';
+        $base = $scheme.'://'.$domain.$portSuffix;
+
+        return $base.'/auth/email/tenant-session?token='.urlencode($token);
+    }
+
     public function index(Request $request): View
     {
         $status = $request->query('status');
@@ -33,7 +146,6 @@ class TenantApplicationReviewController extends Controller
         }
 
         $applications = $query
-            ->orderByRaw('CASE WHEN status = ? THEN 0 ELSE 1 END', [TenantApplication::STATUS_PENDING])
             ->latest()
             ->paginate(20)
             ->withQueryString();
@@ -100,14 +212,23 @@ class TenantApplicationReviewController extends Controller
 
         $approvalMailSent = false;
         if ($createdTenant !== null && $freshApplication && filled($freshApplication->email)) {
+            $this->ensureTenantAuthTablesExist($createdTenant);
+            $tenantAdminUserId = $this->createOrUpdateFirstTenantAdminUser($createdTenant, (string) $freshApplication->email, (string) $freshApplication->name);
+
             $urls = TenantPortalLoginUrls::forDomain($domain);
+            $dashboardUrl = $this->dashboardMagicLinkForTenant($createdTenant, $tenantAdminUserId);
+            $staffUrl = $dashboardUrl ?: $urls['staff'];
+
+            $centralBaseUrl = rtrim((string) config('bhcas.central_app_url', config('app.url')), '/');
+            $centralLoginUrl = $centralBaseUrl.'/login?for=tenant';
             try {
                 Mail::mailer(config('mail.default'))->to($freshApplication->email)->send(new TenantSiteReady(
                     $freshApplication->name,
+                    $freshApplication->barangay,
                     $domain,
                     $freshApplication->plan,
-                    $urls['staff'],
-                    $urls['resident'],
+                    $staffUrl,
+                    $dashboardUrl ? $centralLoginUrl : $urls['resident'],
                     __('Your barangay application was approved – :app', ['app' => config('bhcas.name')]),
                 ));
                 $approvalMailSent = true;
