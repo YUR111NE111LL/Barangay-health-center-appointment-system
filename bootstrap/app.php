@@ -11,6 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prependToGroup('web', \App\Http\Middleware\ApplySessionPortalCookieName::class);
+        $middleware->encryptCookies(except: [
+            'XSRF-TOKEN',
+        ]);
         $middleware->alias([
             'tenant' => \App\Http\Middleware\EnsureUserHasTenant::class,
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
@@ -23,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->expectsJson()) {
                 return response()->json(['message' => $e->getMessage() ?: 'You do not have permission to perform this action.'], 403);
             }
+
             return redirect()->back()
                 ->with('error', $e->getMessage() ?: 'You do not have permission to perform this action.')
                 ->withInput($request->except('password'));

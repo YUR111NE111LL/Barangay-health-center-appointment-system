@@ -23,7 +23,7 @@
     <link rel="stylesheet" href="{{ route('tenant.custom-css') }}">
     @endif
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-800 antialiased {{ $themeClass }} @if($navLayout === 'sidebar')layout-sidebar @endif" data-theme="{{ e($tenant?->theme ?? 'default') }}" data-nav-layout="{{ e($navLayout) }}" @if($tenant) data-tenant-id="{{ $tenant->id }}" @endif @if(auth()->check()) data-current-user-id="{{ auth()->id() }}" @endif>
+<body class="min-h-screen bg-slate-50 text-slate-800 antialiased {{ $themeClass }} @if($navLayout === 'sidebar')layout-sidebar @endif" data-theme="{{ e($tenant?->theme ?? 'default') }}" data-nav-layout="{{ e($navLayout) }}" data-session-portal="{{ $sessionPortalKey ?? 'public' }}" @if($tenant) data-tenant-id="{{ $tenant->id }}" @endif @if(auth()->check()) data-current-user-id="{{ auth()->id() }}" @endif>
     @if($navLayout === 'sidebar')
     <div class="sidebar-overlay" id="resident-sidebar-overlay" aria-hidden="true"></div>
     <aside class="tenant-brand-nav sidebar-drawer fixed left-0 top-0 z-40 h-full w-56 border-r border-white/10 bg-teal-600 shadow-lg md:translate-x-0" id="resident-nav" data-brand-color="{{ e($brandColor) }}">
@@ -46,6 +46,7 @@
             @endforeach
             <form action="{{ route('logout') }}" method="POST" class="mt-2">
                 @csrf
+                <input type="hidden" name="session_portal" value="{{ $sessionPortalKey ?? 'public' }}">
                 <button type="submit" class="w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium text-white/90 hover:bg-white/10 hover:text-white">Logout</button>
             </form>
         </nav>
@@ -75,6 +76,7 @@
                         @endforeach
                         <form action="{{ route('logout') }}" method="POST" class="border-t border-slate-100">
                             @csrf
+                            <input type="hidden" name="session_portal" value="{{ $sessionPortalKey ?? 'public' }}">
                             <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Logout</button>
                         </form>
                     </div>
@@ -103,6 +105,7 @@
                     @endforeach
                     <form action="{{ route('logout') }}" method="POST" class="inline">
                         @csrf
+                        <input type="hidden" name="session_portal" value="{{ $sessionPortalKey ?? 'public' }}">
                         <button type="submit" class="whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white">Logout</button>
                     </form>
                 </div>
@@ -118,6 +121,7 @@
                     @endforeach
                     <form action="{{ route('logout') }}" method="POST">
                         @csrf
+                        <input type="hidden" name="session_portal" value="{{ $sessionPortalKey ?? 'public' }}">
                         <button type="submit" class="w-full rounded-lg px-3 py-2 text-left text-sm text-white/90 hover:bg-white/10">Logout</button>
                     </form>
                 </div>
@@ -212,6 +216,7 @@
     })();
     </script>
     @include('components.professional-alerts')
+    @include('components.session-tab-sync')
     @if($tenant && $tenant->footer_text)
     <footer class="mt-auto border-t border-slate-200 bg-white py-4">
         <div class="mx-auto max-w-7xl px-4 text-center text-sm text-slate-500 sm:px-6 lg:px-8">{{ $tenant->footer_text }}</div>

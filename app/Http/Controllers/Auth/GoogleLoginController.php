@@ -96,7 +96,9 @@ class GoogleLoginController extends Controller
                 ->withErrors(['email' => __('Could not resolve your barangay web address. Contact support.')]);
         }
 
-        return redirect()->away($base.'/auth/google/tenant-session?token='.urlencode($token));
+        $portal = $tenantUser->role === User::ROLE_RESIDENT ? 'resident' : 'staff';
+
+        return redirect()->away($base.'/auth/google/tenant-session?token='.urlencode($token).'&portal='.$portal);
     }
 
     /**

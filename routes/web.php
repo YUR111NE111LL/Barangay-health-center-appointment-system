@@ -50,26 +50,13 @@ Route::middleware(['tenancy.by_domain_for_auth'])->group(function (): void {
 });
 
 Route::post('/logout', function () {
-    /** @var \App\Models\User|null $user */
-    $user = Auth::user();
     Auth::guard('web')->logout();
     request()->session()->invalidate();
     request()->session()->regenerateToken();
-    $message = __('You have logged out successfully.');
 
-    if ($user && $user->tenant_id) {
-        $tenant = \App\Models\Tenant::find($user->tenant_id);
-        $domain = $tenant?->domains()->first()?->domain;
-        if ($domain) {
-            $scheme = request()->getScheme();
-            $port = request()->getPort();
-            $portSuffix = ($port && ! in_array((int) $port, [80, 443], true)) ? ':'.$port : '';
-
-            return redirect()->away($scheme.'://'.$domain.$portSuffix.'/login')->with('status', $message);
-        }
-    }
-
-    return redirect()->route('login')->with('status', $message);
+    // Same host as the current request (do not redirect()->away to domains()->first()): browsing via
+    // 127.0.0.1 vs localhost vs a DB domain alias breaks fetch() logout navigation (cross-origin / opaque response).
+    return redirect()->to('/login')->with('status', __('You have logged out successfully.'));
 })->name('logout')->middleware(['tenancy.by_domain_for_auth', 'auth']);
 
 Route::get('/tenant-custom.css', \App\Http\Controllers\TenantCustomCssController::class)->name('tenant.custom-css')->middleware('auth');

@@ -9,6 +9,7 @@
 </div>
 
 <p class="mb-6 text-sm text-slate-600">This page sets <strong>global default</strong> permissions for each role. To override permissions <strong>per tenant</strong> (based on their plan), open a tenant from the list and use <strong>RBAC for this tenant</strong>.</p>
+<p class="mb-6 text-sm text-slate-600"><strong>Super Admin</strong> is not listed here: platform Super Admins are not restricted by this permission matrix. Per-tenant RBAC for barangay staff and residents is unchanged.</p>
 
 <div class="mb-6 grid gap-4 lg:grid-cols-2">
     <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60">

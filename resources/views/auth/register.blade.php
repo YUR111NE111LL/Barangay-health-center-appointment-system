@@ -73,6 +73,9 @@
                 <form method="POST" action="{{ route('register') }}" id="register-form" class="space-y-4"
                     @if(\App\Support\Recaptcha::shouldLoadClient()) data-recaptcha-site-key="{{ config('services.recaptcha.v3.site_key') }}" @endif>
                     @csrf
+                    @if(request()->filled('for'))
+                        <input type="hidden" name="for" value="{{ request('for') }}">
+                    @endif
                     @if(\App\Support\Recaptcha::shouldLoadClient())
                         <input type="hidden" name="recaptcha_token" id="recaptcha_token" value="">
                     @endif

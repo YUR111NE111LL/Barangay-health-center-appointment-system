@@ -129,7 +129,7 @@ class TenantApplicationReviewController extends Controller
         $portSuffix = ($port && ! in_array((int) $port, [80, 443], true)) ? ':'.$port : '';
         $base = $scheme.'://'.$domain.$portSuffix;
 
-        return $base.'/auth/email/tenant-session?token='.urlencode($token);
+        return $base.'/auth/email/tenant-session?token='.urlencode($token).'&portal=staff';
     }
 
     public function index(Request $request): View

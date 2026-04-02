@@ -8,6 +8,7 @@ use App\Models\Appointment;
 use App\Models\Tenant;
 use App\Models\TenantApplication;
 use App\Models\User;
+use App\Support\SessionPortal;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Pagination\Paginator;
@@ -33,30 +34,34 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if (! app()->runningInConsole()) {
-            $host = request()->getHost();
-            $baseCookieName = (string) config('session.cookie', 'laravel-session');
-            $hostCookieSuffix = preg_replace('/[^a-z0-9_]+/i', '_', strtolower($host)) ?? 'app';
-            $path = '/'.ltrim((string) request()->path(), '/');
-            $for = (string) request()->query('for', request()->input('for', ''));
-            $portal = 'public';
-            if (str_starts_with($path, '/super-admin') || $for === 'super-admin') {
-                $portal = 'superadmin';
-            } elseif (str_starts_with($path, '/backend') || $for === 'tenant') {
-                $portal = 'staff';
-            } elseif (str_starts_with($path, '/resident') || $for === 'resident') {
-                $portal = 'resident';
-            }
-
-            config(['session.cookie' => $baseCookieName.'_'.$hostCookieSuffix.'_'.$portal]);
-        }
-
         Paginator::useTailwind();
 
-        // Per-tenant RBAC: for tenant users, ONLY tenant_role_permissions (via User::hasTenantPermission). Never Spatie.
-        Gate::before(function (User $user, string $ability): ?bool {
+        View::composer([
+            'backend.layouts.app',
+            'frontend.layouts.app',
+            'superadmin.layouts.app',
+        ], function (\Illuminate\View\View $view): void {
+            if (! app()->runningInConsole()) {
+                $view->with('sessionPortalKey', SessionPortal::portalKey(request()));
+            }
+        });
+
+        // Per-tenant RBAC: tenant users use tenant_role_permissions only (via User::hasTenantPermission). Never Spatie.
+        // Super Admin (central, no tenant): not governed by Spatie RBAC — full access without permission matrix checks.
+        Gate::before(function ($user, string $ability): ?bool {
+            if (! $user instanceof User) {
+                return null;
+            }
+            if ($user->isSuperAdmin()) {
+                return true;
+            }
             if ($user->tenant_id === null) {
-                return null; // Super Admin: use default (Spatie) checks
+                return null;
+            }
+
+            // Add/manage barangay user accounts: Barangay (Health Center) Admin only; not driven by tenant_role_permissions rows.
+            if ($ability === 'manage users' && $user->role === User::ROLE_HEALTH_CENTER_ADMIN) {
+                return true;
             }
 
             return $user->hasTenantPermission($ability);

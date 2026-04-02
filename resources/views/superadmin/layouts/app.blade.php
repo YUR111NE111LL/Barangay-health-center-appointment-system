@@ -6,7 +6,7 @@
     <title>@yield('title', 'Super Admin') – {{ config('bhcas.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-800 antialiased">
+<body class="min-h-screen bg-slate-50 text-slate-800 antialiased" data-session-portal="{{ $sessionPortalKey ?? 'public' }}" @if(auth()->check()) data-current-user-id="{{ auth()->id() }}" @endif>
     <nav class="sticky top-0 z-50 border-b border-violet-900/20 bg-gradient-to-r from-violet-800 to-violet-900 shadow-sm">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div class="flex h-14 items-center justify-between">
@@ -33,12 +33,12 @@
                         Pending approvals
                         @if(($pendingCount ?? 0) > 0)<span class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold text-violet-900">{{ $pendingCount }}</span>@endif
                     </a>
-                    <a href="{{ route('super-admin.rbac.index') }}" class="{{ request()->routeIs('super-admin.rbac.*') ? $saActive : $saDefault }}">Roles & Permissions</a>
                 </div>
                 <div class="flex items-center gap-3">
                     <span class="hidden text-sm text-white/80 sm:inline">{{ auth()->user()->name }}</span>
                     <form action="{{ route('logout') }}" method="POST" class="inline">
                         @csrf
+                        <input type="hidden" name="session_portal" value="{{ $sessionPortalKey ?? 'public' }}">
                         <button type="submit" class="rounded-lg px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10 hover:text-white">Logout</button>
                     </form>
                 </div>
@@ -57,7 +57,6 @@
                     <a href="{{ route('super-admin.accounts.index') }}" class="{{ request()->routeIs('super-admin.accounts.*') ? $saMobActive : $saMobDefault }}">Accounts</a>
                     <a href="{{ route('super-admin.users.index') }}" class="{{ request()->routeIs('super-admin.users.*') ? $saMobActive : $saMobDefault }}">Users</a>
                     <a href="{{ route('super-admin.pending-approvals.index') }}" class="{{ request()->routeIs('super-admin.pending-approvals.*') ? $saMobActive : $saMobDefault }}">Pending approvals @if(($pendingCount ?? 0) > 0)<span class="ml-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-xs font-semibold text-violet-900">{{ $pendingCount }}</span>@endif</a>
-                    <a href="{{ route('super-admin.rbac.index') }}" class="{{ request()->routeIs('super-admin.rbac.*') ? $saMobActive : $saMobDefault }}">Roles & Permissions</a>
                 </div>
             </div>
         </div>
@@ -76,6 +75,12 @@
                 <button type="button" onclick="this.parentElement.remove()" class="rounded p-1 hover:bg-rose-100" aria-label="Dismiss">&times;</button>
             </div>
         @endif
+        @if(session('info'))
+            <div class="mb-4 flex items-center justify-between rounded-xl bg-sky-50 px-4 py-3 text-sky-900 ring-1 ring-sky-200">
+                <span>{{ session('info') }}</span>
+                <button type="button" onclick="this.parentElement.remove()" class="rounded p-1 hover:bg-sky-100" aria-label="Dismiss">&times;</button>
+            </div>
+        @endif
         @yield('content')
     </main>
 
@@ -91,6 +96,7 @@
     })();
     </script>
     @include('components.professional-alerts')
+    @include('components.session-tab-sync')
     @stack('scripts')
 </body>
 </html>

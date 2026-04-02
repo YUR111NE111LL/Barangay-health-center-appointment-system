@@ -5,46 +5,28 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
-use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 class RbacController extends Controller
 {
     /**
-     * List all roles and permissions (RBAC overview).
+     * Global Super Admin RBAC UI is not used; barangay RBAC is configured per tenant (Tenants → RBAC).
+     * These routes redirect so bookmarks still land in the right place.
      */
-    public function index(): View
+    public function index(): RedirectResponse
     {
-        $roles = Role::with('permissions')->where('guard_name', 'web')->orderBy('name')->get();
-        $permissions = Permission::where('guard_name', 'web')->orderBy('name')->get();
-
-        return view('superadmin.rbac.index', compact('roles', 'permissions'));
+        return redirect()
+            ->route('super-admin.tenants.index')
+            ->with('info', __('Configure role permissions per barangay: open a tenant and use RBAC. There is no global Roles & Permissions page for Super Admin.'));
     }
 
-    /**
-     * Edit a role: assign or revoke permissions.
-     */
-    public function edit(Role $role): View
+    public function edit(Role $role): RedirectResponse
     {
-        $role->load('permissions');
-        $permissions = Permission::where('guard_name', $role->guard_name)->orderBy('name')->get();
-
-        return view('superadmin.rbac.edit-role', compact('role', 'permissions'));
+        return $this->index();
     }
 
-    /**
-     * Update the role's permissions.
-     */
     public function update(Request $request, Role $role): RedirectResponse
     {
-        $validated = $request->validate([
-            'permissions' => ['nullable', 'array'],
-            'permissions.*' => ['string', 'exists:permissions,name'],
-        ]);
-
-        $role->syncPermissions($validated['permissions'] ?? []);
-
-        return redirect()->route('super-admin.rbac.index')->with('success', "Permissions updated for role \"{$role->name}\".");
+        return $this->index();
     }
 }

@@ -14,6 +14,29 @@ use Laravel\Socialite\Facades\Socialite;
 class UserController extends Controller
 {
     /**
+     * Roles available when creating a user (Barangay Admin only may create users).
+     *
+     * @return array<string, string> role => label
+     */
+    private function assignableRolesForCreate(): array
+    {
+        return [
+            User::ROLE_RESIDENT => 'Resident (Patient)',
+            User::ROLE_STAFF => 'Staff',
+            User::ROLE_NURSE => 'Nurse / Midwife',
+            User::ROLE_HEALTH_CENTER_ADMIN => 'Health Center Admin',
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function allowedRoleKeysForStore(): array
+    {
+        return array_keys($this->assignableRolesForCreate());
+    }
+
+    /**
      * List users belonging to the current tenant (actual users: residents, staff, etc.).
      */
     public function index(Request $request): View
@@ -27,8 +50,8 @@ class UserController extends Controller
         }
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('email', 'like', '%' . $request->search . '%');
+                $q->where('name', 'like', '%'.$request->search.'%')
+                    ->orWhere('email', 'like', '%'.$request->search.'%');
             });
         }
 
@@ -39,27 +62,25 @@ class UserController extends Controller
         $userCount = $tenant ? $tenant->users()->count() : 0;
         $maxUsers = $tenant ? $tenant->maxUsersFromPlan() : 0;
         $planName = $tenant && $tenant->plan ? $tenant->plan->name : null;
+        $canAddUser = $canAddUser && auth()->user()?->role === User::ROLE_HEALTH_CENTER_ADMIN;
 
         return view('backend.users.index', compact('users', 'canAddUser', 'userCount', 'maxUsers', 'planName'));
     }
 
     /**
-     * Show form to create a new user (so staff can create actual user accounts).
+     * Show form to create a new user (Barangay / Health Center Admin only).
      */
     public function create(): View|RedirectResponse
     {
+        $this->authorize('manage users');
+
         $tenant = auth()->user()->tenant;
         if (! $tenant || ! $tenant->canAddUser()) {
             return redirect()->route('backend.users.index')
                 ->with('error', 'User limit for your plan has been reached. Upgrade your plan to add more users.');
         }
 
-        $roles = [
-            User::ROLE_RESIDENT => 'Resident (Patient)',
-            User::ROLE_STAFF => 'Staff',
-            User::ROLE_NURSE => 'Nurse / Midwife',
-            User::ROLE_HEALTH_CENTER_ADMIN => 'Health Center Admin',
-        ];
+        $roles = $this->assignableRolesForCreate();
 
         return view('backend.users.create', compact('roles'));
     }
@@ -69,6 +90,8 @@ class UserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $this->authorize('manage users');
+
         $tenant = auth()->user()->tenant;
         $tenantId = auth()->user()->tenant_id;
 
@@ -87,7 +110,7 @@ class UserController extends Controller
                 Rule::unique('users')->where('tenant_id', $tenantId),
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', Rule::in([User::ROLE_RESIDENT, User::ROLE_STAFF, User::ROLE_NURSE, User::ROLE_HEALTH_CENTER_ADMIN])],
+            'role' => ['required', Rule::in($this->allowedRoleKeysForStore())],
         ]);
 
         $validated['tenant_id'] = $tenantId;
@@ -96,7 +119,7 @@ class UserController extends Controller
         $user = User::create($validated);
         $user->syncRoles([$validated['role']]);
 
-        $message = $validated['password'] 
+        $message = $validated['password']
             ? 'User created. They can now log in with this email and password.'
             : 'User created. They will need to set up Google login or contact you for password setup.';
 
@@ -108,6 +131,8 @@ class UserController extends Controller
      */
     public function createWithGoogle(Request $request): RedirectResponse
     {
+        $this->authorize('manage users');
+
         $tenant = auth()->user()->tenant;
         $tenantId = auth()->user()->tenant_id;
 
@@ -122,7 +147,7 @@ class UserController extends Controller
             'admin_id' => auth()->id(),
         ])));
 
-        $callbackUrl = request()->getSchemeAndHttpHost() . '/backend/users/google/callback';
+        $callbackUrl = request()->getSchemeAndHttpHost().'/backend/users/google/callback';
 
         return Socialite::driver('google')
             ->redirectUrl($callbackUrl)
@@ -136,6 +161,8 @@ class UserController extends Controller
      */
     public function googleCallback(Request $request): RedirectResponse
     {
+        $this->authorize('manage users');
+
         $tenant = auth()->user()->tenant;
         $tenantId = auth()->user()->tenant_id;
 
@@ -148,7 +175,7 @@ class UserController extends Controller
         $stateTenantId = $tenantId;
         $adminId = auth()->id();
         $stateParam = $request->query('state');
-        
+
         if ($stateParam) {
             $stateParam = str_replace(['-', '_'], ['+', '/'], $stateParam);
             $stateParam .= str_repeat('=', (4 - strlen($stateParam) % 4) % 4);
@@ -176,7 +203,7 @@ class UserController extends Controller
                 ->with('error', 'Google did not return an authorization code. Please try again.');
         }
 
-        $callbackUrl = $request->getSchemeAndHttpHost() . '/backend/users/google/callback';
+        $callbackUrl = $request->getSchemeAndHttpHost().'/backend/users/google/callback';
 
         try {
             $googleUser = Socialite::driver('google')
@@ -185,7 +212,7 @@ class UserController extends Controller
                 ->user();
         } catch (\Throwable $e) {
             return redirect()->route('backend.users.create')
-                ->with('error', 'Google login failed: ' . $e->getMessage());
+                ->with('error', 'Google login failed: '.$e->getMessage());
         }
 
         $email = $googleUser->getEmail();
@@ -212,6 +239,7 @@ class UserController extends Controller
             if (! $existing->google_id) {
                 $existing->update(['google_id' => $googleId]);
             }
+
             return redirect()->route('backend.users.index')
                 ->with('info', 'This Google account is already registered in your barangay.');
         }
@@ -222,7 +250,7 @@ class UserController extends Controller
             ->where('role', User::ROLE_SUPER_ADMIN)
             ->whereRaw('LOWER(email) = ?', [$emailNormalized])
             ->exists();
-        
+
         if ($isSuperAdmin) {
             return redirect()->route('backend.users.create')
                 ->with('error', 'This Google account is registered as a Super Admin. Super Admin accounts cannot be added to barangays.');
@@ -243,6 +271,8 @@ class UserController extends Controller
      */
     public function storeWithGoogle(Request $request): RedirectResponse
     {
+        $this->authorize('manage users');
+
         $tenant = auth()->user()->tenant;
         $tenantId = auth()->user()->tenant_id;
 
@@ -261,7 +291,7 @@ class UserController extends Controller
                 Rule::unique('users')->where('tenant_id', $tenantId),
             ],
             'google_id' => ['required', 'string'],
-            'role' => ['required', Rule::in([User::ROLE_RESIDENT, User::ROLE_STAFF, User::ROLE_NURSE, User::ROLE_HEALTH_CENTER_ADMIN])],
+            'role' => ['required', Rule::in($this->allowedRoleKeysForStore())],
         ]);
 
         $validated['tenant_id'] = $tenantId;

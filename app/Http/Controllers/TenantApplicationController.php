@@ -260,7 +260,7 @@ class TenantApplicationController extends Controller
         $port = request()->getPort();
         $portSuffix = ($port && ! in_array((int) $port, [80, 443], true)) ? ':'.$port : '';
         $base = $scheme.'://'.$domain.$portSuffix;
-        $dashboardUrl = $base.'/auth/email/tenant-session?token='.urlencode($token);
+        $dashboardUrl = $base.'/auth/email/tenant-session?token='.urlencode($token).'&portal=staff';
         $centralBaseUrl = rtrim((string) config('bhcas.central_app_url', config('app.url')), '/');
         $centralLoginUrl = $centralBaseUrl.'/login?for=tenant';
 

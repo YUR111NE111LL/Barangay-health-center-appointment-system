@@ -24,7 +24,7 @@
     <link rel="stylesheet" href="{{ route('tenant.custom-css') }}">
     @endif
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-800 antialiased {{ $themeClass }} @if($navLayout === 'sidebar')layout-sidebar @endif" data-theme="{{ e($tenant?->theme ?? 'default') }}" data-nav-layout="{{ e($navLayout) }}" @if($tenant) data-tenant-id="{{ $tenant->id }}" @endif @if(auth()->check()) data-current-user-id="{{ auth()->id() }}" @endif>
+<body class="min-h-screen bg-slate-50 text-slate-800 antialiased {{ $themeClass }} @if($navLayout === 'sidebar')layout-sidebar @endif" data-theme="{{ e($tenant?->theme ?? 'default') }}" data-nav-layout="{{ e($navLayout) }}" data-session-portal="{{ $sessionPortalKey ?? 'public' }}" @if($tenant) data-tenant-id="{{ $tenant->id }}" @endif @if(auth()->check()) data-current-user-id="{{ auth()->id() }}" @endif>
     @if($navLayout === 'sidebar')
     <div class="sidebar-overlay" id="backend-sidebar-overlay" aria-hidden="true"></div>
     <!-- Sidebar: drawer on mobile, fixed on md+ -->
@@ -77,6 +77,7 @@
                     <a href="{{ route('backend.profile.show') }}" class="block rounded-lg px-3 py-2 text-left text-sm text-white/90 hover:bg-white/10">Profile</a>
                     <form action="{{ route('logout') }}" method="POST" class="mt-1">
                         @csrf
+                        <input type="hidden" name="session_portal" value="{{ $sessionPortalKey ?? 'public' }}">
                         <button type="submit" class="block w-full rounded-lg px-3 py-2 text-left text-sm text-white/90 hover:bg-white/10">Logout</button>
                     </form>
                 </details>
@@ -138,6 +139,7 @@
                         <div class="absolute right-0 top-full z-10 mt-1 w-48 rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5">
                             <form action="{{ route('logout') }}" method="POST">
                                 @csrf
+                                <input type="hidden" name="session_portal" value="{{ $sessionPortalKey ?? 'public' }}">
                                 <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Logout</button>
                             </form>
                         </div>
@@ -239,6 +241,7 @@
                             </a>
                             <form action="{{ route('logout') }}" method="POST">
                                 @csrf
+                                <input type="hidden" name="session_portal" value="{{ $sessionPortalKey ?? 'public' }}">
                                 <button type="submit" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">
                                     <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                                     Logout
@@ -388,6 +391,7 @@
     })();
     </script>
     @include('components.professional-alerts')
+    @include('components.session-tab-sync')
     @stack('scripts')
 </body>
 </html>
