@@ -104,10 +104,7 @@
                         @endif
                     </td>
                     <td class="whitespace-nowrap px-4 py-3 text-right">
-                        @if($tenantLoginUrl ?? null)
-                            <a href="{{ $tenantLoginUrl }}" target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-emerald-600 hover:text-emerald-700">Login</a>
-                        @endif
-                        <a href="{{ route('super-admin.tenants.show', $t) }}" class="text-sm font-medium text-violet-600 hover:text-violet-700 {{ ($tenantLoginUrl ?? null) ? 'ml-3' : '' }}">View</a>
+                        <a href="{{ route('super-admin.tenants.show', $t) }}" class="text-sm font-medium text-violet-600 hover:text-violet-700">View</a>
                         <a href="{{ route('super-admin.tenants.rbac.index', $t) }}" class="ml-3 text-sm font-medium text-violet-600 hover:text-violet-700">RBAC</a>
                         <a href="{{ route('super-admin.tenants.edit', $t) }}" class="ml-3 text-sm font-medium text-slate-600 hover:text-slate-700">Edit</a>
                     </td>
