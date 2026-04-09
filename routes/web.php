@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\Backend\AppointmentController as BackendAppointmentController;
-use App\Http\Controllers\Backend\BackendDashboardController;
-use App\Http\Controllers\Backend\ReportController;
 use App\Http\Controllers\RequirementsController;
+use App\Http\Controllers\Tenant\AppointmentController as BackendAppointmentController;
+use App\Http\Controllers\Tenant\BackendDashboardController;
+use App\Http\Controllers\Tenant\ReportController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -67,7 +67,7 @@ Route::get('/dashboard', function () {
     if ($user->isSuperAdmin()) {
         return redirect()->route('super-admin.dashboard');
     }
-    if ($user->role === 'Resident') {
+    if ($user->canAccessResidentPortal()) {
         return redirect()->route('resident.dashboard');
     }
 
@@ -80,57 +80,91 @@ Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('bac
     Route::get('/nurse', [BackendDashboardController::class, 'nurse'])->name('nurse.dashboard')->middleware('role:Nurse');
     Route::get('/staff', [BackendDashboardController::class, 'staff'])->name('staff.dashboard')->middleware('role:Staff');
 
-    Route::get('profile', [\App\Http\Controllers\Backend\ProfileController::class, 'show'])->name('profile.show');
-    Route::get('profile/edit', [\App\Http\Controllers\Backend\ProfileController::class, 'edit'])->name('profile.edit');
-    Route::put('profile', [\App\Http\Controllers\Backend\ProfileController::class, 'update'])->name('profile.update');
+    Route::get('profile', [\App\Http\Controllers\Tenant\ProfileController::class, 'show'])->name('profile.show');
+    Route::get('profile/edit', [\App\Http\Controllers\Tenant\ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('profile', [\App\Http\Controllers\Tenant\ProfileController::class, 'update'])->name('profile.update');
 
     Route::resource('appointments', BackendAppointmentController::class);
     Route::post('appointments/{appointment}/approve', [BackendAppointmentController::class, 'approve'])->name('appointments.approve');
     Route::post('appointments/{appointment}/reject', [BackendAppointmentController::class, 'reject'])->name('appointments.reject');
 
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
-    Route::get('inventory', [\App\Http\Controllers\Backend\InventoryController::class, 'index'])->name('inventory.index');
+    Route::get('inventory', [\App\Http\Controllers\Tenant\InventoryController::class, 'index'])->name('inventory.index');
 
-    Route::get('users', [\App\Http\Controllers\Backend\UserController::class, 'index'])->name('users.index');
-    Route::get('users/create', [\App\Http\Controllers\Backend\UserController::class, 'create'])->name('users.create');
-    Route::post('users', [\App\Http\Controllers\Backend\UserController::class, 'store'])->name('users.store');
-    Route::get('users/google', [\App\Http\Controllers\Backend\UserController::class, 'createWithGoogle'])->name('users.google');
-    Route::get('users/google/callback', [\App\Http\Controllers\Backend\UserController::class, 'googleCallback'])->name('users.google.callback');
-    Route::post('users/google', [\App\Http\Controllers\Backend\UserController::class, 'storeWithGoogle'])->name('users.store.google');
+    Route::get('users', [\App\Http\Controllers\Tenant\UserController::class, 'index'])->name('users.index');
+    Route::get('users/create', [\App\Http\Controllers\Tenant\UserController::class, 'create'])->name('users.create');
+    Route::post('users', [\App\Http\Controllers\Tenant\UserController::class, 'store'])->name('users.store');
+    Route::get('users/google', [\App\Http\Controllers\Tenant\UserController::class, 'createWithGoogle'])->name('users.google');
+    Route::get('users/google/callback', [\App\Http\Controllers\Tenant\UserController::class, 'googleCallback'])->name('users.google.callback');
+    Route::post('users/google', [\App\Http\Controllers\Tenant\UserController::class, 'storeWithGoogle'])->name('users.store.google');
+
+    Route::prefix('support')->name('support.')->group(function (): void {
+        Route::get('help', [\App\Http\Controllers\Tenant\SupportHelpController::class, 'index'])->name('help');
+        Route::get('tickets', [\App\Http\Controllers\Tenant\SupportTicketController::class, 'index'])->name('tickets.index');
+        Route::get('tickets/create', [\App\Http\Controllers\Tenant\SupportTicketController::class, 'create'])->name('tickets.create');
+        Route::post('tickets', [\App\Http\Controllers\Tenant\SupportTicketController::class, 'store'])->name('tickets.store');
+        Route::get('tickets/{ticket}', [\App\Http\Controllers\Tenant\SupportTicketController::class, 'show'])->name('tickets.show');
+        Route::post('tickets/{ticket}/reply', [\App\Http\Controllers\Tenant\SupportTicketController::class, 'reply'])->name('tickets.reply');
+        Route::patch('tickets/{ticket}/status', [\App\Http\Controllers\Tenant\SupportTicketController::class, 'updateStatus'])->name('tickets.status');
+        Route::delete('tickets/{ticket}', [\App\Http\Controllers\Tenant\SupportTicketController::class, 'destroy'])->name('tickets.destroy');
+
+        Route::get('updates', [\App\Http\Controllers\Tenant\ReleaseNoteController::class, 'index'])->name('updates.index');
+        Route::get('updates/create', [\App\Http\Controllers\Tenant\ReleaseNoteController::class, 'create'])->name('updates.create');
+        Route::post('updates', [\App\Http\Controllers\Tenant\ReleaseNoteController::class, 'store'])->name('updates.store');
+        Route::get('updates/{update}/edit', [\App\Http\Controllers\Tenant\ReleaseNoteController::class, 'edit'])->name('updates.edit');
+        Route::put('updates/{update}', [\App\Http\Controllers\Tenant\ReleaseNoteController::class, 'update'])->name('updates.update');
+        Route::delete('updates/{update}', [\App\Http\Controllers\Tenant\ReleaseNoteController::class, 'destroy'])->name('updates.destroy');
+    });
 
     // RBAC: Barangay (Health Center) Admin only. Nurses and Residents cannot view or access these routes; tenant permissions are plan-based and per-tenant (no overlap with other tenants).
     Route::middleware('role:Health Center Admin')->group(function (): void {
-        Route::get('pending-approvals', [\App\Http\Controllers\Backend\PendingApprovalsController::class, 'index'])->name('pending-approvals.index');
-        Route::put('pending-approvals/{user}', [\App\Http\Controllers\Backend\PendingApprovalsController::class, 'approve'])->name('pending-approvals.approve');
-        Route::match(['delete'], 'pending-approvals/{user}', [\App\Http\Controllers\Backend\PendingApprovalsController::class, 'deny'])->name('pending-approvals.deny');
-        Route::get('rbac', [\App\Http\Controllers\Backend\RbacController::class, 'index'])->name('rbac.index');
-        Route::get('rbac/users/{user}/edit', [\App\Http\Controllers\Backend\RbacController::class, 'edit'])->name('rbac.edit');
-        Route::put('rbac/users/{user}', [\App\Http\Controllers\Backend\RbacController::class, 'update'])->name('rbac.update');
-        Route::get('rbac/permissions', [\App\Http\Controllers\Backend\RolePermissionsController::class, 'index'])->name('rbac.permissions.index');
-        Route::get('rbac/permissions/roles/{role}', [\App\Http\Controllers\Backend\RolePermissionsController::class, 'edit'])->name('rbac.permissions.edit');
-        Route::put('rbac/permissions/roles/{role}', [\App\Http\Controllers\Backend\RolePermissionsController::class, 'update'])->name('rbac.permissions.update');
+        Route::get('pending-approvals', [\App\Http\Controllers\Tenant\PendingApprovalsController::class, 'index'])->name('pending-approvals.index');
+        Route::put('pending-approvals/{user}', [\App\Http\Controllers\Tenant\PendingApprovalsController::class, 'approve'])->name('pending-approvals.approve');
+        Route::match(['delete'], 'pending-approvals/{user}', [\App\Http\Controllers\Tenant\PendingApprovalsController::class, 'deny'])->name('pending-approvals.deny');
+        Route::get('rbac', [\App\Http\Controllers\Tenant\RbacController::class, 'index'])->name('rbac.index');
+        Route::get('rbac/users/{user}/edit', [\App\Http\Controllers\Tenant\RbacController::class, 'edit'])->name('rbac.edit');
+        Route::put('rbac/users/{user}', [\App\Http\Controllers\Tenant\RbacController::class, 'update'])->name('rbac.update');
+        Route::get('rbac/permissions', [\App\Http\Controllers\Tenant\RolePermissionsController::class, 'index'])->name('rbac.permissions.index');
+        Route::get('rbac/permissions/roles/create', [\App\Http\Controllers\Tenant\RolePermissionsController::class, 'create'])->name('rbac.permissions.create');
+        Route::post('rbac/permissions/roles', [\App\Http\Controllers\Tenant\RolePermissionsController::class, 'store'])->name('rbac.permissions.store');
+        Route::get('rbac/permissions/roles/{role}', [\App\Http\Controllers\Tenant\RolePermissionsController::class, 'edit'])->name('rbac.permissions.edit');
+        Route::put('rbac/permissions/roles/{role}', [\App\Http\Controllers\Tenant\RolePermissionsController::class, 'update'])->name('rbac.permissions.update');
+        Route::delete('rbac/permissions/roles/{role}', [\App\Http\Controllers\Tenant\RolePermissionsController::class, 'destroy'])->name('rbac.permissions.destroy');
 
-        Route::resource('announcements', \App\Http\Controllers\Backend\AnnouncementController::class);
-        Route::resource('events', \App\Http\Controllers\Backend\EventController::class);
-        Route::resource('services', \App\Http\Controllers\Backend\ServiceController::class)->except(['show']);
+        Route::resource('announcements', \App\Http\Controllers\Tenant\AnnouncementController::class);
+        Route::resource('events', \App\Http\Controllers\Tenant\EventController::class);
+        Route::resource('services', \App\Http\Controllers\Tenant\ServiceController::class)->except(['show']);
 
         // Plan-based web customization (only when tenant's plan has web_customization)
-        Route::get('customize-web', [\App\Http\Controllers\Backend\CustomizeWebController::class, 'edit'])->name('customize-web.edit');
-        Route::put('customize-web', [\App\Http\Controllers\Backend\CustomizeWebController::class, 'update'])->name('customize-web.update');
+        Route::get('customize-web', [\App\Http\Controllers\Tenant\CustomizeWebController::class, 'edit'])->name('customize-web.edit');
+        Route::put('customize-web', [\App\Http\Controllers\Tenant\CustomizeWebController::class, 'update'])->name('customize-web.update');
     });
 });
 
-Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant', 'role:Resident'])->prefix('resident')->name('resident.')->group(function (): void {
-    Route::get('/', [\App\Http\Controllers\Frontend\ResidentController::class, 'dashboard'])->name('dashboard');
-    Route::get('/book', [\App\Http\Controllers\Frontend\BookingController::class, 'create'])->name('book')->middleware('permission:book appointments');
-    Route::post('/book', [\App\Http\Controllers\Frontend\BookingController::class, 'store'])->name('book.store')->middleware('permission:book appointments');
-    Route::get('/announcements', [\App\Http\Controllers\Frontend\AnnouncementController::class, 'index'])->name('announcements.index');
-    Route::get('/announcements/{announcement}', [\App\Http\Controllers\Frontend\AnnouncementController::class, 'show'])->name('announcements.show');
-    Route::get('/events', [\App\Http\Controllers\Frontend\EventController::class, 'index'])->name('events.index');
-    Route::get('/events/{event}', [\App\Http\Controllers\Frontend\EventController::class, 'show'])->name('events.show');
-    Route::get('/profile', [\App\Http\Controllers\Frontend\ProfileController::class, 'show'])->name('profile.show');
-    Route::get('/profile/edit', [\App\Http\Controllers\Frontend\ProfileController::class, 'edit'])->name('profile.edit');
-    Route::put('/profile', [\App\Http\Controllers\Frontend\ProfileController::class, 'update'])->name('profile.update');
+Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant', 'permission:book appointments'])->prefix('resident')->name('resident.')->group(function (): void {
+    Route::get('/', [\App\Http\Controllers\TenantUser\ResidentController::class, 'dashboard'])->name('dashboard');
+    Route::get('/book', [\App\Http\Controllers\TenantUser\BookingController::class, 'create'])->name('book')->middleware('permission:book appointments');
+    Route::post('/book', [\App\Http\Controllers\TenantUser\BookingController::class, 'store'])->name('book.store')->middleware('permission:book appointments');
+    Route::get('/announcements', [\App\Http\Controllers\TenantUser\AnnouncementController::class, 'index'])->name('announcements.index');
+    Route::get('/announcements/{announcement}', [\App\Http\Controllers\TenantUser\AnnouncementController::class, 'show'])->name('announcements.show');
+    Route::get('/events', [\App\Http\Controllers\TenantUser\EventController::class, 'index'])->name('events.index');
+    Route::get('/events/{event}', [\App\Http\Controllers\TenantUser\EventController::class, 'show'])->name('events.show');
+    Route::get('/profile', [\App\Http\Controllers\TenantUser\ProfileController::class, 'show'])->name('profile.show');
+    Route::get('/profile/edit', [\App\Http\Controllers\TenantUser\ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [\App\Http\Controllers\TenantUser\ProfileController::class, 'update'])->name('profile.update');
+
+    Route::prefix('support')->name('support.')->group(function (): void {
+        Route::get('help', [\App\Http\Controllers\Tenant\SupportHelpController::class, 'index'])->name('help');
+        Route::get('tickets', [\App\Http\Controllers\Tenant\SupportTicketController::class, 'index'])->name('tickets.index');
+        Route::get('tickets/create', [\App\Http\Controllers\Tenant\SupportTicketController::class, 'create'])->name('tickets.create');
+        Route::post('tickets', [\App\Http\Controllers\Tenant\SupportTicketController::class, 'store'])->name('tickets.store');
+        Route::get('tickets/{ticket}', [\App\Http\Controllers\Tenant\SupportTicketController::class, 'show'])->name('tickets.show');
+        Route::post('tickets/{ticket}/reply', [\App\Http\Controllers\Tenant\SupportTicketController::class, 'reply'])->name('tickets.reply');
+        Route::patch('tickets/{ticket}/status', [\App\Http\Controllers\Tenant\SupportTicketController::class, 'updateStatus'])->name('tickets.status');
+        Route::delete('tickets/{ticket}', [\App\Http\Controllers\Tenant\SupportTicketController::class, 'destroy'])->name('tickets.destroy');
+
+        Route::get('updates', [\App\Http\Controllers\Tenant\ReleaseNoteController::class, 'index'])->name('updates.index');
+    });
 });
 
 Route::middleware(['auth', 'role:Super Admin'])->prefix('super-admin')->name('super-admin.')->group(function (): void {
@@ -144,6 +178,9 @@ Route::middleware(['auth', 'role:Super Admin'])->prefix('super-admin')->name('su
     Route::post('tenant-applications/{tenant_application}/approve', [\App\Http\Controllers\SuperAdmin\TenantApplicationReviewController::class, 'approve'])->name('tenant-applications.approve');
     Route::post('tenant-applications/{tenant_application}/reject', [\App\Http\Controllers\SuperAdmin\TenantApplicationReviewController::class, 'reject'])->name('tenant-applications.reject');
     Route::delete('tenant-applications/{tenant_application}', [\App\Http\Controllers\SuperAdmin\TenantApplicationReviewController::class, 'destroy'])->name('tenant-applications.destroy');
+    Route::get('support-reports', [\App\Http\Controllers\SuperAdmin\SupportReportController::class, 'index'])->name('support-reports.index');
+    Route::get('support-reports/{ticket}', [\App\Http\Controllers\SuperAdmin\SupportReportController::class, 'show'])->name('support-reports.show');
+    Route::patch('support-reports/{ticket}/status', [\App\Http\Controllers\SuperAdmin\SupportReportController::class, 'updateStatus'])->name('support-reports.status');
 
     Route::resource('tenants', \App\Http\Controllers\SuperAdmin\TenantManagementController::class);
     Route::post('tenants/{tenant}/provision-database', [\App\Http\Controllers\SuperAdmin\TenantManagementController::class, 'provisionDatabase'])->name('tenants.provision-database');

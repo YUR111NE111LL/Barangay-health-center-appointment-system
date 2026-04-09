@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Events\AppointmentSaved;
 use App\Listeners\SendAppointmentNotification;
 use App\Models\Appointment;
+use App\Models\SupportTicket;
 use App\Models\Tenant;
 use App\Models\TenantApplication;
 use App\Models\User;
@@ -37,8 +38,8 @@ class AppServiceProvider extends ServiceProvider
         Paginator::useTailwind();
 
         View::composer([
-            'backend.layouts.app',
-            'frontend.layouts.app',
+            'tenant.layouts.app',
+            'tenant-user.layouts.app',
             'superadmin.layouts.app',
         ], function (\Illuminate\View\View $view): void {
             if (! app()->runningInConsole()) {
@@ -70,7 +71,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(AppointmentSaved::class, SendAppointmentNotification::class);
 
         // View composers: inject data into layouts so views don't run queries (MVC: data from controller/composer, not view)
-        View::composer('backend.layouts.app', function (\Illuminate\View\View $view): void {
+        View::composer('tenant.layouts.app', function (\Illuminate\View\View $view): void {
             $user = Auth::user();
             $tenant = $user?->tenant;
             if ($tenant) {
@@ -102,7 +103,7 @@ class AppServiceProvider extends ServiceProvider
             }
             $view->with(compact('tenant', 'brandColor', 'brandName', 'brandLogo', 'themeClass', 'navLayout', 'hasFeatureWebCustomization', 'fontUrl', 'backendPendingCount', 'backendPendingAppointmentsCount'));
         });
-        View::composer('frontend.layouts.app', function (\Illuminate\View\View $view): void {
+        View::composer('tenant-user.layouts.app', function (\Illuminate\View\View $view): void {
             $user = Auth::user();
             $tenant = $user?->tenant;
             if ($tenant) {
@@ -122,8 +123,20 @@ class AppServiceProvider extends ServiceProvider
                 'book' => ['route' => 'resident.book', 'label' => 'Book'],
                 'announcements' => ['route' => 'resident.announcements.index', 'label' => 'Announcements'],
                 'events' => ['route' => 'resident.events.index', 'label' => 'Events'],
+                'support' => ['route' => 'resident.support.help', 'label' => 'Support'],
                 'profile' => ['route' => 'resident.profile.show', 'label' => 'Profile'],
             ];
+            $residentSupportStatusUpdateCount = 0;
+            if ($user instanceof User && $user->tenant_id) {
+                $residentSupportStatusUpdateCount = SupportTicket::query()
+                    ->where('tenant_id', $user->tenant_id)
+                    ->where('user_id', $user->id)
+                    ->whereIn('status', [SupportTicket::STATUS_IN_PROGRESS, SupportTicket::STATUS_RESOLVED])
+                    ->count();
+            }
+            if (isset($residentNavConfig['support']) && $residentSupportStatusUpdateCount > 0) {
+                $residentNavConfig['support']['badge'] = $residentSupportStatusUpdateCount;
+            }
             if ($user instanceof User && ! $user->hasTenantPermission('book appointments')) {
                 unset($residentNavConfig['book']);
             }
@@ -141,7 +154,7 @@ class AppServiceProvider extends ServiceProvider
                 }
             }
             $fontUrl = $tenant ? Tenant::fontFamilyGoogleUrl($tenant->font_family) : null;
-            $view->with(compact('tenant', 'brandColor', 'brandName', 'brandLogo', 'themeClass', 'navLayout', 'navOrder', 'residentNavConfig', 'residentNavItems', 'fontUrl'));
+            $view->with(compact('tenant', 'brandColor', 'brandName', 'brandLogo', 'themeClass', 'navLayout', 'navOrder', 'residentNavConfig', 'residentNavItems', 'fontUrl', 'residentSupportStatusUpdateCount'));
         });
         View::composer('superadmin.layouts.app', function (\Illuminate\View\View $view): void {
             $count = 0;
@@ -157,9 +170,16 @@ class AppServiceProvider extends ServiceProvider
                     ->where('status', TenantApplication::STATUS_PENDING)
                     ->count();
             }
+            $supportReportPendingCount = 0;
+            if (Auth::check()) {
+                $supportReportPendingCount = SupportTicket::query()
+                    ->whereIn('status', ['open', 'in_progress'])
+                    ->count();
+            }
             $view->with([
                 'pendingCount' => $count,
                 'tenantApplicationPendingCount' => $tenantApplicationPendingCount,
+                'supportReportPendingCount' => $supportReportPendingCount,
             ]);
         });
 

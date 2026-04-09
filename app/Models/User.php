@@ -84,6 +84,16 @@ class User extends Authenticatable
         return $this->hasMany(Appointment::class, 'approved_by');
     }
 
+    public function supportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class, 'user_id');
+    }
+
+    public function supportTicketReplies(): HasMany
+    {
+        return $this->hasMany(SupportTicketMessage::class, 'user_id');
+    }
+
     /** Check if user is Super Admin (no tenant). */
     public function isSuperAdmin(): bool
     {
@@ -161,5 +171,18 @@ class User extends Authenticatable
             ->whereRaw('LOWER(TRIM(role_name)) = LOWER(?)', [$roleName])
             ->where('permission_name', $ability)
             ->exists();
+    }
+
+    public function canAccessResidentPortal(): bool
+    {
+        if (! $this->hasTenant()) {
+            return false;
+        }
+
+        if ($this->role === self::ROLE_RESIDENT) {
+            return true;
+        }
+
+        return $this->hasTenantPermission('book appointments');
     }
 }

@@ -162,12 +162,10 @@
                         </a>
                     @endif
                 </form>
-                <p class="mt-4 text-center text-sm text-slate-600">Already have an account? Sign in:</p>
-                <p class="mt-1 text-center text-sm text-slate-600">
+                <p class="mt-4 text-center text-sm text-slate-600">
+                    Already have an account?
                     @if(!empty($currentTenant))
-                        <a href="{{ route('login', ['for' => 'resident']) }}" class="font-medium text-teal-600 hover:text-teal-700 hover:underline">Resident</a>
-                        <span class="text-slate-400 mx-1">|</span>
-                        <a href="{{ route('login', ['for' => 'tenant']) }}" class="font-medium text-teal-600 hover:text-teal-700 hover:underline">Staff / Nurse</a>
+                        <a href="{{ route('login') }}" class="font-medium text-teal-600 hover:text-teal-700 hover:underline">Sign in</a>
                     @else
                         <a href="{{ route('login') }}" class="font-medium text-teal-600 hover:text-teal-700 hover:underline">Super Admin</a>
                         <span class="text-slate-400 mx-1">|</span>
@@ -186,19 +184,6 @@
                         class="mt-2 flex w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
                     >
                         Central App
-                    </a>
-                @else
-                    <a
-                        href="{{ route('sign-up', ['for' => 'super-admin']) }}"
-                        class="mt-3 flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
-                    >
-                        Super Admin Sign up
-                    </a>
-                    <a
-                        href="{{ route('login', ['for' => 'super-admin']) }}"
-                        class="mt-2 flex w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
-                    >
-                        Super Admin Login (Central)
                     </a>
                 @endif
             </div>

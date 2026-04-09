@@ -96,7 +96,7 @@ class GoogleLoginController extends Controller
                 ->withErrors(['email' => __('Could not resolve your barangay web address. Contact support.')]);
         }
 
-        $portal = $tenantUser->role === User::ROLE_RESIDENT ? 'resident' : 'staff';
+        $portal = $tenantUser->canAccessResidentPortal() ? 'resident' : 'staff';
 
         return redirect()->away($base.'/auth/google/tenant-session?token='.urlencode($token).'&portal='.$portal);
     }
@@ -590,7 +590,7 @@ class GoogleLoginController extends Controller
      */
     private function redirectTenantUserAfterGoogle(User $user): RedirectResponse
     {
-        if ($user->role === 'Resident') {
+        if ($user->canAccessResidentPortal()) {
             return redirect()->to('/resident');
         }
 
@@ -602,7 +602,7 @@ class GoogleLoginController extends Controller
         if ($user->isSuperAdmin()) {
             return redirect()->intended(route('super-admin.dashboard'));
         }
-        if ($user->role === 'Resident') {
+        if ($user->canAccessResidentPortal()) {
             return redirect()->to('/resident');
         }
 

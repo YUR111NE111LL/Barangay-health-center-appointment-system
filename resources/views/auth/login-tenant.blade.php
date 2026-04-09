@@ -1,8 +1,6 @@
 @php
-    $pageTitle = ($for ?? '') === 'tenant' ? 'Staff & Nurse Login' : 'Resident Login';
-    $subtitle = ($for ?? '') === 'tenant'
-        ? 'Health center admins, nurses, and staff. Sign in with your barangay account.'
-        : 'Book and manage your appointments. Use the email you registered with.';
+    $pageTitle = 'Tenant Login';
+    $subtitle = 'Sign in with your barangay account.';
     $logoPath = $tenant->logo_path ? asset($tenant->logo_path) : null;
     $loginBg = config('bhcas.login_background', 'teal');
     $loginBgColor = $tenant->primary_color ?: config('bhcas.login_background_color');
@@ -68,13 +66,9 @@
             <div class="flex-1 p-6 sm:p-8 md:p-10 flex flex-col justify-center">
                 <div class="mb-6">
                     <p class="text-slate-500 text-sm">{{ $barangayDisplay }}</p>
-                    <h1 class="text-2xl font-bold text-slate-800 mt-0.5">{{ $pageTitle }}</h1>
+                    <h1 class="text-2xl font-bold text-slate-800 mt-0.5">{{ $barangayDisplay }}</h1>
                     <p class="text-slate-500 text-xs mt-0.5">{{ $subtitle }}</p>
                     <p class="text-slate-400 text-[11px] mt-2 leading-snug">{{ __('Only one signed-in user per browser session. For two accounts at once, use another browser or a separate browser profile—not another tab in the same private window.') }}</p>
-                </div>
-                <div class="mb-4 flex rounded-xl bg-slate-100 p-1">
-                    <a href="{{ url()->current() }}?for=resident" class="flex-1 rounded-lg py-2 text-center text-sm font-medium {{ ($for ?? '') === 'resident' ? 'bg-white text-slate-800 shadow' : 'text-slate-600 hover:text-slate-800' }}">Resident</a>
-                    <a href="{{ url()->current() }}?for=tenant" class="flex-1 rounded-lg py-2 text-center text-sm font-medium {{ ($for ?? '') === 'tenant' ? 'bg-white text-slate-800 shadow' : 'text-slate-600 hover:text-slate-800' }}">Staff / Nurse</a>
                 </div>
                 @if($errors->any())
                     <div class="mb-4 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-200">{{ $errors->first() }}</div>

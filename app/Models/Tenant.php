@@ -162,6 +162,16 @@ class Tenant extends Model implements TenantWithDatabase
         return $this->hasMany(Event::class, 'tenant_id');
     }
 
+    public function supportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class, 'tenant_id');
+    }
+
+    public function releaseNotes(): HasMany
+    {
+        return $this->hasMany(ReleaseNote::class, 'tenant_id');
+    }
+
     /**
      * Whether the tenant can still create appointments this month (under plan limit).
      */

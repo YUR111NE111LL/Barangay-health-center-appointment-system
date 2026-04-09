@@ -67,7 +67,7 @@ class ResetPasswordController extends Controller
         event(new PasswordReset($user));
 
         $for = $user->tenant_id
-            ? ($user->role === 'Resident' ? 'resident' : 'tenant')
+            ? ($user->canAccessResidentPortal() ? 'resident' : 'tenant')
             : 'super-admin';
 
         return redirect()->route('login', ['for' => $for])

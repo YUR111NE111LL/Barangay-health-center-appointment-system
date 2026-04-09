@@ -45,7 +45,7 @@ class LoginController extends Controller
     public function login(Request $request): RedirectResponse
     {
         $currentTenant = tenant();
-        $for = $request->input('for', $currentTenant ? 'resident' : 'super-admin');
+        $for = $request->input('for', $currentTenant ? 'auto' : 'super-admin');
 
         $rules = [
             'email' => ['required', 'email'],
@@ -94,11 +94,16 @@ class LoginController extends Controller
                     ->withInput($request->only('email', 'for'))
                     ->withErrors(['email' => 'This email is not registered for this barangay.']);
             }
-            $allowedRoles = $for === 'resident' ? ['Resident'] : ['Health Center Admin', 'Nurse', 'Staff'];
+            if (in_array($for, ['tenant', 'resident'], true)) {
+                $allowedRoles = $for === 'resident' ? ['Resident'] : ['Health Center Admin', 'Nurse', 'Staff'];
+            } else {
+                $allowedRoles = ['Resident', 'Health Center Admin', 'Nurse', 'Staff'];
+            }
+
             if (! in_array($user->role, $allowedRoles, true)) {
                 return back()
                     ->withInput($request->only('email', 'for'))
-                    ->withErrors(['email' => $for === 'resident' ? 'Use Staff / Nurse login for this account.' : 'Use Resident login for this account.']);
+                    ->withErrors(['email' => 'This account cannot sign in from this login page.']);
             }
         } else {
             // Super Admin login: only allow if email is not already registered under a tenant
@@ -155,7 +160,7 @@ class LoginController extends Controller
         // Don't use intended() here, because stale central URLs in session (e.g. /super-admin)
         // can wrongly pull tenant users back to the central app.
         $request->session()->regenerate();
-        if ($user->role === 'Resident') {
+        if ($user->canAccessResidentPortal()) {
             // Use relative path to stay on the current tenant host.
             return redirect()->to('/resident')
                 ->with('success', __('You have logged in successfully.'));

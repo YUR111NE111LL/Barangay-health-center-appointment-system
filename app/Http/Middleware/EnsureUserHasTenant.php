@@ -38,8 +38,9 @@ class EnsureUserHasTenant
                 ]);
         }
 
-        // Only reroute residents when they hit non-resident areas (e.g. backend).
-        if ($user->role === 'Resident' && ! $request->routeIs('resident.*')) {
+        // Keep actual Resident role users in resident area, but do not force custom "resident-like"
+        // users away from backend pages because that can switch portal cookies and appear as logout.
+        if ($user->role === \App\Models\User::ROLE_RESIDENT && ! $request->routeIs('resident.*') && ! $request->routeIs('backend.support.*')) {
             return redirect()->route('resident.dashboard');
         }
 

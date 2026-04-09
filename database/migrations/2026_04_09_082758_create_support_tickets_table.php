@@ -1,0 +1,43 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        if (Schema::hasTable('support_tickets')) {
+            return;
+        }
+
+        Schema::create('support_tickets', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('tenant_id')->index();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->string('ticket_no', 40)->unique();
+            $table->string('category', 50)->default('general');
+            $table->string('priority', 20)->default('medium');
+            $table->string('subject');
+            $table->text('description');
+            $table->string('status', 20)->default('open')->index();
+            $table->foreignId('assigned_to')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('resolved_at')->nullable();
+            $table->timestamps();
+
+            $table->index(['tenant_id', 'created_at']);
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('support_tickets');
+    }
+};
