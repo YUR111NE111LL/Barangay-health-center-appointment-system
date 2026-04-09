@@ -192,7 +192,8 @@ class GoogleLoginController extends Controller
         Auth::login($user, true);
         $request->session()->regenerate();
 
-        return redirect()->to('/backend');
+        return redirect()->to('/backend')
+            ->with('success', __('You have logged in successfully.'));
     }
 
     /**

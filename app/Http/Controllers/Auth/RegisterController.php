@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
@@ -20,6 +21,38 @@ use Spatie\Permission\Models\Role;
 
 class RegisterController extends Controller
 {
+    /**
+     * Roles available to tenant sign-up.
+     *
+     * @return array<int, string>
+     */
+    private function allowedTenantRolesForSignup(?int $tenantId): array
+    {
+        $baseRoles = [
+            User::ROLE_RESIDENT,
+            User::ROLE_STAFF,
+            User::ROLE_NURSE,
+            User::ROLE_HEALTH_CENTER_ADMIN,
+        ];
+
+        if (! $tenantId || ! Schema::hasTable('tenant_role_permissions')) {
+            return $baseRoles;
+        }
+
+        $customRoles = DB::table('tenant_role_permissions')
+            ->where('tenant_id', $tenantId)
+            ->whereNotIn('role_name', array_merge($baseRoles, [User::ROLE_SUPER_ADMIN]))
+            ->distinct()
+            ->orderBy('role_name')
+            ->pluck('role_name')
+            ->filter(fn ($role) => is_string($role) && trim($role) !== '')
+            ->map(fn ($role) => trim((string) $role))
+            ->values()
+            ->toArray();
+
+        return array_values(array_unique(array_merge($baseRoles, $customRoles)));
+    }
+
     private function ensureTenantAuthTables(Tenant $tenant): void
     {
         $tenant->run(function (): void {
@@ -77,8 +110,12 @@ class RegisterController extends Controller
 
         $tenants = Tenant::with('domains')->where('is_active', true)->orderBy('name')->get();
         $currentTenant = tenant();
+        $tenantRoleOptions = [];
+        foreach ($tenants as $tenant) {
+            $tenantRoleOptions[(int) $tenant->id] = $this->allowedTenantRolesForSignup((int) $tenant->id);
+        }
 
-        return view('auth.register', compact('tenants', 'currentTenant'));
+        return view('auth.register', compact('tenants', 'currentTenant', 'tenantRoleOptions'));
     }
 
     public function register(Request $request): RedirectResponse
@@ -94,12 +131,7 @@ class RegisterController extends Controller
         $doRegister = function () use ($request, $isSuperAdminSignup, $tenantIdForUnique, $currentTenant): RedirectResponse {
             $allowedRoles = $isSuperAdminSignup
                 ? [User::ROLE_SUPER_ADMIN]
-                : [
-                    User::ROLE_RESIDENT,
-                    User::ROLE_STAFF,
-                    User::ROLE_NURSE,
-                    User::ROLE_HEALTH_CENTER_ADMIN,
-                ];
+                : $this->allowedTenantRolesForSignup($tenantIdForUnique);
 
             $rules = [
                 'name' => ['required', 'string', 'max:255'],

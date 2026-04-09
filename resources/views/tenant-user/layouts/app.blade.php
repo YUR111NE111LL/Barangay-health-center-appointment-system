@@ -25,7 +25,7 @@
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-800 antialiased {{ $themeClass }} @if($navLayout === 'sidebar')layout-sidebar @endif" data-theme="{{ e($tenant?->theme ?? 'default') }}" data-nav-layout="{{ e($navLayout) }}" data-session-portal="{{ $sessionPortalKey ?? 'public' }}" @if($tenant) data-tenant-id="{{ $tenant->id }}" @endif @if(auth()->check()) data-current-user-id="{{ auth()->id() }}" @endif>
     @php
-        $portalLabel = auth()->user()?->role === \App\Models\User::ROLE_RESIDENT ? 'Resident' : 'Tenant User';
+        $portalLabel = auth()->user()?->role ?: 'Tenant User';
     @endphp
     @if($navLayout === 'sidebar')
     <div class="sidebar-overlay" id="resident-sidebar-overlay" aria-hidden="true"></div>

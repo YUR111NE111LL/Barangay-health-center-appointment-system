@@ -235,13 +235,22 @@ class TenantManagementController extends Controller
             $validated = $request->validate([
                 'plan_id' => ['required', 'exists:plans,id'],
                 'name' => ['required', 'string', 'max:255'],
-                'domain' => ['required', 'string', 'max:255', 'unique:domains,domain'],
+                'barangay' => ['required', 'string', 'max:255'],
+                'domain' => ['nullable', 'string', 'max:255', 'unique:domains,domain'],
                 'address' => ['nullable', 'string'],
                 'contact_number' => ['nullable', 'string', 'max:50'],
                 'email' => ['nullable', 'email'],
                 'is_active' => ['boolean'],
                 'subscription_ends_at' => ['nullable', 'date'],
             ]);
+
+            if (($validated['domain'] ?? '') === '') {
+                return back()
+                    ->withInput()
+                    ->withErrors([
+                        'barangay' => 'Could not derive a valid domain from the barangay name.',
+                    ]);
+            }
             $validated['is_active'] = $request->boolean('is_active');
 
             $barangaySlugSource = (string) ($request->input('barangay') ?: $validated['name']);

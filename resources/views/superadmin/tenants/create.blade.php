@@ -44,9 +44,9 @@
         @error('barangay')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
     </div>
     <div>
-        <label for="domain" class="mb-1 block text-sm font-medium text-slate-700">Domain <span class="text-rose-500">*</span></label>
-        <input type="text" name="domain" id="domain" value="{{ old('domain') }}" placeholder="brgy-sumpong.test" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 focus:border-violet-500 focus:ring-violet-500" required>
-        <p class="mt-1 text-xs text-slate-500">Tenant is identified by this domain (e.g. brgy-sumpong.test or subdomain.yourdomain.com).</p>
+        <label for="domain" class="mb-1 block text-sm font-medium text-slate-700">Domain (auto-generated)</label>
+        <input type="text" name="domain" id="domain" value="{{ old('domain') }}" placeholder="auto-generated from barangay" class="w-full rounded-xl border-slate-300 bg-slate-100 px-4 py-2.5 text-slate-600 focus:border-violet-500 focus:ring-violet-500" readonly>
+        <p class="mt-1 text-xs text-slate-500">Auto-generated from barangay. You can leave this as-is.</p>
         @error('domain')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
     </div>
     <div>

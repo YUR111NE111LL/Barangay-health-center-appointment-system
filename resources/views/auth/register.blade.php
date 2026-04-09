@@ -73,6 +73,8 @@
                 <form method="POST" action="{{ route('register') }}" id="register-form" class="space-y-4"
                     @if(\App\Support\Recaptcha::shouldLoadClient()) data-recaptcha-site-key="{{ config('services.recaptcha.v3.site_key') }}" @endif>
                     @csrf
+                    <script type="application/json" id="tenant-role-options-json">@json($tenantRoleOptions ?? [])</script>
+                    <input type="hidden" id="current-tenant-id" value="{{ !empty($currentTenant) ? (int) $currentTenant->id : '' }}">
                     @if(request()->filled('for'))
                         <input type="hidden" name="for" value="{{ request('for') }}">
                     @endif
@@ -88,17 +90,31 @@
                         $currentTenantLabel = $currentTenantDomain
                             ? str($currentTenantDomain)->before('.')->replace('-', ' ')->title()->toString()
                             : ($currentTenant?->site_name ?: 'Current Barangay');
+                        $roleLabelMap = [
+                            'Resident' => 'Resident (Patient)',
+                            'Staff' => 'Staff',
+                            'Nurse' => 'Nurse / Midwife',
+                            'Health Center Admin' => 'Barangay / Health Center Admin',
+                            'Super Admin' => 'Super Admin',
+                        ];
+                        $tenantRoleOptions = $tenantRoleOptions ?? [];
+                        $selectedTenantId = !empty($currentTenant)
+                            ? (int) $currentTenant->id
+                            : (int) old('tenant_id', request('tenant_id', 0));
+                        $initialRoles = $isSuperAdminMode
+                            ? ['Super Admin']
+                            : (!empty($currentTenant)
+                                ? ($tenantRoleOptions[(int) $currentTenant->id] ?? ['Resident', 'Staff', 'Nurse', 'Health Center Admin'])
+                                : ($tenantRoleOptions[$selectedTenantId] ?? ['Resident', 'Staff', 'Nurse', 'Health Center Admin']));
                     @endphp
                     <div>
                         <label for="role" class="mb-1 block text-sm font-medium text-slate-700">I am signing up as <span class="text-rose-500">*</span></label>
                         <select name="role" id="role" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-800 shadow-sm focus:border-teal-500 focus:ring-teal-500" required>
-                            <option value="Resident" {{ $roleOld === 'Resident' ? 'selected' : '' }}>Resident (Patient)</option>
-                            <option value="Staff" {{ $roleOld === 'Staff' ? 'selected' : '' }}>Staff</option>
-                            <option value="Nurse" {{ $roleOld === 'Nurse' ? 'selected' : '' }}>Nurse / Midwife</option>
-                            <option value="Health Center Admin" {{ $roleOld === 'Health Center Admin' ? 'selected' : '' }}>Barangay / Health Center Admin</option>
-                            @if(empty($currentTenant))
-                                <option value="Super Admin" {{ $roleOld === 'Super Admin' ? 'selected' : '' }}>Super Admin</option>
-                            @endif
+                            @foreach($initialRoles as $roleName)
+                                <option value="{{ $roleName }}" {{ $roleOld === $roleName ? 'selected' : '' }}>
+                                    {{ $roleLabelMap[$roleName] ?? $roleName }}
+                                </option>
+                            @endforeach
                         </select>
                     </div>
                     @if(!empty($currentTenant))
@@ -321,9 +337,62 @@
     @endif
     <script>
     (function() {
+        var roleLabelMap = {
+            Resident: 'Resident (Patient)',
+            Staff: 'Staff',
+            Nurse: 'Nurse / Midwife',
+            'Health Center Admin': 'Barangay / Health Center Admin',
+            'Super Admin': 'Super Admin'
+        };
+        var tenantRoleOptions = {};
+        var tenantRoleOptionsJsonEl = document.getElementById('tenant-role-options-json');
+        if (tenantRoleOptionsJsonEl) {
+            try {
+                tenantRoleOptions = JSON.parse(tenantRoleOptionsJsonEl.textContent || '{}');
+            } catch (e) {
+                tenantRoleOptions = {};
+            }
+        }
+        var currentTenantIdInput = document.getElementById('current-tenant-id');
+        var currentTenantId = currentTenantIdInput && currentTenantIdInput.value !== '' ? currentTenantIdInput.value : null;
+        var tenantSel = document.getElementById('tenant_id');
         var roleSel = document.getElementById('role');
         var googleWrap = document.getElementById('google-signup-wrap');
         var googleBtn = document.getElementById('google-signup-btn');
+
+        function buildRoleOptions(roles, preferredRole) {
+            if (!roleSel || !Array.isArray(roles) || roles.length === 0) {
+                return;
+            }
+
+            var currentValue = preferredRole || roleSel.value || '';
+            roleSel.innerHTML = '';
+            roles.forEach(function(roleName) {
+                var option = document.createElement('option');
+                option.value = roleName;
+                option.textContent = roleLabelMap[roleName] || roleName;
+                roleSel.appendChild(option);
+            });
+
+            var hasCurrent = roles.indexOf(currentValue) !== -1;
+            roleSel.value = hasCurrent ? currentValue : roles[0];
+        }
+
+        function resolveRolesForTenant() {
+            if (currentTenantId) {
+                return tenantRoleOptions[currentTenantId] || ['Resident', 'Staff', 'Nurse', 'Health Center Admin'];
+            }
+            if (!tenantSel || !tenantSel.value) {
+                return ['Resident', 'Staff', 'Nurse', 'Health Center Admin'];
+            }
+            return tenantRoleOptions[tenantSel.value] || ['Resident', 'Staff', 'Nurse', 'Health Center Admin'];
+        }
+
+        function refreshRoleOptions() {
+            buildRoleOptions(resolveRolesForTenant(), roleSel ? roleSel.value : '');
+            updateForRole();
+        }
+
         function updateForRole() {
             var role = roleSel ? roleSel.value : '';
             var isResident = role === 'Resident';
@@ -333,6 +402,12 @@
         if (roleSel) {
             roleSel.addEventListener('change', updateForRole);
             updateForRole();
+        }
+        if (tenantSel && !currentTenantId) {
+            tenantSel.addEventListener('change', refreshRoleOptions);
+        }
+        if (roleSel) {
+            refreshRoleOptions();
         }
     })();
 </script>

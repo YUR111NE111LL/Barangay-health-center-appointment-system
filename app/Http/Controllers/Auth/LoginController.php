@@ -94,17 +94,6 @@ class LoginController extends Controller
                     ->withInput($request->only('email', 'for'))
                     ->withErrors(['email' => 'This email is not registered for this barangay.']);
             }
-            if (in_array($for, ['tenant', 'resident'], true)) {
-                $allowedRoles = $for === 'resident' ? ['Resident'] : ['Health Center Admin', 'Nurse', 'Staff'];
-            } else {
-                $allowedRoles = ['Resident', 'Health Center Admin', 'Nurse', 'Staff'];
-            }
-
-            if (! in_array($user->role, $allowedRoles, true)) {
-                return back()
-                    ->withInput($request->only('email', 'for'))
-                    ->withErrors(['email' => 'This account cannot sign in from this login page.']);
-            }
         } else {
             // Super Admin login: only allow if email is not already registered under a tenant
             $alreadyUnderTenant = User::whereNotNull('tenant_id')
@@ -136,6 +125,27 @@ class LoginController extends Controller
                 ->withErrors(['email' => 'The provided credentials do not match our records.']);
         }
 
+        // Staff/nurse/admin on a tenant domain arriving via the resident-mode form: never call
+        // Auth::login() in the current _resident session — doing so would overwrite any resident
+        // already logged in on this browser. Check approval directly on the model and redirect
+        // straight to the staff session handoff without touching the _resident session at all.
+        if ($currentTenant && ! $user->canAccessResidentPortal() && $for !== 'tenant') {
+            if ($user->isPendingApproval()) {
+                return back()
+                    ->withInput($request->only('email', 'for', 'tenant_id'))
+                    ->withErrors(['email' => 'Your account is pending approval. A Super Admin must approve it before you can log in.']);
+            }
+
+            $token = bin2hex(random_bytes(32));
+            Cache::put('email_sso:'.$token, [
+                'tenant_id' => (int) $currentTenant->id,
+                'user_id' => (int) $user->id,
+            ], now()->addMinutes(5));
+
+            return redirect()->route('auth.email.tenant-session', ['token' => $token, 'for' => 'tenant']);
+        }
+
+        // Normal login path: resident, super-admin, or staff arriving via ?for=tenant.
         Auth::login($user, $request->boolean('remember'));
 
         if ($user->isPendingApproval()) {
@@ -148,7 +158,7 @@ class LoginController extends Controller
                 ->withErrors(['email' => 'Your account is pending approval. A Super Admin must approve it before you can log in.']);
         }
 
-        // Super Admin: redirect to super-admin dashboard
+        // Super Admin: redirect to super-admin dashboard.
         if ($user->isSuperAdmin()) {
             $request->session()->regenerate();
 
@@ -157,16 +167,14 @@ class LoginController extends Controller
         }
 
         // Tenant or Resident: already verified they belong to selected barangay.
-        // Don't use intended() here, because stale central URLs in session (e.g. /super-admin)
+        // Don't use intended() here; stale central URLs in the session (e.g. /super-admin)
         // can wrongly pull tenant users back to the central app.
         $request->session()->regenerate();
         if ($user->canAccessResidentPortal()) {
-            // Use relative path to stay on the current tenant host.
             return redirect()->to('/resident')
                 ->with('success', __('You have logged in successfully.'));
         }
 
-        // Use relative path to stay on the current tenant host.
         return redirect()->to('/backend')
             ->with('success', __('You have logged in successfully.'));
     }
