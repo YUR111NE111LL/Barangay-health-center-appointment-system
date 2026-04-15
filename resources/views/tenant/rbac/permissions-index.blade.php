@@ -44,8 +44,8 @@
                     </td>
                     <td class="px-4 py-3 text-right">
                         <a href="{{ route('backend.rbac.permissions.edit', $roleModel) }}" class="text-sm font-medium text-teal-600 hover:text-teal-700">Edit</a>
-                        @if(!in_array($roleName, ['Health Center Admin', 'Nurse', 'Staff', 'Resident', 'Super Admin'], true))
-                            <form action="{{ route('backend.rbac.permissions.destroy', $roleModel) }}" method="POST" class="ml-3 inline" onsubmit="return confirm('Delete this custom role?');">
+                        @if(!in_array($roleName, ['Super Admin', 'Health Center Admin'], true))
+                            <form action="{{ route('backend.rbac.permissions.destroy', $roleModel) }}" method="POST" class="ml-3 inline" onsubmit="return confirm('Delete this role?');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="text-sm font-medium text-rose-600 hover:text-rose-700">Delete</button>

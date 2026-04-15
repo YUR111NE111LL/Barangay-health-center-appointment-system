@@ -96,4 +96,70 @@ class Plan extends Model
 
         return implode(' · ', $parts);
     }
+
+    /**
+     * Human-readable labels for enabled plan features.
+     *
+     * @return array<int, string>
+     */
+    public function enabledFeatureLabels(): array
+    {
+        $featureMap = [
+            'has_automated_approval' => __('Automated approval'),
+            'has_appointment_history' => __('Appointment history'),
+            'has_monthly_reports' => __('Monthly reports'),
+            'has_inventory_tracking' => __('Inventory tracking'),
+            'has_advanced_analytics' => __('Advanced analytics'),
+            'has_priority_support' => __('Priority support'),
+            'has_data_export' => __('Data export'),
+            'has_email_notifications' => __('Email notifications'),
+            'has_web_customization' => __('Web customization'),
+            'has_full_web_customization' => __('Full web customization'),
+            'has_announcements_events' => __('Announcements and events'),
+        ];
+
+        $labels = [];
+        foreach ($featureMap as $column => $label) {
+            if ((bool) $this->{$column}) {
+                $labels[] = $label;
+            }
+        }
+
+        $labels[] = __('Custom roles up to :count', ['count' => $this->maxCustomRoles()]);
+
+        return $labels;
+    }
+
+    /**
+     * Maximum number of custom roles allowed for the plan.
+     */
+    public function maxCustomRoles(): int
+    {
+        return match (strtolower((string) $this->slug)) {
+            'premium' => 10,
+            'standard' => 5,
+            default => 2,
+        };
+    }
+
+    /**
+     * One good sentence describing enabled features.
+     */
+    public function enabledFeatureSentence(): string
+    {
+        $labels = $this->enabledFeatureLabels();
+        if ($labels === []) {
+            return __('No additional features included.');
+        }
+
+        $lastLabel = array_pop($labels);
+        if ($labels === []) {
+            return __('Includes :feature.', ['feature' => $lastLabel]);
+        }
+
+        return __('Includes :features, and :last.', [
+            'features' => implode(', ', $labels),
+            'last' => $lastLabel,
+        ]);
+    }
 }

@@ -46,16 +46,22 @@
         <nav class="flex flex-col gap-1 overflow-y-auto p-3">
             @foreach($residentNavItems as $item)
             <a href="{{ route($item['route']) }}" class="{{ request()->routeIs($item['route'] . '*') || request()->routeIs($item['route']) ? $rsbActive : $rsbDefault }} inline-flex items-center justify-between gap-2">
-                <span>{{ $item['label'] }}</span>
+                <span class="inline-flex min-w-0 items-center gap-2">
+                    <x-tenant-nav-icon :name="$item['icon'] ?? 'default'" class="h-4 w-4 opacity-90" />
+                    <span class="truncate">{{ $item['label'] }}</span>
+                </span>
                 @if(!empty($item['badge']))
-                    <span class="inline-flex min-w-5 items-center justify-center rounded-full bg-amber-300 px-1.5 py-0.5 text-[10px] font-semibold text-slate-900">{{ $item['badge'] }}</span>
+                    <span class="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-amber-300 px-1.5 py-0.5 text-[10px] font-semibold text-slate-900">{{ $item['badge'] }}</span>
                 @endif
             </a>
             @endforeach
             <form action="{{ route('logout') }}" method="POST" class="mt-2">
                 @csrf
                 <input type="hidden" name="session_portal" value="{{ $sessionPortalKey ?? 'public' }}">
-                <button type="submit" class="w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium text-white/90 hover:bg-white/10 hover:text-white">Logout</button>
+                <button type="submit" class="inline-flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-white/90 hover:bg-white/10 hover:text-white">
+                    <x-tenant-nav-icon name="logout" class="h-4 w-4 opacity-90" />
+                    Logout
+                </button>
             </form>
         </nav>
     </aside>
@@ -81,16 +87,22 @@
                     <div id="resident-menu-dropdown" class="nav-dropdown-panel absolute right-0 top-full z-10 mt-1 hidden min-w-[180px] rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5">
                         @foreach($residentNavItems as $item)
                         <a href="{{ route($item['route']) }}" class="flex items-center justify-between gap-2 px-4 py-2 text-sm {{ request()->routeIs($item['route'] . '*') || request()->routeIs($item['route']) ? 'bg-teal-50 font-medium text-teal-700' : 'text-slate-700 hover:bg-slate-50' }}">
-                            <span>{{ $item['label'] }}</span>
+                            <span class="inline-flex min-w-0 items-center gap-2">
+                                <x-tenant-nav-icon :name="$item['icon'] ?? 'default'" class="h-4 w-4 shrink-0 {{ request()->routeIs($item['route'] . '*') || request()->routeIs($item['route']) ? 'text-teal-600' : 'text-slate-400' }}" />
+                                <span>{{ $item['label'] }}</span>
+                            </span>
                             @if(!empty($item['badge']))
-                                <span class="inline-flex min-w-5 items-center justify-center rounded-full bg-amber-300 px-1.5 py-0.5 text-[10px] font-semibold text-slate-900">{{ $item['badge'] }}</span>
+                                <span class="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-amber-300 px-1.5 py-0.5 text-[10px] font-semibold text-slate-900">{{ $item['badge'] }}</span>
                             @endif
                         </a>
                         @endforeach
                         <form action="{{ route('logout') }}" method="POST" class="border-t border-slate-100">
                             @csrf
                             <input type="hidden" name="session_portal" value="{{ $sessionPortalKey ?? 'public' }}">
-                            <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Logout</button>
+                            <button type="submit" class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">
+                                <x-tenant-nav-icon name="logout" class="h-4 w-4 text-slate-400" />
+                                Logout
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -114,7 +126,8 @@
                 @endphp
                 <div id="resident-nav-links" class="hidden flex-wrap items-center gap-1 md:flex">
                     @foreach($residentNavItems as $item)
-                    <a href="{{ route($item['route']) }}" class="{{ request()->routeIs($item['route'] . '*') || request()->routeIs($item['route']) ? $rNavActive : $rNavDefault }} inline-flex items-center gap-2">
+                    <a href="{{ route($item['route']) }}" class="{{ request()->routeIs($item['route'] . '*') || request()->routeIs($item['route']) ? $rNavActive : $rNavDefault }} inline-flex items-center gap-1.5">
+                        <x-tenant-nav-icon :name="$item['icon'] ?? 'default'" class="h-3.5 w-3.5 opacity-90" />
                         <span>{{ $item['label'] }}</span>
                         @if(!empty($item['badge']))
                             <span class="inline-flex min-w-5 items-center justify-center rounded-full bg-amber-300 px-1.5 py-0.5 text-[10px] font-semibold text-slate-900">{{ $item['badge'] }}</span>
@@ -124,7 +137,10 @@
                     <form action="{{ route('logout') }}" method="POST" class="inline">
                         @csrf
                         <input type="hidden" name="session_portal" value="{{ $sessionPortalKey ?? 'public' }}">
-                        <button type="submit" class="whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white">Logout</button>
+                        <button type="submit" class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white">
+                            <x-tenant-nav-icon name="logout" class="h-3.5 w-3.5 opacity-90" />
+                            Logout
+                        </button>
                     </form>
                 </div>
             </div>
@@ -136,16 +152,22 @@
                 <div class="flex flex-col gap-1">
                     @foreach($residentNavItems as $item)
                     <a href="{{ route($item['route']) }}" class="{{ request()->routeIs($item['route'] . '*') || request()->routeIs($item['route']) ? $rMobActive : $rMobDefault }} inline-flex items-center justify-between gap-2">
-                        <span>{{ $item['label'] }}</span>
+                        <span class="inline-flex min-w-0 items-center gap-2">
+                            <x-tenant-nav-icon :name="$item['icon'] ?? 'default'" class="h-4 w-4 opacity-90" />
+                            <span>{{ $item['label'] }}</span>
+                        </span>
                         @if(!empty($item['badge']))
-                            <span class="inline-flex min-w-5 items-center justify-center rounded-full bg-amber-300 px-1.5 py-0.5 text-[10px] font-semibold text-slate-900">{{ $item['badge'] }}</span>
+                            <span class="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-amber-300 px-1.5 py-0.5 text-[10px] font-semibold text-slate-900">{{ $item['badge'] }}</span>
                         @endif
                     </a>
                     @endforeach
                     <form action="{{ route('logout') }}" method="POST">
                         @csrf
                         <input type="hidden" name="session_portal" value="{{ $sessionPortalKey ?? 'public' }}">
-                        <button type="submit" class="w-full rounded-lg px-3 py-2 text-left text-sm text-white/90 hover:bg-white/10">Logout</button>
+                        <button type="submit" class="inline-flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-white/90 hover:bg-white/10">
+                            <x-tenant-nav-icon name="logout" class="h-4 w-4 opacity-90" />
+                            Logout
+                        </button>
                     </form>
                 </div>
             </div>

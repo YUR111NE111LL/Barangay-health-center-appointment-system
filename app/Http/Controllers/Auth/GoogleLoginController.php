@@ -20,6 +20,16 @@ use Spatie\Permission\Models\Role;
 
 class GoogleLoginController extends Controller
 {
+    private function redirectSuperAdminLoginError(string $message): RedirectResponse
+    {
+        return redirect()->route('login', [
+            'for' => 'super-admin',
+            'auth_error' => $message,
+        ])
+            ->with('auth_scope_alert', $message)
+            ->withErrors(['email' => $message]);
+    }
+
     /**
      * Single OAuth redirect URI (GOOGLE_REDIRECT_URI or APP_URL + /auth/google/callback) so Google Cloud
      * Console only needs one “Authorized redirect URI”. Tenant users are sent back to their barangay host
@@ -62,18 +72,27 @@ class GoogleLoginController extends Controller
                 $base = $this->tenantBaseUrl($tenant, $request);
                 if ($base) {
                     $key = (string) Str::uuid();
-                    Cache::put('oauth_login_flash:'.$key, ['email' => $message], now()->addMinutes(10));
+                    Cache::put('oauth_login_flash:'.$key, [
+                        'email' => $message,
+                        'auth_scope_alert' => $message,
+                    ], now()->addMinutes(10));
 
                     return redirect()->away($base.'/login?'.http_build_query([
                         'for' => $for,
                         'tenant_id' => $tenantId,
                         'oauth_flash' => $key,
+                        'auth_error' => $message,
                     ]));
                 }
             }
         }
 
-        return redirect()->route('login', ['for' => $for])
+        return redirect()->route('login', array_filter([
+            'for' => $for,
+            'tenant_id' => $tenantId,
+            'auth_error' => $message,
+        ], static fn ($value): bool => $value !== null && $value !== ''))
+            ->with('auth_scope_alert', $message)
             ->withErrors(['email' => $message])
             ->withInput($tenantId ? ['tenant_id' => $tenantId] : []);
     }
@@ -255,8 +274,14 @@ class GoogleLoginController extends Controller
         $callbackUrl = $this->googleOAuthRedirectUri();
         $clientId = config('services.google.client_id');
         if (! $clientId) {
-            return redirect()->route('login', ['for' => $for])
-                ->withErrors(['email' => 'Google sign-in is not configured.']);
+            $message = 'Google sign-in is not configured.';
+            if ($for === 'super-admin') {
+                return $this->redirectSuperAdminLoginError($message);
+            }
+
+            return redirect()->route('login', ['for' => $for, 'auth_error' => $message])
+                ->with('auth_scope_alert', $message)
+                ->withErrors(['email' => $message]);
         }
 
         $params = [
@@ -301,8 +326,11 @@ class GoogleLoginController extends Controller
         }
 
         if (in_array($for, ['tenant', 'resident'], true) && ! $tenantId) {
-            return redirect()->route('login', ['for' => $for])
-                ->withErrors(['email' => 'Please select your barangay first, then try "Login with Google" or "Sign up with Google" again.']);
+            $message = 'Please select your barangay first, then try "Login with Google" again.';
+
+            return redirect()->route('login', ['for' => $for, 'auth_error' => $message])
+                ->with('auth_scope_alert', $message)
+                ->withErrors(['email' => $message]);
         }
 
         if ($request->has('error')) {
@@ -376,8 +404,11 @@ class GoogleLoginController extends Controller
             });
         }
 
-        return redirect()->route('login', ['for' => $for])
-            ->withErrors(['email' => __('Could not complete Google sign-in. Please try again.')]);
+        $message = __('Could not complete Google sign-in. Please try again.');
+
+        return redirect()->route('login', ['for' => $for, 'auth_error' => $message])
+            ->with('auth_scope_alert', $message)
+            ->withErrors(['email' => $message]);
     }
 
     /**
@@ -395,15 +426,15 @@ class GoogleLoginController extends Controller
 
         if ($user) {
             if ($user->isPendingApproval()) {
-                return redirect()->route('login', ['for' => 'super-admin'])
-                    ->withErrors(['email' => 'Your account is pending approval. An admin must approve it before you can log in.']);
+                return $this->redirectSuperAdminLoginError('Your account is pending approval. An admin must approve it before you can log in.');
             }
             if (! $user->google_id) {
                 $user->update(['google_id' => $googleId]);
             }
             if (! $user->isSuperAdmin()) {
-                return redirect()->route('login', ['for' => 'super-admin'])
-                    ->withErrors(['email' => 'This account is not a Super Admin. Use Staff/Resident login with the correct barangay.']);
+                $message = 'This account is not a Super Admin account.';
+
+                return $this->redirectSuperAdminLoginError($message.' Use Staff/Resident login with the correct barangay.');
             }
             Auth::login($user, true);
             $request->session()->regenerate();
@@ -412,8 +443,7 @@ class GoogleLoginController extends Controller
         }
 
         if (empty($emailNormalized) || empty($email)) {
-            return redirect()->route('login', ['for' => 'super-admin'])
-                ->withErrors(['email' => 'Google did not provide an email. Please use email and password to sign up.']);
+            return $this->redirectSuperAdminLoginError('Google did not provide an email. Please use email and password to sign up.');
         }
 
         $alreadyUnderTenant = User::withoutGlobalScopes()
@@ -421,12 +451,14 @@ class GoogleLoginController extends Controller
             ->whereRaw('LOWER(email) = ?', [$emailNormalized])
             ->exists();
         if ($alreadyUnderTenant) {
-            return redirect()->route('login', ['for' => 'super-admin'])
-                ->withErrors(['email' => 'This Google account is already registered under a barangay. Please use Resident or Staff login and select your barangay.']);
+            $message = 'This Google account is registered under a barangay account and cannot log in as Super Admin.';
+
+            return $this->redirectSuperAdminLoginError($message.' Please use Resident or Staff login and select your barangay.');
         }
         if ($intent !== 'signup') {
-            return redirect()->route('sign-up', ['for' => 'super-admin'])
-                ->with('status', __('This Google account is not registered yet. Create your Super Admin account below, or use “Sign up with Google” on this page.'));
+            $message = __('This Google account is not registered as a Super Admin account. Please use the correct Super Admin email, or sign up first.');
+
+            return $this->redirectSuperAdminLoginError((string) $message);
         }
 
         $newUser = User::create([
@@ -527,8 +559,9 @@ class GoogleLoginController extends Controller
             if (in_array($for, ['tenant', 'resident'], true) && (int) $user->tenant_id !== (int) $tenantId) {
                 $this->syncTenantGoogleUserMirrorToCentral($tenant, $user);
                 $correct = $user->tenant?->name ?? 'your barangay';
+                $message = "This Google account belongs to \"{$correct}\", not the selected barangay.";
 
-                return $this->redirectTenantLoginOAuthError($request, $tenant, $tenantId, $for, "This Google account is registered under \"{$correct}\". Please select that barangay to log in.");
+                return $this->redirectTenantLoginOAuthError($request, $tenant, $tenantId, $for, $message.' Please select that barangay to log in.');
             }
             $this->syncTenantGoogleUserMirrorToCentral($tenant, $user);
 
@@ -541,6 +574,12 @@ class GoogleLoginController extends Controller
 
         if ($for !== 'resident' || ! $tenantId) {
             if ($for === 'tenant' && $tenantId) {
+                if ($intent !== 'signup') {
+                    $message = __('This Google account is not registered for this barangay yet. Please use the correct account or sign up first.');
+
+                    return $this->redirectTenantLoginOAuthError($request, $tenant, $tenantId, $for, $message);
+                }
+
                 return $this->redirectTenantSignUpOAuthStatus($request, $tenant, [
                     'for' => 'tenant',
                     'tenant_id' => $tenantId,
@@ -564,10 +603,9 @@ class GoogleLoginController extends Controller
         }
 
         if ($intent !== 'signup') {
-            return $this->redirectTenantSignUpOAuthStatus($request, $tenant, array_filter([
-                'for' => 'resident',
-                'tenant_id' => $tenantId,
-            ]), __('This Google account is not registered at this barangay yet. Complete sign up below, or use “Sign up with Google” on the sign-up page.'));
+            $message = __('This Google account is not registered at this barangay yet. Please use the correct account, or sign up first.');
+
+            return $this->redirectTenantLoginOAuthError($request, $tenant, $tenantId, $for, $message);
         }
 
         $newUser = User::create([

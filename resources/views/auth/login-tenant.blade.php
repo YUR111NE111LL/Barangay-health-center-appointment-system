@@ -25,6 +25,8 @@
     $barangayDisplay = $firstLabel !== ''
         ? ucwords(str_replace('-', ' ', $firstLabel))
         : $tenant->barangayDisplayName();
+    $authScopeAlertMessage = session('auth_scope_alert') ?: request()->query('auth_error');
+    $displayAuthErrorMessage = $errors->first() ?: $authScopeAlertMessage;
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -46,7 +48,11 @@
         @media (max-width: 767px) { .login-panel-left { min-height: 12rem; } }
     </style>
 </head>
-<body class="tenant-login-body min-h-screen overflow-x-hidden antialiased">
+<body
+    class="tenant-login-body min-h-screen overflow-x-hidden antialiased"
+    data-auth-scope-alert="{{ (string) ($authScopeAlertMessage ?? '') }}"
+    data-auth-first-error="{{ (string) ($displayAuthErrorMessage ?? '') }}"
+>
     <div class="min-h-screen overflow-visible flex items-center justify-center p-4 {{ $loginBgClass }}"{!! $outerWrapperStyleAttr !!}>
         <div class="w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-300/50 flex flex-col md:flex-row bg-white">
             <div class="login-panel-left tenant-brand-gradient md:w-[44%] flex flex-col items-center justify-center p-8 md:p-12 text-white" style="--tenant-brand: {{ e($tenant->getPrimaryColor()) }}">
@@ -70,8 +76,10 @@
                     <p class="text-slate-500 text-xs mt-0.5">{{ $subtitle }}</p>
                     <p class="text-slate-400 text-[11px] mt-2 leading-snug">{{ __('Only one signed-in user per browser session. For two accounts at once, use another browser or a separate browser profile—not another tab in the same private window.') }}</p>
                 </div>
-                @if($errors->any())
-                    <div class="mb-4 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-200">{{ $errors->first() }}</div>
+                @if($displayAuthErrorMessage)
+                    <div data-auth-alert class="mb-4 rounded-xl border border-rose-300 bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-800 transition-opacity duration-500" role="alert">
+                        {{ $displayAuthErrorMessage }}
+                    </div>
                 @endif
                 @if(session('status'))
                     <div class="mb-4 flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 ring-1 ring-emerald-200">
@@ -119,6 +127,74 @@
         </div>
     </div>
     @include('components.professional-alerts')
+    <script>
+    (function () {
+        var body = document.body;
+        var scopeAlert = body ? body.dataset.authScopeAlert : '';
+        var firstError = body ? body.dataset.authFirstError : '';
+
+        function showAuthToast(message) {
+            if (!message || typeof message !== 'string' || typeof window.showToast !== 'function') {
+                return;
+            }
+            window.showToast(message, 'error', 9000);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function () {
+                showAuthToast(scopeAlert || firstError);
+                clearAuthErrorFromUrl();
+            });
+            return;
+        }
+
+        showAuthToast(scopeAlert || firstError);
+        clearAuthErrorFromUrl();
+
+        function clearAuthErrorFromUrl() {
+            if (typeof window.history.replaceState !== 'function') {
+                return;
+            }
+
+            var currentUrl = new URL(window.location.href);
+            var params = currentUrl.searchParams;
+            var hadAuthParams = params.has('auth_error') || params.has('oauth_flash');
+            if (!hadAuthParams) {
+                return;
+            }
+
+            params.delete('auth_error');
+            params.delete('oauth_flash');
+            currentUrl.search = params.toString();
+            var nextUrl = currentUrl.pathname + (currentUrl.search ? '?' + currentUrl.search : '') + currentUrl.hash;
+            window.history.replaceState({}, document.title, nextUrl);
+        }
+    })();
+    </script>
+    <script>
+    (function () {
+        function dismissAuthAlerts() {
+            var alerts = document.querySelectorAll('[data-auth-alert]');
+            alerts.forEach(function (alertNode) {
+                setTimeout(function () {
+                    alertNode.classList.add('opacity-0');
+                    setTimeout(function () {
+                        if (alertNode.parentNode) {
+                            alertNode.parentNode.removeChild(alertNode);
+                        }
+                    }, 500);
+                }, 10000);
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', dismissAuthAlerts);
+            return;
+        }
+
+        dismissAuthAlerts();
+    })();
+    </script>
     @if(\App\Support\Recaptcha::shouldLoadClient())
     <script>
     (function(){

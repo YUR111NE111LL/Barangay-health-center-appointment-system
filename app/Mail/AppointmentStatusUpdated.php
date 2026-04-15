@@ -21,11 +21,12 @@ class AppointmentStatusUpdated extends Mailable
     public function envelope(): Envelope
     {
         $status = $this->appointment->status;
+        $barangayName = $this->appointment->tenant?->barangayDisplayName() ?: config('bhcas.name');
         $subject = match ($status) {
-            Appointment::STATUS_APPROVED => __('Your appointment was approved – :app', ['app' => config('bhcas.name')]),
-            Appointment::STATUS_CANCELLED => __('Your appointment request was not approved – :app', ['app' => config('bhcas.name')]),
-            'no_show' => __('Appointment status update – :app', ['app' => config('bhcas.name')]),
-            default => __('Appointment status update – :app', ['app' => config('bhcas.name')]),
+            Appointment::STATUS_APPROVED => __('Your appointment was approved – :barangay', ['barangay' => $barangayName]),
+            Appointment::STATUS_CANCELLED => __('Your appointment request was not approved – :barangay', ['barangay' => $barangayName]),
+            'no_show' => __('Appointment status update – :barangay', ['barangay' => $barangayName]),
+            default => __('Appointment status update – :barangay', ['barangay' => $barangayName]),
         };
 
         return new Envelope(

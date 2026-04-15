@@ -28,19 +28,18 @@
     @endif
 </div>
 
-<form class="mb-6 flex flex-wrap items-end gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200/60" method="GET">
+<form id="users-filter-form" class="mb-6 flex flex-wrap items-end gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200/60" method="GET">
     <div class="min-w-[180px]">
         <label class="mb-1 block text-xs font-medium text-slate-500">Search</label>
         <input type="text" name="search" placeholder="Name or email..." value="{{ request('search') }}" class="w-full rounded-lg border-slate-300 bg-slate-50 px-3 py-2 text-sm focus:border-teal-500 focus:ring-teal-500">
     </div>
     <div class="min-w-[120px]">
         <label class="mb-1 block text-xs font-medium text-slate-500">Role</label>
-        <select name="role" class="w-full rounded-lg border-slate-300 bg-slate-50 px-3 py-2 text-sm focus:border-teal-500 focus:ring-teal-500">
+        <select id="users-role-filter" name="role" class="w-full rounded-lg border-slate-300 bg-slate-50 px-3 py-2 text-sm focus:border-teal-500 focus:ring-teal-500">
             <option value="">All roles</option>
-            <option value="Resident" {{ request('role') === 'Resident' ? 'selected' : '' }}>Resident</option>
-            <option value="Staff" {{ request('role') === 'Staff' ? 'selected' : '' }}>Staff</option>
-            <option value="Nurse" {{ request('role') === 'Nurse' ? 'selected' : '' }}>Nurse</option>
-            <option value="Health Center Admin" {{ request('role') === 'Health Center Admin' ? 'selected' : '' }}>Health Center Admin</option>
+            @foreach(($roleOptions ?? collect()) as $roleOption)
+                <option value="{{ $roleOption }}" {{ request('role') === $roleOption ? 'selected' : '' }}>{{ $roleOption }}</option>
+            @endforeach
         </select>
     </div>
     <button type="submit" class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200">Filter</button>
@@ -54,6 +53,7 @@
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Profile</th>
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Email</th>
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Role</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600">Action</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-200 bg-white">
@@ -67,9 +67,20 @@
                     </td>
                     <td class="px-4 py-3 text-sm text-slate-600">{{ $u->email }}</td>
                     <td class="px-4 py-3"><span class="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">{{ $u->role }}</span></td>
+                    <td class="px-4 py-3 text-right">
+                        @can('manage users')
+                            @if((int) $u->id !== (int) auth()->id())
+                                <form action="{{ route('backend.users.destroy', $u) }}" method="POST" class="inline" onsubmit="return confirm('Delete this user?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-sm font-medium text-rose-600 hover:text-rose-700">Delete</button>
+                                </form>
+                            @endif
+                        @endcan
+                    </td>
                 </tr>
                 @empty
-                <tr><td colspan="3" class="px-4 py-12 text-center text-slate-500">No users found.</td></tr>
+                <tr><td colspan="4" class="px-4 py-12 text-center text-slate-500">No users found.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -78,4 +89,17 @@
 <div class="mt-4 flex justify-center">
     {{ $users->withQueryString()->links() }}
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('users-filter-form');
+    var roleFilter = document.getElementById('users-role-filter');
+    if (!form || !roleFilter) {
+        return;
+    }
+
+    roleFilter.addEventListener('change', function () {
+        form.submit();
+    });
+});
+</script>
 @endsection

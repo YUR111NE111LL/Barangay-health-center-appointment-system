@@ -18,10 +18,16 @@ class LoginController extends Controller
     public function showLoginForm(Request $request): View|RedirectResponse
     {
         if ($request->filled('oauth_flash')) {
-            $payload = Cache::pull('oauth_login_flash:'.$request->query('oauth_flash'));
+            $payload = Cache::get('oauth_login_flash:'.$request->query('oauth_flash'));
             if (is_array($payload) && isset($payload['email'])) {
-                return redirect()->route('login', $request->except('oauth_flash'))
+                $redirect = redirect()->route('login', $request->except('oauth_flash'))
                     ->withErrors(['email' => $payload['email']]);
+
+                if (isset($payload['auth_scope_alert']) && is_string($payload['auth_scope_alert'])) {
+                    $redirect->with('auth_scope_alert', $payload['auth_scope_alert']);
+                }
+
+                return $redirect;
             }
         }
 
@@ -90,9 +96,12 @@ class LoginController extends Controller
                 ->first();
 
             if (! $user) {
+                $message = 'This email is not registered for this barangay.';
+
                 return back()
                     ->withInput($request->only('email', 'for'))
-                    ->withErrors(['email' => 'This email is not registered for this barangay.']);
+                    ->with('auth_scope_alert', $message)
+                    ->withErrors(['email' => $message]);
             }
         } else {
             // Super Admin login: only allow if email is not already registered under a tenant
@@ -100,9 +109,12 @@ class LoginController extends Controller
                 ->whereRaw('LOWER(email) = ?', [strtolower($email)])
                 ->exists();
             if ($alreadyUnderTenant) {
+                $message = 'This email is registered under a barangay account and cannot log in as Super Admin.';
+
                 return back()
                     ->withInput($request->only('email', 'for'))
-                    ->withErrors(['email' => 'This email is registered under a barangay. Please use Resident or Staff login and select your barangay.']);
+                    ->with('auth_scope_alert', $message)
+                    ->withErrors(['email' => $message.' Please use Resident or Staff login and select your barangay.']);
             }
             $user = User::whereNull('tenant_id')
                 ->whereRaw('LOWER(email) = ?', [strtolower($email)])
@@ -113,9 +125,12 @@ class LoginController extends Controller
                     ->withErrors(['email' => 'The provided credentials do not match our records.']);
             }
             if (! $user->isSuperAdmin()) {
+                $message = 'This account is not a Super Admin account.';
+
                 return back()
                     ->withInput($request->only('email', 'for'))
-                    ->withErrors(['email' => 'This account is not a Super Admin. Use Staff or Resident login and select your barangay.']);
+                    ->with('auth_scope_alert', $message)
+                    ->withErrors(['email' => $message.' Use Staff or Resident login and select your barangay.']);
             }
         }
 

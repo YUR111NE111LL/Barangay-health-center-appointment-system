@@ -18,8 +18,9 @@
     </style>
 </head>
 <body>
+    @php($barangayName = $appointment->tenant?->barangayDisplayName() ?: config('bhcas.name'))
     <div class="header">
-        <h1 style="margin:0; font-size: 1.25rem;">{{ config('bhcas.name') }}</h1>
+        <h1 style="margin:0; font-size: 1.25rem;">{{ $barangayName }}</h1>
         <p style="margin: 4px 0 0 0; opacity: 0.9;">Appointment Status Update</p>
     </div>
     <div class="content">
@@ -44,7 +45,7 @@
         <div class="detail"><strong>Date:</strong> {{ $appointment->scheduled_date->format('l, F j, Y') }}</div>
         <div class="detail"><strong>Time:</strong> {{ \Carbon\Carbon::parse($appointment->scheduled_time)->format('g:i A') }}</div>
         <div class="detail"><strong>Status:</strong> <span class="status {{ $appointment->status }}">{{ ucfirst($appointment->status) }}</span></div>
-        <p class="footer">This is an automated message from {{ config('bhcas.name') }}.</p>
+        <p class="footer">This is an automated message from {{ $barangayName }}.</p>
     </div>
 </body>
 </html>

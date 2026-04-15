@@ -93,16 +93,11 @@ class RolePermissionsController extends Controller
     {
         try {
             $tenant->run(function () use ($tenant): void {
-                $roleCount = Role::query()
-                    ->where('guard_name', 'web')
-                    ->whereIn('name', self::TENANT_ROLE_NAMES)
-                    ->count();
-
                 $permissionCount = Permission::query()
                     ->where('guard_name', 'web')
                     ->count();
 
-                if ($roleCount < count(self::TENANT_ROLE_NAMES) || $permissionCount === 0) {
+                if ($permissionCount === 0) {
                     (new RoleAndPermissionSeeder)->run();
                 }
 
@@ -246,6 +241,19 @@ class RolePermissionsController extends Controller
             return back()
                 ->withInput()
                 ->withErrors(['role_name' => 'This role already exists for this barangay.']);
+        }
+
+        $maxCustomRoles = $this->maxCustomRolesForPlan($tenant->plan?->slug);
+        $currentCustomRoleCount = DB::table('tenant_role_permissions')
+            ->where('tenant_id', $tenant->id)
+            ->whereNotIn('role_name', array_merge(self::TENANT_ROLE_NAMES, self::RESERVED_ROLE_NAMES))
+            ->distinct('role_name')
+            ->count('role_name');
+
+        if ($currentCustomRoleCount >= $maxCustomRoles) {
+            return back()
+                ->withInput()
+                ->withErrors(['role_name' => "Your current plan allows up to {$maxCustomRoles} custom role(s)."]);
         }
 
         $toSync = array_values($validated['permissions'] ?? []);
@@ -405,9 +413,9 @@ class RolePermissionsController extends Controller
                 ->with('error', 'Role management is not ready for this tenant yet. Please contact the Super Admin.');
         }
 
-        if (in_array($role->name, array_merge(self::TENANT_ROLE_NAMES, self::RESERVED_ROLE_NAMES), true)) {
+        if (in_array($role->name, self::RESERVED_ROLE_NAMES, true) || $role->name === User::ROLE_HEALTH_CENTER_ADMIN) {
             return redirect()->route('backend.rbac.permissions.index')
-                ->with('error', 'Built-in roles cannot be deleted.');
+                ->with('error', 'This role cannot be deleted.');
         }
 
         if (! $this->roleIsEditableForTenant($tenant, $role)) {
@@ -420,11 +428,6 @@ class RolePermissionsController extends Controller
             ->where('role', $role->name)
             ->count();
 
-        if ($usersUsingRole > 0) {
-            return redirect()->route('backend.rbac.permissions.index')
-                ->with('error', 'This role is assigned to users and cannot be deleted.');
-        }
-
         DB::table('tenant_role_permissions')
             ->where('tenant_id', $tenant->id)
             ->where('role_name', $role->name)
@@ -434,7 +437,7 @@ class RolePermissionsController extends Controller
         TenantRbacUpdated::dispatch($tenant);
 
         return redirect()->route('backend.rbac.permissions.index')
-            ->with('success', "Role \"{$role->name}\" deleted.");
+            ->with('success', "Role \"{$role->name}\" deleted.".($usersUsingRole > 0 ? ' Users currently assigned to this role keep their role name until you reassign them.' : ''));
     }
 
     private function allowedPermissionsForPlan(?string $planSlug): array
@@ -447,6 +450,15 @@ class RolePermissionsController extends Controller
         }
 
         return $allowed;
+    }
+
+    private function maxCustomRolesForPlan(?string $planSlug): int
+    {
+        return match ($planSlug ?: 'basic') {
+            'premium' => 10,
+            'standard' => 5,
+            default => 2,
+        };
     }
 
     private function defaultPermissionsForRole(Tenant $tenant, string $roleName, ?Role $roleModel): array

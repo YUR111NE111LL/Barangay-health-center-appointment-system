@@ -7,11 +7,13 @@
     <h1 class="text-2xl font-bold text-slate-800">Health Center Admin</h1>
     <p class="text-slate-500">{{ $tenant->name }}</p>
 </div>
+<div class="hidden" data-dashboard-live data-poll-url="{{ route('backend.dashboard.live.admin') }}" data-context="admin" data-csrf="{{ csrf_token() }}"></div>
 <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60">
     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
         <span class="font-medium text-slate-700">Today's Appointments</span>
-        <span class="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">{{ $pendingCount }} pending</span>
+        <span class="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800"><span data-live-stat="pendingCount">{{ $pendingCount }}</span> pending</span>
     </div>
+    <div id="dashboard-live-admin-body">
     @if($todayAppointments->isEmpty())
         <p class="p-6 text-slate-500">No appointments today.</p>
     @else
@@ -54,6 +56,7 @@
             </table>
         </div>
     @endif
+    </div>
 </div>
 <div class="mt-4 flex gap-3">
     <a href="{{ route('backend.appointments.index') }}" class="rounded-xl bg-teal-600 px-4 py-2.5 font-medium text-white hover:bg-teal-700">All Appointments</a>

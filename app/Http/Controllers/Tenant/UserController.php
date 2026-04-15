@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Laravel\Socialite\Facades\Socialite;
@@ -58,13 +60,36 @@ class UserController extends Controller
         $users = $query->paginate(15);
 
         $tenant = auth()->user()->tenant;
+        $tenantId = auth()->user()->tenant_id;
         $canAddUser = $tenant ? $tenant->canAddUser() : false;
-        $userCount = $tenant ? $tenant->users()->count() : 0;
+        $userCount = User::where('tenant_id', $tenantId)->count();
         $maxUsers = $tenant ? $tenant->maxUsersFromPlan() : 0;
         $planName = $tenant && $tenant->plan ? $tenant->plan->name : null;
         $canAddUser = $canAddUser && auth()->user()?->role === User::ROLE_HEALTH_CENTER_ADMIN;
+        $baseRoleOptions = array_keys($this->assignableRolesForCreate());
+        $roleOptions = collect($baseRoleOptions);
+        if (Schema::hasTable('tenant_role_permissions')) {
+            $customRoles = DB::table('tenant_role_permissions')
+                ->where('tenant_id', $tenantId)
+                ->whereNotIn('role_name', array_merge($baseRoleOptions, [User::ROLE_SUPER_ADMIN]))
+                ->distinct()
+                ->orderBy('role_name')
+                ->pluck('role_name');
+            $roleOptions = $roleOptions->merge($customRoles);
+        }
+        $userRoles = User::where('tenant_id', $tenantId)
+            ->whereNotNull('role')
+            ->where('role', '!=', '')
+            ->distinct()
+            ->orderBy('role')
+            ->pluck('role');
+        $roleOptions = $roleOptions
+            ->merge($userRoles)
+            ->filter(static fn ($role): bool => is_string($role) && $role !== '')
+            ->unique()
+            ->values();
 
-        return view('tenant.users.index', compact('users', 'canAddUser', 'userCount', 'maxUsers', 'planName'));
+        return view('tenant.users.index', compact('users', 'canAddUser', 'userCount', 'maxUsers', 'planName', 'roleOptions'));
     }
 
     /**
@@ -302,5 +327,31 @@ class UserController extends Controller
 
         return redirect()->route('backend.users.index')
             ->with('success', 'User created with Google account. They can now log in with Google.');
+    }
+
+    /**
+     * Delete a user in the current tenant (Barangay Admin only).
+     */
+    public function destroy(User $user): RedirectResponse
+    {
+        $this->authorize('manage users');
+
+        $tenantId = auth()->user()->tenant_id;
+        if ((int) $user->tenant_id !== (int) $tenantId) {
+            return redirect()->route('backend.users.index')
+                ->with('error', 'You can only delete users from your own barangay.');
+        }
+
+        if ((int) $user->id === (int) auth()->id()) {
+            return redirect()->route('backend.users.index')
+                ->with('error', 'You cannot delete your own account.');
+        }
+
+        $userName = $user->name;
+        $user->syncRoles([]);
+        $user->delete();
+
+        return redirect()->route('backend.users.index')
+            ->with('success', "User \"{$userName}\" deleted successfully.");
     }
 }

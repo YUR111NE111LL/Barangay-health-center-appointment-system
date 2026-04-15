@@ -7,7 +7,9 @@
     <h1 class="text-2xl font-bold text-slate-800">Nurse / Midwife</h1>
     <p class="text-slate-500">{{ $tenant->name }} – Today's approved appointments</p>
 </div>
+<div class="hidden" data-dashboard-live data-poll-url="{{ route('backend.dashboard.live.nurse') }}" data-context="nurse" data-csrf="{{ csrf_token() }}"></div>
 <div class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60">
+    <div id="dashboard-live-nurse-body">
     @if($todayAppointments->isEmpty())
         <p class="p-6 text-slate-500">No approved appointments today.</p>
     @else
@@ -38,5 +40,6 @@
             </table>
         </div>
     @endif
+    </div>
 </div>
 @endsection

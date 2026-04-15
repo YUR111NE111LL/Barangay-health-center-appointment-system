@@ -84,6 +84,31 @@
                     <p class="mt-1 text-xs text-slate-500">{{ __('Monthly subscription (before approval). Final terms are confirmed when a Super Admin approves your barangay.') }}</p>
                     <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         @foreach($plans as $plan)
+                            @php
+                                $featureLabels = $plan->enabledFeatureLabels();
+                                $planTheme = match ($plan->slug) {
+                                    'basic' => [
+                                        'badge' => 'bg-cyan-100 text-cyan-800 ring-cyan-200',
+                                        'panel' => 'bg-cyan-50/80 ring-cyan-100',
+                                        'dot' => 'bg-cyan-500',
+                                    ],
+                                    'standard' => [
+                                        'badge' => 'bg-violet-100 text-violet-800 ring-violet-200',
+                                        'panel' => 'bg-violet-50/80 ring-violet-100',
+                                        'dot' => 'bg-violet-500',
+                                    ],
+                                    'premium' => [
+                                        'badge' => 'bg-amber-100 text-amber-800 ring-amber-200',
+                                        'panel' => 'bg-amber-50/80 ring-amber-100',
+                                        'dot' => 'bg-amber-500',
+                                    ],
+                                    default => [
+                                        'badge' => 'bg-slate-100 text-slate-800 ring-slate-200',
+                                        'panel' => 'bg-slate-50/80 ring-slate-100',
+                                        'dot' => 'bg-slate-500',
+                                    ],
+                                };
+                            @endphp
                             <div class="rounded-xl border border-slate-200 bg-slate-50/90 p-4 shadow-sm ring-1 ring-slate-100">
                                 <div class="text-sm font-semibold text-slate-900">{{ $plan->name }}</div>
                                 <div class="mt-2 flex flex-wrap items-baseline gap-1">
@@ -93,6 +118,21 @@
                                     @endif
                                 </div>
                                 <p class="mt-3 text-xs leading-relaxed text-slate-600">{{ $plan->pricingSummaryLine() }}</p>
+                                <div class="mt-3 rounded-lg p-3 ring-1 {{ $planTheme['panel'] }}">
+                                    <div class="mb-2 inline-flex rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-wide ring-1 {{ $planTheme['badge'] }}">
+                                        {{ __('Included features') }}
+                                    </div>
+                                    <ul class="space-y-1.5 text-xs text-slate-700">
+                                        @forelse($featureLabels as $featureLabel)
+                                            <li class="flex items-start gap-2">
+                                                <span class="mt-1.5 inline-block h-1.5 w-1.5 rounded-full {{ $planTheme['dot'] }}"></span>
+                                                <span>{{ $featureLabel }}</span>
+                                            </li>
+                                        @empty
+                                            <li class="text-slate-500">{{ __('No additional features included.') }}</li>
+                                        @endforelse
+                                    </ul>
+                                </div>
                             </div>
                         @endforeach
                     </div>

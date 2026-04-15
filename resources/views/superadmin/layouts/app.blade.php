@@ -7,7 +7,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-800 antialiased" data-session-portal="{{ $sessionPortalKey ?? 'public' }}" @if(auth()->check()) data-current-user-id="{{ auth()->id() }}" @endif>
-    <nav class="sticky top-0 z-50 border-b border-violet-900/20 bg-gradient-to-r from-violet-800 to-violet-900 shadow-sm">
+    <nav class="sticky top-0 z-50 border-b border-violet-900/20 bg-linear-to-r from-violet-800 to-violet-900 shadow-sm">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div class="flex h-14 items-center justify-between">
                 <div class="flex items-center gap-2">
@@ -23,6 +23,7 @@
                 <div id="sa-nav-links" class="hidden items-center gap-1 lg:flex">
                     <a href="{{ route('super-admin.dashboard') }}" class="{{ request()->routeIs('super-admin.dashboard') ? $saActive : $saDefault }}">Dashboard</a>
                     <a href="{{ route('super-admin.tenants.index') }}" class="{{ request()->routeIs('super-admin.tenants.*') ? $saActive : $saDefault }}">Tenants</a>
+                    <a href="{{ route('super-admin.plans.index') }}" class="{{ request()->routeIs('super-admin.plans.*') ? $saActive : $saDefault }}">Plans</a>
                     <a href="{{ route('super-admin.tenant-applications.index') }}" class="relative {{ request()->routeIs('super-admin.tenant-applications.*') ? $saActive : $saDefault }}">
                         Tenant requests
                         @if(($tenantApplicationPendingCount ?? 0) > 0)<span class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold text-violet-900">{{ $tenantApplicationPendingCount }}</span>@endif
@@ -57,6 +58,7 @@
                 <div class="flex flex-col gap-0.5">
                     <a href="{{ route('super-admin.dashboard') }}" class="{{ request()->routeIs('super-admin.dashboard') ? $saMobActive : $saMobDefault }}">Dashboard</a>
                     <a href="{{ route('super-admin.tenants.index') }}" class="{{ request()->routeIs('super-admin.tenants.*') ? $saMobActive : $saMobDefault }}">Tenants</a>
+                    <a href="{{ route('super-admin.plans.index') }}" class="{{ request()->routeIs('super-admin.plans.*') ? $saMobActive : $saMobDefault }}">Plans</a>
                     <a href="{{ route('super-admin.tenant-applications.index') }}" class="{{ request()->routeIs('super-admin.tenant-applications.*') ? $saMobActive : $saMobDefault }}">Tenant requests @if(($tenantApplicationPendingCount ?? 0) > 0)<span class="ml-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-xs font-semibold text-violet-900">{{ $tenantApplicationPendingCount }}</span>@endif</a>
                     <a href="{{ route('super-admin.accounts.index') }}" class="{{ request()->routeIs('super-admin.accounts.*') ? $saMobActive : $saMobDefault }}">Accounts</a>
                     <a href="{{ route('super-admin.users.index') }}" class="{{ request()->routeIs('super-admin.users.*') ? $saMobActive : $saMobDefault }}">Users</a>

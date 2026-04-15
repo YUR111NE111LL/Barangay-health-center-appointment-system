@@ -3,6 +3,7 @@
 use App\Http\Controllers\RequirementsController;
 use App\Http\Controllers\Tenant\AppointmentController as BackendAppointmentController;
 use App\Http\Controllers\Tenant\BackendDashboardController;
+use App\Http\Controllers\Tenant\DashboardLiveUpdateController;
 use App\Http\Controllers\Tenant\ReportController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -80,6 +81,13 @@ Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('bac
     Route::get('/nurse', [BackendDashboardController::class, 'nurse'])->name('nurse.dashboard')->middleware('role:Nurse');
     Route::get('/staff', [BackendDashboardController::class, 'staff'])->name('staff.dashboard')->middleware('role:Staff');
 
+    Route::middleware('throttle:90,1')->group(function (): void {
+        Route::get('/dashboard/live/summary', [DashboardLiveUpdateController::class, 'summary'])->name('dashboard.live.summary');
+        Route::get('/dashboard/live/admin', [DashboardLiveUpdateController::class, 'admin'])->name('dashboard.live.admin')->middleware('role:Health Center Admin');
+        Route::get('/dashboard/live/nurse', [DashboardLiveUpdateController::class, 'nurse'])->name('dashboard.live.nurse')->middleware('role:Nurse');
+        Route::get('/dashboard/live/staff', [DashboardLiveUpdateController::class, 'staff'])->name('dashboard.live.staff')->middleware('role:Staff');
+    });
+
     Route::get('profile', [\App\Http\Controllers\Tenant\ProfileController::class, 'show'])->name('profile.show');
     Route::get('profile/edit', [\App\Http\Controllers\Tenant\ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('profile', [\App\Http\Controllers\Tenant\ProfileController::class, 'update'])->name('profile.update');
@@ -94,6 +102,7 @@ Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('bac
     Route::get('users', [\App\Http\Controllers\Tenant\UserController::class, 'index'])->name('users.index');
     Route::get('users/create', [\App\Http\Controllers\Tenant\UserController::class, 'create'])->name('users.create');
     Route::post('users', [\App\Http\Controllers\Tenant\UserController::class, 'store'])->name('users.store');
+    Route::delete('users/{user}', [\App\Http\Controllers\Tenant\UserController::class, 'destroy'])->name('users.destroy');
     Route::get('users/google', [\App\Http\Controllers\Tenant\UserController::class, 'createWithGoogle'])->name('users.google');
     Route::get('users/google/callback', [\App\Http\Controllers\Tenant\UserController::class, 'googleCallback'])->name('users.google.callback');
     Route::post('users/google', [\App\Http\Controllers\Tenant\UserController::class, 'storeWithGoogle'])->name('users.store.google');
@@ -183,6 +192,8 @@ Route::middleware(['auth', 'role:Super Admin'])->prefix('super-admin')->name('su
     Route::patch('support-reports/{ticket}/status', [\App\Http\Controllers\SuperAdmin\SupportReportController::class, 'updateStatus'])->name('support-reports.status');
 
     Route::resource('tenants', \App\Http\Controllers\SuperAdmin\TenantManagementController::class);
+    Route::get('plans', [\App\Http\Controllers\SuperAdmin\PlanManagementController::class, 'index'])->name('plans.index');
+    Route::put('plans/{plan}', [\App\Http\Controllers\SuperAdmin\PlanManagementController::class, 'update'])->name('plans.update');
     Route::post('tenants/{tenant}/provision-database', [\App\Http\Controllers\SuperAdmin\TenantManagementController::class, 'provisionDatabase'])->name('tenants.provision-database');
     Route::patch('tenants/{tenant}/toggle-status', [\App\Http\Controllers\SuperAdmin\TenantManagementController::class, 'toggleStatus'])->name('tenants.toggle-status');
     Route::get('tenants/{tenant}/rbac', [\App\Http\Controllers\SuperAdmin\TenantRbacController::class, 'index'])->name('tenants.rbac.index');

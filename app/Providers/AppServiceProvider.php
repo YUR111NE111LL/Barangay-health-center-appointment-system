@@ -119,12 +119,12 @@ class AppServiceProvider extends ServiceProvider
             $navLayout = in_array($tenant?->nav_layout ?? 'navbar', ['navbar', 'sidebar', 'dropdown'], true) ? ($tenant?->nav_layout ?? 'navbar') : 'navbar';
             $navOrder = $tenant?->nav_order ?? Tenant::residentNavItemKeys();
             $residentNavConfig = [
-                'dashboard' => ['route' => 'resident.dashboard', 'label' => 'My Appointments'],
-                'book' => ['route' => 'resident.book', 'label' => 'Book'],
-                'announcements' => ['route' => 'resident.announcements.index', 'label' => 'Announcements'],
-                'events' => ['route' => 'resident.events.index', 'label' => 'Events'],
-                'support' => ['route' => 'resident.support.help', 'label' => 'Support'],
-                'profile' => ['route' => 'resident.profile.show', 'label' => 'Profile'],
+                'dashboard' => ['route' => 'resident.dashboard', 'label' => 'My Appointments', 'icon' => 'clipboard'],
+                'book' => ['route' => 'resident.book', 'label' => 'Book', 'icon' => 'book'],
+                'announcements' => ['route' => 'resident.announcements.index', 'label' => 'Announcements', 'icon' => 'announcements'],
+                'events' => ['route' => 'resident.events.index', 'label' => 'Events', 'icon' => 'events'],
+                'support' => ['route' => 'resident.support.help', 'label' => 'Support', 'icon' => 'support'],
+                'profile' => ['route' => 'resident.profile.show', 'label' => 'Profile', 'icon' => 'profile'],
             ];
             $residentSupportStatusUpdateCount = 0;
             if ($user instanceof User && $user->tenant_id) {
