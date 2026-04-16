@@ -65,6 +65,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_approved' => 'boolean',
+            'last_seen_global_update_at' => 'datetime',
         ];
     }
 

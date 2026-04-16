@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Mail;
 class SendAppointmentNotification
 {
     /**
-     * Email the resident when a booking is accepted (approved) or not accepted (cancelled), when the plan allows.
+     * Email the resident when a booking is accepted (approved) or not accepted (cancelled).
+     * Sends for every plan tier (Basic, Standard, Premium); the plan's has_email_notifications column remains for display/reporting.
      * Same pattern as tenant-application approval/rejection: synchronous send with try/catch so failures are logged, not lost to a queue.
      */
     public function handle(AppointmentSaved $event): void
@@ -23,11 +24,6 @@ class SendAppointmentNotification
 
         $resident = $appointment->resident;
         if (! $resident?->email) {
-            return;
-        }
-
-        $tenant = $appointment->tenant;
-        if ($tenant && $tenant->plan && ! $tenant->plan->has_email_notifications) {
             return;
         }
 

@@ -18,14 +18,18 @@ class SupportHelpController extends Controller
         $routeBase = request()->routeIs('resident.*') ? 'resident.support' : 'backend.support';
         $recentNotes = ReleaseNote::query()
             ->where(function ($query) use ($tenant): void {
-                $query->whereNull('tenant_id')
-                    ->orWhere('tenant_id', $tenant->id);
+                $query->whereNull('tenant_id');
+                if ($tenant) {
+                    $query->orWhere('tenant_id', $tenant->id);
+                }
             })
             ->whereNotNull('published_at')
             ->orderByDesc('is_pinned')
             ->orderByDesc('published_at')
             ->limit(5)
             ->get();
+
+        $isAdmin = $user?->role === User::ROLE_HEALTH_CENTER_ADMIN;
 
         $faqs = [
             [
@@ -48,7 +52,7 @@ class SupportHelpController extends Controller
 
         $supportContact = $this->resolveSupportContact($user);
 
-        return view('tenant.support.help', compact('tenant', 'recentNotes', 'faqs', 'routeBase', 'supportContact'));
+        return view('tenant.support.help', compact('tenant', 'recentNotes', 'faqs', 'routeBase', 'supportContact', 'isAdmin'));
     }
 
     /**

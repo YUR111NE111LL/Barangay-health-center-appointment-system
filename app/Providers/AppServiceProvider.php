@@ -9,6 +9,7 @@ use App\Models\SupportTicket;
 use App\Models\Tenant;
 use App\Models\TenantApplication;
 use App\Models\User;
+use App\Support\GlobalUpdateReadState;
 use App\Support\SessionPortal;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -101,7 +102,11 @@ class AppServiceProvider extends ServiceProvider
                     ->where('status', Appointment::STATUS_PENDING)
                     ->count();
             }
-            $view->with(compact('tenant', 'brandColor', 'brandName', 'brandLogo', 'themeClass', 'navLayout', 'hasFeatureWebCustomization', 'fontUrl', 'backendPendingCount', 'backendPendingAppointmentsCount'));
+            $supportUpdatesNotificationCount = 0;
+            if ($user instanceof User && $user->tenant_id) {
+                $supportUpdatesNotificationCount = GlobalUpdateReadState::unreadGlobalCount($user);
+            }
+            $view->with(compact('tenant', 'brandColor', 'brandName', 'brandLogo', 'themeClass', 'navLayout', 'hasFeatureWebCustomization', 'fontUrl', 'backendPendingCount', 'backendPendingAppointmentsCount', 'supportUpdatesNotificationCount'));
         });
         View::composer('tenant-user.layouts.app', function (\Illuminate\View\View $view): void {
             $user = Auth::user();
@@ -134,8 +139,13 @@ class AppServiceProvider extends ServiceProvider
                     ->whereIn('status', [SupportTicket::STATUS_IN_PROGRESS, SupportTicket::STATUS_RESOLVED])
                     ->count();
             }
-            if (isset($residentNavConfig['support']) && $residentSupportStatusUpdateCount > 0) {
-                $residentNavConfig['support']['badge'] = $residentSupportStatusUpdateCount;
+            $residentGlobalUpdateNotificationCount = 0;
+            if ($user instanceof User && $user->tenant_id) {
+                $residentGlobalUpdateNotificationCount = GlobalUpdateReadState::unreadGlobalCount($user);
+            }
+            $residentSupportNotificationCount = $residentSupportStatusUpdateCount + $residentGlobalUpdateNotificationCount;
+            if (isset($residentNavConfig['support']) && $residentSupportNotificationCount > 0) {
+                $residentNavConfig['support']['badge'] = $residentSupportNotificationCount;
             }
             if ($user instanceof User && ! $user->hasTenantPermission('book appointments')) {
                 unset($residentNavConfig['book']);
@@ -154,7 +164,7 @@ class AppServiceProvider extends ServiceProvider
                 }
             }
             $fontUrl = $tenant ? Tenant::fontFamilyGoogleUrl($tenant->font_family) : null;
-            $view->with(compact('tenant', 'brandColor', 'brandName', 'brandLogo', 'themeClass', 'navLayout', 'navOrder', 'residentNavConfig', 'residentNavItems', 'fontUrl', 'residentSupportStatusUpdateCount'));
+            $view->with(compact('tenant', 'brandColor', 'brandName', 'brandLogo', 'themeClass', 'navLayout', 'navOrder', 'residentNavConfig', 'residentNavItems', 'fontUrl', 'residentSupportStatusUpdateCount', 'residentGlobalUpdateNotificationCount'));
         });
         View::composer('superadmin.layouts.app', function (\Illuminate\View\View $view): void {
             $count = 0;

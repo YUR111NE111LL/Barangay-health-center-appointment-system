@@ -45,13 +45,13 @@
         @endphp
         <nav class="flex flex-col gap-1 overflow-y-auto p-3">
             @foreach($residentNavItems as $item)
-            <a href="{{ route($item['route']) }}" class="{{ request()->routeIs($item['route'] . '*') || request()->routeIs($item['route']) ? $rsbActive : $rsbDefault }} inline-flex items-center justify-between gap-2">
+            <a href="{{ route($item['route']) }}" class="{{ request()->routeIs($item['route'] . '*') || request()->routeIs($item['route']) ? $rsbActive : $rsbDefault }} {{ !empty($item['badge']) ? 'ring-1 ring-emerald-400 ring-offset-2 ring-offset-teal-600' : '' }} inline-flex items-center justify-between gap-2">
                 <span class="inline-flex min-w-0 items-center gap-2">
                     <x-tenant-nav-icon :name="$item['icon'] ?? 'default'" class="h-4 w-4 opacity-90" />
                     <span class="truncate">{{ $item['label'] }}</span>
                 </span>
                 @if(!empty($item['badge']))
-                    <span class="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-amber-300 px-1.5 py-0.5 text-[10px] font-semibold text-slate-900">{{ $item['badge'] }}</span>
+                    <span class="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-emerald-400 px-1.5 py-0.5 text-[10px] font-semibold text-teal-900">{{ $item['badge'] }}</span>
                 @endif
             </a>
             @endforeach
@@ -92,7 +92,7 @@
                                 <span>{{ $item['label'] }}</span>
                             </span>
                             @if(!empty($item['badge']))
-                                <span class="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-amber-300 px-1.5 py-0.5 text-[10px] font-semibold text-slate-900">{{ $item['badge'] }}</span>
+                                <span class="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-emerald-400 px-1.5 py-0.5 text-[10px] font-semibold text-teal-900">{{ $item['badge'] }}</span>
                             @endif
                         </a>
                         @endforeach
@@ -126,11 +126,11 @@
                 @endphp
                 <div id="resident-nav-links" class="hidden flex-wrap items-center gap-1 md:flex">
                     @foreach($residentNavItems as $item)
-                    <a href="{{ route($item['route']) }}" class="{{ request()->routeIs($item['route'] . '*') || request()->routeIs($item['route']) ? $rNavActive : $rNavDefault }} inline-flex items-center gap-1.5">
+                    <a href="{{ route($item['route']) }}" class="{{ request()->routeIs($item['route'] . '*') || request()->routeIs($item['route']) ? $rNavActive : $rNavDefault }} {{ !empty($item['badge']) ? 'ring-1 ring-emerald-400' : '' }} inline-flex items-center gap-1.5">
                         <x-tenant-nav-icon :name="$item['icon'] ?? 'default'" class="h-3.5 w-3.5 opacity-90" />
                         <span>{{ $item['label'] }}</span>
                         @if(!empty($item['badge']))
-                            <span class="inline-flex min-w-5 items-center justify-center rounded-full bg-amber-300 px-1.5 py-0.5 text-[10px] font-semibold text-slate-900">{{ $item['badge'] }}</span>
+                            <span class="inline-flex min-w-5 items-center justify-center rounded-full bg-emerald-400 px-1.5 py-0.5 text-[10px] font-semibold text-teal-900">{{ $item['badge'] }}</span>
                         @endif
                     </a>
                     @endforeach
@@ -151,13 +151,13 @@
             <div id="resident-nav-mobile" class="hidden border-t border-white/20 px-4 py-3 md:hidden">
                 <div class="flex flex-col gap-1">
                     @foreach($residentNavItems as $item)
-                    <a href="{{ route($item['route']) }}" class="{{ request()->routeIs($item['route'] . '*') || request()->routeIs($item['route']) ? $rMobActive : $rMobDefault }} inline-flex items-center justify-between gap-2">
+                    <a href="{{ route($item['route']) }}" class="{{ request()->routeIs($item['route'] . '*') || request()->routeIs($item['route']) ? $rMobActive : $rMobDefault }} {{ !empty($item['badge']) ? 'ring-1 ring-emerald-400 ring-offset-2 ring-offset-teal-600' : '' }} inline-flex items-center justify-between gap-2">
                         <span class="inline-flex min-w-0 items-center gap-2">
                             <x-tenant-nav-icon :name="$item['icon'] ?? 'default'" class="h-4 w-4 opacity-90" />
                             <span>{{ $item['label'] }}</span>
                         </span>
                         @if(!empty($item['badge']))
-                            <span class="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-amber-300 px-1.5 py-0.5 text-[10px] font-semibold text-slate-900">{{ $item['badge'] }}</span>
+                            <span class="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-emerald-400 px-1.5 py-0.5 text-[10px] font-semibold text-teal-900">{{ $item['badge'] }}</span>
                         @endif
                     </a>
                     @endforeach

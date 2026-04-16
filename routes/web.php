@@ -123,6 +123,7 @@ Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('bac
         Route::get('updates/{update}/edit', [\App\Http\Controllers\Tenant\ReleaseNoteController::class, 'edit'])->name('updates.edit');
         Route::put('updates/{update}', [\App\Http\Controllers\Tenant\ReleaseNoteController::class, 'update'])->name('updates.update');
         Route::delete('updates/{update}', [\App\Http\Controllers\Tenant\ReleaseNoteController::class, 'destroy'])->name('updates.destroy');
+        Route::post('updates/clear-notification', [\App\Http\Controllers\Tenant\ReleaseNoteController::class, 'clearNotifications'])->name('updates.clear-notification');
     });
 
     // RBAC: Barangay (Health Center) Admin only. Nurses and Residents cannot view or access these routes; tenant permissions are plan-based and per-tenant (no overlap with other tenants).
@@ -173,6 +174,7 @@ Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant', 'permission:b
         Route::delete('tickets/{ticket}', [\App\Http\Controllers\Tenant\SupportTicketController::class, 'destroy'])->name('tickets.destroy');
 
         Route::get('updates', [\App\Http\Controllers\Tenant\ReleaseNoteController::class, 'index'])->name('updates.index');
+        Route::post('updates/clear-notification', [\App\Http\Controllers\Tenant\ReleaseNoteController::class, 'clearNotifications'])->name('updates.clear-notification');
     });
 });
 
@@ -190,6 +192,12 @@ Route::middleware(['auth', 'role:Super Admin'])->prefix('super-admin')->name('su
     Route::get('support-reports', [\App\Http\Controllers\SuperAdmin\SupportReportController::class, 'index'])->name('support-reports.index');
     Route::get('support-reports/{ticket}', [\App\Http\Controllers\SuperAdmin\SupportReportController::class, 'show'])->name('support-reports.show');
     Route::patch('support-reports/{ticket}/status', [\App\Http\Controllers\SuperAdmin\SupportReportController::class, 'updateStatus'])->name('support-reports.status');
+    Route::get('updates', [\App\Http\Controllers\SuperAdmin\ReleaseNoteController::class, 'index'])->name('updates.index');
+    Route::get('updates/create', [\App\Http\Controllers\SuperAdmin\ReleaseNoteController::class, 'create'])->name('updates.create');
+    Route::post('updates', [\App\Http\Controllers\SuperAdmin\ReleaseNoteController::class, 'store'])->name('updates.store');
+    Route::get('updates/{update}/edit', [\App\Http\Controllers\SuperAdmin\ReleaseNoteController::class, 'edit'])->name('updates.edit');
+    Route::put('updates/{update}', [\App\Http\Controllers\SuperAdmin\ReleaseNoteController::class, 'update'])->name('updates.update');
+    Route::delete('updates/{update}', [\App\Http\Controllers\SuperAdmin\ReleaseNoteController::class, 'destroy'])->name('updates.destroy');
 
     Route::resource('tenants', \App\Http\Controllers\SuperAdmin\TenantManagementController::class);
     Route::get('plans', [\App\Http\Controllers\SuperAdmin\PlanManagementController::class, 'index'])->name('plans.index');

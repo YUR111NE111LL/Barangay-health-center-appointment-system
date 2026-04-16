@@ -1,0 +1,107 @@
+<?php
+
+namespace App\Http\Controllers\SuperAdmin;
+
+use App\Http\Controllers\Controller;
+use App\Models\ReleaseNote;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
+
+class ReleaseNoteController extends Controller
+{
+    public function index(): View
+    {
+        $notes = ReleaseNote::query()
+            ->whereNull('tenant_id')
+            ->whereNotNull('published_at')
+            ->with('creator:id,name')
+            ->orderByDesc('is_pinned')
+            ->orderByDesc('published_at')
+            ->paginate(15);
+
+        return view('superadmin.updates.index', compact('notes'));
+    }
+
+    public function create(): View
+    {
+        return view('superadmin.updates.create');
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'summary' => ['nullable', 'string', 'max:500'],
+            'content' => ['nullable', 'string'],
+            'version' => ['nullable', 'string', 'max:50'],
+            'type' => ['required', 'in:feature,fix,maintenance,security'],
+            'is_pinned' => ['boolean'],
+            'published_at' => ['nullable', 'date'],
+        ]);
+
+        ReleaseNote::create([
+            'tenant_id' => null,
+            'created_by' => Auth::id(),
+            'title' => $validated['title'],
+            'summary' => $validated['summary'] ?? null,
+            'content' => $validated['content'] ?? null,
+            'version' => $validated['version'] ?? null,
+            'type' => $validated['type'],
+            'is_pinned' => $request->boolean('is_pinned'),
+            'published_at' => $validated['published_at'] ?? now(),
+        ]);
+
+        return redirect()->route('super-admin.updates.index')->with('success', 'Global update published.');
+    }
+
+    public function edit(ReleaseNote $update): View
+    {
+        $this->ensureGlobalNote($update);
+
+        return view('superadmin.updates.edit', ['note' => $update]);
+    }
+
+    public function update(Request $request, ReleaseNote $update): RedirectResponse
+    {
+        $this->ensureGlobalNote($update);
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'summary' => ['nullable', 'string', 'max:500'],
+            'content' => ['nullable', 'string'],
+            'version' => ['nullable', 'string', 'max:50'],
+            'type' => ['required', 'in:feature,fix,maintenance,security'],
+            'is_pinned' => ['boolean'],
+            'published_at' => ['nullable', 'date'],
+        ]);
+
+        $update->update([
+            'title' => $validated['title'],
+            'summary' => $validated['summary'] ?? null,
+            'content' => $validated['content'] ?? null,
+            'version' => $validated['version'] ?? null,
+            'type' => $validated['type'],
+            'is_pinned' => $request->boolean('is_pinned'),
+            'published_at' => $validated['published_at'] ?? now(),
+        ]);
+
+        return redirect()->route('super-admin.updates.index')->with('success', 'Global update updated.');
+    }
+
+    public function destroy(ReleaseNote $update): RedirectResponse
+    {
+        $this->ensureGlobalNote($update);
+        $update->delete();
+
+        return redirect()->route('super-admin.updates.index')->with('success', 'Global update deleted.');
+    }
+
+    private function ensureGlobalNote(ReleaseNote $note): void
+    {
+        if ($note->tenant_id !== null) {
+            abort(404);
+        }
+    }
+}

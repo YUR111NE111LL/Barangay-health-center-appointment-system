@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Models\ReleaseNote;
+use App\Models\User;
+use App\Support\GlobalUpdateReadState;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,13 +15,18 @@ class ReleaseNoteController extends Controller
 {
     public function index(): View
     {
-        $tenant = Auth::user()?->tenant;
-        $isAdmin = Auth::user()?->role === 'Health Center Admin';
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+        $tenant = $user?->tenant;
+        $isAdmin = $user?->role === 'Health Center Admin';
         $routeBase = request()->routeIs('resident.*') ? 'resident.support' : 'backend.support';
 
         $notes = ReleaseNote::query()
             ->where(function ($query) use ($tenant): void {
-                $query->whereNull('tenant_id')->orWhere('tenant_id', $tenant->id);
+                $query->whereNull('tenant_id');
+                if ($tenant) {
+                    $query->orWhere('tenant_id', $tenant->id);
+                }
             })
             ->whereNotNull('published_at')
             ->with('creator:id,name')
@@ -27,44 +34,19 @@ class ReleaseNoteController extends Controller
             ->orderByDesc('published_at')
             ->paginate(12);
 
+        GlobalUpdateReadState::markSeen($user);
+
         return view('tenant.support.updates.index', compact('notes', 'isAdmin', 'routeBase'));
     }
 
     public function create(): View
     {
-        $this->ensureAdmin();
-
-        return view('tenant.support.updates.create');
+        abort(403, 'Publishing updates is done from the Super Admin console.');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(): RedirectResponse
     {
-        $this->ensureAdmin();
-        $tenant = Auth::user()?->tenant;
-
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'summary' => ['nullable', 'string', 'max:500'],
-            'content' => ['nullable', 'string'],
-            'version' => ['nullable', 'string', 'max:50'],
-            'type' => ['required', 'in:feature,fix,maintenance,security'],
-            'is_pinned' => ['boolean'],
-            'published_at' => ['nullable', 'date'],
-        ]);
-
-        ReleaseNote::create([
-            'tenant_id' => $tenant->id,
-            'created_by' => Auth::id(),
-            'title' => $validated['title'],
-            'summary' => $validated['summary'] ?? null,
-            'content' => $validated['content'] ?? null,
-            'version' => $validated['version'] ?? null,
-            'type' => $validated['type'],
-            'is_pinned' => $request->boolean('is_pinned'),
-            'published_at' => $validated['published_at'] ?? now(),
-        ]);
-
-        return redirect()->route('backend.support.updates.index')->with('success', 'Update note published.');
+        abort(403, 'Publishing updates is done from the Super Admin console.');
     }
 
     public function edit(ReleaseNote $update): View
@@ -100,7 +82,9 @@ class ReleaseNoteController extends Controller
             'published_at' => $validated['published_at'] ?? now(),
         ]);
 
-        return redirect()->route('backend.support.updates.index')->with('success', 'Update note updated.');
+        $routeBase = request()->routeIs('resident.*') ? 'resident.support' : 'backend.support';
+
+        return redirect()->route($routeBase.'.updates.index')->with('success', 'Update note updated.');
     }
 
     public function destroy(ReleaseNote $update): RedirectResponse
@@ -109,7 +93,20 @@ class ReleaseNoteController extends Controller
         $this->ensureTenantOwned($update);
         $update->delete();
 
-        return redirect()->route('backend.support.updates.index')->with('success', 'Update note deleted.');
+        $routeBase = request()->routeIs('resident.*') ? 'resident.support' : 'backend.support';
+
+        return redirect()->route($routeBase.'.updates.index')->with('success', 'Update note deleted.');
+    }
+
+    public function clearNotifications(): RedirectResponse
+    {
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+        if ($user instanceof User) {
+            GlobalUpdateReadState::markSeen($user);
+        }
+
+        return back()->with('success', 'Update notifications cleared.');
     }
 
     private function ensureAdmin(): void

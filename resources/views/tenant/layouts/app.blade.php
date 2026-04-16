@@ -65,7 +65,7 @@
             @if(!$isResidentPortal)
             <a href="{{ route('backend.users.index') }}" class="{{ request()->routeIs('backend.users.*') ? $sbActive : $sbDefault }} inline-flex items-center gap-2"><x-tenant-nav-icon name="users" class="h-4 w-4 shrink-0 opacity-90" />Users</a>
             @endif
-            <a href="{{ route($supportRouteName) }}" class="{{ request()->routeIs('backend.support.*') || request()->routeIs('resident.support.*') ? $sbActive : $sbDefault }} inline-flex items-center gap-2"><x-tenant-nav-icon name="support" class="h-4 w-4 shrink-0 opacity-90" />Support &amp; Updates</a>
+            <a href="{{ route($supportRouteName) }}" class="{{ request()->routeIs('backend.support.*') || request()->routeIs('resident.support.*') ? $sbActive : $sbDefault }} {{ ($supportUpdatesNotificationCount ?? 0) > 0 ? 'ring-1 ring-emerald-400 ring-offset-2 ring-offset-teal-600' : '' }} inline-flex items-center gap-2"><x-tenant-nav-icon name="support" class="h-4 w-4 shrink-0 opacity-90" />Support &amp; Updates @if(($supportUpdatesNotificationCount ?? 0) > 0)<span class="ml-1 rounded-full bg-emerald-400 px-1.5 py-0.5 text-xs font-semibold text-teal-900">{{ $supportUpdatesNotificationCount }}</span>@endif</a>
             @if(auth()->user()->role === 'Health Center Admin')
             <a href="{{ route('backend.pending-approvals.index') }}" class="{{ request()->routeIs('backend.pending-approvals.*') ? $sbActive : $sbDefault }} {{ ($backendPendingCount ?? 0) > 0 ? 'ring-1 ring-amber-400 ring-offset-2 ring-offset-teal-600' : '' }} inline-flex items-center gap-2"><x-tenant-nav-icon name="approvals" class="h-4 w-4 shrink-0 opacity-90" />Approvals @if(($backendPendingCount ?? 0) > 0)<span class="ml-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-xs font-semibold text-teal-900">{{ $backendPendingCount }}</span>@endif</a>
             <a href="{{ route('backend.announcements.index') }}" class="{{ request()->routeIs('backend.announcements.*') ? $sbActive : $sbDefault }} inline-flex items-center gap-2"><x-tenant-nav-icon name="announcements" class="h-4 w-4 shrink-0 opacity-90" />Announcements</a>
@@ -129,7 +129,7 @@
                             @if(!$isResidentPortal)
                             <a href="{{ route('backend.users.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"><x-tenant-nav-icon name="users" class="h-4 w-4 shrink-0 text-slate-400" />Users</a>
                             @endif
-                            <a href="{{ route($supportRouteName) }}" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"><x-tenant-nav-icon name="support" class="h-4 w-4 shrink-0 text-slate-400" />Support &amp; Updates</a>
+                            <a href="{{ route($supportRouteName) }}" class="flex items-center justify-between gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"><span class="inline-flex min-w-0 items-center gap-2"><x-tenant-nav-icon name="support" class="h-4 w-4 shrink-0 text-slate-400" />Support &amp; Updates</span> @if(($supportUpdatesNotificationCount ?? 0) > 0)<span class="rounded-full bg-emerald-500 px-1.5 py-0.5 text-xs font-semibold text-white">{{ $supportUpdatesNotificationCount }}</span>@endif</a>
                             @if(auth()->user()->role === 'Health Center Admin')
                             <a href="{{ route('backend.pending-approvals.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"><x-tenant-nav-icon name="approvals" class="h-4 w-4 shrink-0 text-slate-400" />Approvals</a>
                             <a href="{{ route('backend.announcements.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"><x-tenant-nav-icon name="announcements" class="h-4 w-4 shrink-0 text-slate-400" />Announcements</a>
@@ -190,7 +190,7 @@
                     @if(auth()->user()->hasTenantPermission('view appointments'))
                     <a href="{{ route('backend.appointments.index') }}" class="relative inline-flex items-center gap-1 {{ request()->routeIs('backend.appointments.*') ? $navActive : $navDefault }} {{ ($backendPendingAppointmentsCount ?? 0) > 0 ? 'ring-1 ring-emerald-400' : '' }}">
                         <x-tenant-nav-icon name="appointments" class="h-3.5 w-3.5 shrink-0 opacity-90" />Appointments
-                        @if(($backendPendingAppointmentsCount ?? 0) > 0)<span class="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-emerald-500 px-0.5 text-[10px] font-bold text-white">{{ $backendPendingAppointmentsCount }}</span>@endif
+                        @if(($backendPendingAppointmentsCount ?? 0) > 0)<span class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-0.5 text-[10px] font-bold text-white">{{ $backendPendingAppointmentsCount }}</span>@endif
                     </a>
                     @endif
                     @if(auth()->user()->role === 'Health Center Admin')
@@ -202,7 +202,7 @@
                     @if(!$isResidentPortal)
                     <a href="{{ route('backend.users.index') }}" class="{{ request()->routeIs('backend.users.*') ? $navActive : $navDefault }} inline-flex items-center gap-1"><x-tenant-nav-icon name="users" class="h-3.5 w-3.5 shrink-0 opacity-90" />Users</a>
                     @endif
-                    <a href="{{ route($supportRouteName) }}" class="{{ request()->routeIs('backend.support.*') || request()->routeIs('resident.support.*') ? $navActive : $navDefault }} inline-flex items-center gap-1"><x-tenant-nav-icon name="support" class="h-3.5 w-3.5 shrink-0 opacity-90" />Support</a>
+                    <a href="{{ route($supportRouteName) }}" class="relative inline-flex items-center gap-1 {{ request()->routeIs('backend.support.*') || request()->routeIs('resident.support.*') ? $navActive : $navDefault }} {{ ($supportUpdatesNotificationCount ?? 0) > 0 ? 'ring-1 ring-emerald-400' : '' }}"><x-tenant-nav-icon name="support" class="h-3.5 w-3.5 shrink-0 opacity-90" />Support @if(($supportUpdatesNotificationCount ?? 0) > 0)<span class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-0.5 text-[10px] font-bold text-white">{{ $supportUpdatesNotificationCount }}</span>@endif</a>
                     @if(auth()->user()->role === 'Health Center Admin')
                     <a href="{{ route('backend.pending-approvals.index') }}" class="relative inline-flex items-center gap-1 {{ request()->routeIs('backend.pending-approvals.*') ? $navActive : $navDefault }}">
                         <x-tenant-nav-icon name="approvals" class="h-3.5 w-3.5 shrink-0 opacity-90" />Approvals
@@ -290,7 +290,7 @@
                     @if(!$isResidentPortal)
                     <a href="{{ route('backend.users.index') }}" class="{{ request()->routeIs('backend.users.*') ? $mobActive : $mobDefault }} inline-flex items-center gap-2"><x-tenant-nav-icon name="users" class="h-4 w-4 shrink-0 opacity-90" />Users</a>
                     @endif
-                    <a href="{{ route($supportRouteName) }}" class="{{ request()->routeIs('backend.support.*') || request()->routeIs('resident.support.*') ? $mobActive : $mobDefault }} inline-flex items-center gap-2"><x-tenant-nav-icon name="support" class="h-4 w-4 shrink-0 opacity-90" />Support &amp; Updates</a>
+                    <a href="{{ route($supportRouteName) }}" class="{{ request()->routeIs('backend.support.*') || request()->routeIs('resident.support.*') ? $mobActive : $mobDefault }} {{ ($supportUpdatesNotificationCount ?? 0) > 0 ? 'ring-1 ring-emerald-400 ring-offset-2 ring-offset-teal-600' : '' }} inline-flex items-center gap-2"><x-tenant-nav-icon name="support" class="h-4 w-4 shrink-0 opacity-90" />Support &amp; Updates @if(($supportUpdatesNotificationCount ?? 0) > 0)<span class="ml-1 rounded-full bg-emerald-400 px-1.5 py-0.5 text-xs font-semibold text-teal-900">{{ $supportUpdatesNotificationCount }}</span>@endif</a>
                     @if(auth()->user()->role === 'Health Center Admin')
                     <a href="{{ route('backend.pending-approvals.index') }}" class="{{ request()->routeIs('backend.pending-approvals.*') ? $mobActive : $mobDefault }} inline-flex items-center gap-2"><x-tenant-nav-icon name="approvals" class="h-4 w-4 shrink-0 opacity-90" />Approvals @if(($backendPendingCount ?? 0) > 0)<span class="ml-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-xs font-semibold text-teal-900">{{ $backendPendingCount }}</span>@endif</a>
                     <a href="{{ route('backend.announcements.index') }}" class="{{ request()->routeIs('backend.announcements.*') ? $mobActive : $mobDefault }} inline-flex items-center gap-2"><x-tenant-nav-icon name="announcements" class="h-4 w-4 shrink-0 opacity-90" />Announcements</a>

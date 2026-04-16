@@ -34,6 +34,7 @@
                         Tenants reports
                         @if(($supportReportPendingCount ?? 0) > 0)<span class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold text-violet-900">{{ $supportReportPendingCount }}</span>@endif
                     </a>
+                    <a href="{{ route('super-admin.updates.index') }}" class="{{ request()->routeIs('super-admin.updates.*') ? $saActive : $saDefault }}">Updates</a>
                     <a href="{{ route('super-admin.pending-approvals.index') }}" class="relative {{ request()->routeIs('super-admin.pending-approvals.*') ? $saActive : $saDefault }}">
                         Pending approvals
                         @if(($pendingCount ?? 0) > 0)<span class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold text-violet-900">{{ $pendingCount }}</span>@endif
@@ -63,6 +64,7 @@
                     <a href="{{ route('super-admin.accounts.index') }}" class="{{ request()->routeIs('super-admin.accounts.*') ? $saMobActive : $saMobDefault }}">Accounts</a>
                     <a href="{{ route('super-admin.users.index') }}" class="{{ request()->routeIs('super-admin.users.*') ? $saMobActive : $saMobDefault }}">Users</a>
                     <a href="{{ route('super-admin.support-reports.index') }}" class="{{ request()->routeIs('super-admin.support-reports.*') ? $saMobActive : $saMobDefault }}">Tenants reports @if(($supportReportPendingCount ?? 0) > 0)<span class="ml-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-xs font-semibold text-violet-900">{{ $supportReportPendingCount }}</span>@endif</a>
+                    <a href="{{ route('super-admin.updates.index') }}" class="{{ request()->routeIs('super-admin.updates.*') ? $saMobActive : $saMobDefault }}">Updates</a>
                     <a href="{{ route('super-admin.pending-approvals.index') }}" class="{{ request()->routeIs('super-admin.pending-approvals.*') ? $saMobActive : $saMobDefault }}">Pending approvals @if(($pendingCount ?? 0) > 0)<span class="ml-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-xs font-semibold text-violet-900">{{ $pendingCount }}</span>@endif</a>
                 </div>
             </div>
