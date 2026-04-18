@@ -12,8 +12,6 @@ class RoleAndPermissionSeeder extends Seeder
     {
         $guard = 'web';
 
-        Permission::firstOrCreate(['name' => 'manage tenants', 'guard_name' => $guard]);
-        Permission::firstOrCreate(['name' => 'manage billing', 'guard_name' => $guard]);
         Permission::firstOrCreate(['name' => 'manage schedules', 'guard_name' => $guard]);
         Permission::firstOrCreate(['name' => 'approve appointments', 'guard_name' => $guard]);
         Permission::firstOrCreate(['name' => 'view reports', 'guard_name' => $guard]);
@@ -25,7 +23,7 @@ class RoleAndPermissionSeeder extends Seeder
         Permission::firstOrCreate(['name' => 'manage inventory', 'guard_name' => $guard]);
 
         $superAdmin = Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => $guard]);
-        $superAdmin->givePermissionTo(['manage tenants', 'manage billing', 'view reports']);
+        $superAdmin->givePermissionTo(['view reports']);
 
         $healthCenterAdmin = Role::firstOrCreate(['name' => 'Health Center Admin', 'guard_name' => $guard]);
         $healthCenterAdmin->givePermissionTo(['manage schedules', 'approve appointments', 'view reports', 'view appointments', 'encode appointments']);

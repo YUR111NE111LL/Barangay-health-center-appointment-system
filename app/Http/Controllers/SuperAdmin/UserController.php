@@ -25,8 +25,8 @@ class UserController extends Controller
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('email', 'like', '%' . $request->search . '%');
+                $q->where('name', 'like', '%'.$request->search.'%')
+                    ->orWhere('email', 'like', '%'.$request->search.'%');
             });
         }
 
@@ -81,7 +81,7 @@ class UserController extends Controller
             'admin_id' => auth()->id(),
         ])));
 
-        $callbackUrl = request()->getSchemeAndHttpHost() . '/super-admin/users/google/callback';
+        $callbackUrl = request()->getSchemeAndHttpHost().'/super-admin/users/google/callback';
 
         return Socialite::driver('google')
             ->redirectUrl($callbackUrl)
@@ -98,7 +98,7 @@ class UserController extends Controller
         $action = 'create_super_admin';
         $adminId = auth()->id();
         $stateParam = $request->query('state');
-        
+
         if ($stateParam) {
             $stateParam = str_replace(['-', '_'], ['+', '/'], $stateParam);
             $stateParam .= str_repeat('=', (4 - strlen($stateParam) % 4) % 4);
@@ -119,7 +119,7 @@ class UserController extends Controller
                 ->with('error', 'Google did not return an authorization code. Please try again.');
         }
 
-        $callbackUrl = $request->getSchemeAndHttpHost() . '/super-admin/users/google/callback';
+        $callbackUrl = $request->getSchemeAndHttpHost().'/super-admin/users/google/callback';
 
         try {
             $googleUser = Socialite::driver('google')
@@ -128,7 +128,7 @@ class UserController extends Controller
                 ->user();
         } catch (\Throwable $e) {
             return redirect()->route('super-admin.users.create')
-                ->with('error', 'Google login failed: ' . $e->getMessage());
+                ->with('error', 'Google login failed: '.$e->getMessage());
         }
 
         $email = $googleUser->getEmail();
@@ -146,7 +146,7 @@ class UserController extends Controller
             ->whereNotNull('tenant_id')
             ->whereRaw('LOWER(email) = ?', [$emailNormalized])
             ->exists();
-        
+
         if ($alreadyUnderTenant) {
             return redirect()->route('super-admin.users.create')
                 ->with('error', 'This Google account is already registered under a barangay. Super Admin accounts cannot be associated with barangays.');
@@ -167,6 +167,7 @@ class UserController extends Controller
             if (! $existing->google_id) {
                 $existing->update(['google_id' => $googleId]);
             }
+
             return redirect()->route('super-admin.users.index')
                 ->with('info', 'This Google account is already a Super Admin.');
         }

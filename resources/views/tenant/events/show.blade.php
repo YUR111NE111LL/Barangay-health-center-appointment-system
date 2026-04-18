@@ -32,9 +32,13 @@
                     <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span> Draft
                 </span>
             @endif
-            @if($event->event_date->isPast())
+            @php
+                $eventDayShow = $event->event_date->format('Y-m-d');
+                $todayDayShow = now()->format('Y-m-d');
+            @endphp
+            @if($eventDayShow < $todayDayShow)
                 <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">Past Event</span>
-            @elseif($event->event_date->isToday())
+            @elseif($eventDayShow === $todayDayShow)
                 <span class="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-blue-200/60">Today</span>
             @endif
         </div>
@@ -59,11 +63,11 @@
             </div>
             @endif
             @if($event->location)
-            <div class="flex items-center gap-2 rounded-xl bg-slate-50 px-4 py-2.5 ring-1 ring-slate-200/60">
-                <svg class="h-5 w-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                <div>
-                    <p class="text-xs text-slate-500">Location</p>
-                    <p class="font-medium text-slate-800">{{ $event->location }}</p>
+            <div class="flex items-center gap-2 rounded-xl border border-teal-200/80 bg-teal-50 px-4 py-2.5 shadow-sm ring-1 ring-teal-100/70">
+                <svg class="h-5 w-5 shrink-0 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <div class="min-w-0">
+                    <p class="text-xs font-medium uppercase tracking-wide text-teal-700/90">Location</p>
+                    <p class="font-semibold text-teal-950">{{ $event->location }}</p>
                 </div>
             </div>
             @endif

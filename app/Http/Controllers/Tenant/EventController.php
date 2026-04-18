@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Tenant;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Services\CloudinaryService;
+use App\Support\TenantContentEmailNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -36,6 +37,7 @@ class EventController extends Controller
             'event_time' => ['nullable', 'date_format:H:i'],
             'location' => ['nullable', 'string', 'max:255'],
             'is_published' => ['boolean'],
+            'notify_users_by_email' => ['boolean'],
         ];
         if ($tenant->hasFeature('announcements_events')) {
             $rules['image'] = ['nullable', File::types(['png', 'jpg', 'jpeg', 'gif', 'webp'])->max(2048)];
@@ -60,7 +62,12 @@ class EventController extends Controller
                 $validated['image_path'] = $uploadResult['secure_url'];
             }
         }
-        $tenant->events()->create($validated);
+        /** @var Event $event */
+        $event = $tenant->events()->create($validated);
+
+        if ($request->boolean('notify_users_by_email') && $event->is_published) {
+            TenantContentEmailNotifier::queueEventEmails($tenant, $event);
+        }
 
         return redirect()->route('backend.events.index')->with('success', 'Event created.');
     }
@@ -90,6 +97,7 @@ class EventController extends Controller
             'event_time' => ['nullable', 'date_format:H:i'],
             'location' => ['nullable', 'string', 'max:255'],
             'is_published' => ['boolean'],
+            'notify_users_by_email' => ['boolean'],
         ];
         if ($tenant->hasFeature('announcements_events')) {
             $rules['image'] = ['nullable', File::types(['png', 'jpg', 'jpeg', 'gif', 'webp'])->max(2048)];
@@ -136,6 +144,10 @@ class EventController extends Controller
             }
         }
         $event->update($validated);
+
+        if ($request->boolean('notify_users_by_email') && $event->is_published) {
+            TenantContentEmailNotifier::queueEventEmails($tenant, $event->fresh());
+        }
 
         return redirect()->route('backend.events.index')->with('success', 'Event updated.');
     }

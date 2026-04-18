@@ -22,9 +22,10 @@ class ResidentController extends Controller
             ->latest()
             ->take(3)
             ->get();
+        $today = now()->timezone((string) config('bhcas.display_timezone', 'Asia/Manila'))->toDateString();
         $upcomingEvents = $tenant->events()
             ->where('is_published', true)
-            ->where('event_date', '>=', now()->toDateString())
+            ->whereDate('event_date', '>=', $today)
             ->orderBy('event_date')
             ->orderBy('event_time')
             ->take(3)

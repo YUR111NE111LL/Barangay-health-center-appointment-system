@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\UsesTenantDatabaseConnection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Announcement extends Model
 {
+    use UsesTenantDatabaseConnection;
+
     protected $fillable = [
         'tenant_id',
         'title',
@@ -32,12 +35,12 @@ class Announcement extends Model
         if (! $this->image_path) {
             return null;
         }
-        
+
         // If it's a Cloudinary URL, return it directly
         if (str_contains($this->image_path, 'cloudinary.com')) {
             return $this->image_path;
         }
-        
+
         // Legacy local storage support
         return asset('storage/'.$this->image_path);
     }

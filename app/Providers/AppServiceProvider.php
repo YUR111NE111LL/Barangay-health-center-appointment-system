@@ -3,14 +3,21 @@
 namespace App\Providers;
 
 use App\Events\AppointmentSaved;
+use App\Listeners\RecordTenantAuthAudit;
 use App\Listeners\SendAppointmentNotification;
+use App\Models\Announcement;
 use App\Models\Appointment;
+use App\Models\Event as EventModel;
+use App\Models\Service;
 use App\Models\SupportTicket;
 use App\Models\Tenant;
 use App\Models\TenantApplication;
 use App\Models\User;
+use App\Observers\TenantAuditObserver;
 use App\Support\GlobalUpdateReadState;
 use App\Support\SessionPortal;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Pagination\Paginator;
@@ -70,6 +77,18 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Event::listen(AppointmentSaved::class, SendAppointmentNotification::class);
+        Event::listen(Login::class, [RecordTenantAuthAudit::class, 'handleLogin']);
+        Event::listen(Logout::class, [RecordTenantAuthAudit::class, 'handleLogout']);
+
+        foreach ([
+            User::class,
+            Appointment::class,
+            Service::class,
+            Announcement::class,
+            EventModel::class,
+        ] as $auditableModel) {
+            $auditableModel::observe(TenantAuditObserver::class);
+        }
 
         // View composers: inject data into layouts so views don't run queries (MVC: data from controller/composer, not view)
         View::composer('tenant.layouts.app', function (\Illuminate\View\View $view): void {

@@ -46,6 +46,7 @@ class TenantRbacSeeder
                 $count++;
             }
         }
+
         return $count;
     }
 }

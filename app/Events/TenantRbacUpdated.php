@@ -23,7 +23,7 @@ class TenantRbacUpdated implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new Channel('tenant.' . $this->tenant->id),
+            new Channel('tenant.'.$this->tenant->id),
         ];
     }
 

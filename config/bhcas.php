@@ -123,6 +123,27 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Apply for tenant: which plan columns may appear as "Included features"
+    |--------------------------------------------------------------------------
+    | Only these `plans` boolean columns are advertised on the public apply form.
+    | A label is shown when the column is true on that plan. Order matches the list.
+    | Use only flags that correspond to real app behavior (see Tenant::hasFeature,
+    | reports, inventory, customize web, announcements/events, email, RBAC).
+    | Does not affect Super Admin plan editing or database — display only.
+    */
+    'apply_for_tenant_feature_columns' => [
+        'has_appointment_history',
+        'has_monthly_reports',
+        'has_inventory_tracking',
+        'has_advanced_analytics',
+        'has_email_notifications',
+        'has_web_customization',
+        'has_full_web_customization',
+        'has_announcements_events',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Plan-based RBAC: permissions allowed per plan slug
     |--------------------------------------------------------------------------
     | Tenant RBAC is per-tenant and based on the plan they have. Permissions
@@ -162,6 +183,18 @@ return [
     */
     'resident_role_permissions' => [
         'book appointments',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Excluded from tenant RBAC (never assignable per barangay)
+    |--------------------------------------------------------------------------
+    | Platform-level capabilities; hidden from tenant role editors even when the
+    | plan allows all permissions ('*').
+    */
+    'tenant_rbac_excluded_permissions' => [
+        'manage tenants',
+        'manage billing',
     ],
 
     /*

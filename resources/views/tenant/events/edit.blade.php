@@ -61,6 +61,13 @@
                 <input type="checkbox" name="is_published" id="is_published" value="1" {{ old('is_published', $event->is_published) ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500">
                 <label for="is_published" class="text-sm text-slate-700">Published</label>
             </div>
+            <div class="flex flex-col gap-1">
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" name="notify_users_by_email" id="notify_users_by_email" value="1" {{ old('notify_users_by_email') ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500">
+                    <label for="notify_users_by_email" class="text-sm text-slate-700">Notify tenant users by email</label>
+                </div>
+                <p class="ml-6 text-xs text-slate-500">Sends one email per approved user with an email address in this barangay (same mail settings as appointment notifications). Only runs when this event is published.</p>
+            </div>
         </div>
     </div>
     <div class="flex gap-3">

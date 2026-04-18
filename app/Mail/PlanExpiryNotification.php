@@ -27,14 +27,14 @@ class PlanExpiryNotification extends Mailable
     public function envelope(): Envelope
     {
         $subject = match ($this->type) {
-            'expiring_soon' => '⚠️ Plan Expiring Soon – ' . $this->tenant->name,
-            'expired_grace_period' => '🚨 Plan Expired – Grace Period Active – ' . $this->tenant->name,
-            'deactivated' => '❌ System Deactivated – ' . $this->tenant->name,
-            default => 'Plan Status Update – ' . $this->tenant->name,
+            'expiring_soon' => '⚠️ Plan Expiring Soon – '.$this->tenant->name,
+            'expired_grace_period' => '🚨 Plan Expired – Grace Period Active – '.$this->tenant->name,
+            'deactivated' => '❌ System Deactivated – '.$this->tenant->name,
+            default => 'Plan Status Update – '.$this->tenant->name,
         };
 
         return new Envelope(
-            subject: $subject . ' – ' . config('bhcas.name'),
+            subject: $subject.' – '.config('bhcas.name'),
         );
     }
 

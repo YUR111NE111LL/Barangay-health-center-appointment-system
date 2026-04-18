@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\TenantApplication;
 use App\Support\Recaptcha;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -14,8 +15,12 @@ class StoreTenantApplicationRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $email = $this->input('email');
+        $normalized = is_string($email) ? strtolower(trim($email)) : '';
+
         $this->merge([
             'domain' => null,
+            'email' => $normalized !== '' ? $normalized : $email,
         ]);
     }
 
@@ -30,7 +35,27 @@ class StoreTenantApplicationRequest extends FormRequest
             'barangay' => ['required', 'string', 'max:255'],
             'address' => ['nullable', 'string'],
             'contact_number' => ['nullable', 'string', 'max:50'],
-            'email' => ['required', 'email', 'max:255'],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $normalized = strtolower(trim((string) $value));
+                    if ($normalized === '') {
+                        return;
+                    }
+                    $blocked = TenantApplication::query()
+                        ->whereRaw('LOWER(TRIM(email)) = ?', [$normalized])
+                        ->whereIn('status', [
+                            TenantApplication::STATUS_PENDING,
+                            TenantApplication::STATUS_APPROVED,
+                        ])
+                        ->exists();
+                    if ($blocked) {
+                        $fail(__('This email already has a barangay application. You cannot apply again while it is pending or after it has been approved. Use a different email or contact support if you need help.'));
+                    }
+                },
+            ],
         ];
 
         if (Recaptcha::shouldProcess()) {

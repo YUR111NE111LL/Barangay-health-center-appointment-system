@@ -98,13 +98,13 @@ class Plan extends Model
     }
 
     /**
-     * Human-readable labels for enabled plan features.
+     * Map of `plans` column => short label (all plan feature flags).
      *
-     * @return array<int, string>
+     * @return array<string, string>
      */
-    public function enabledFeatureLabels(): array
+    public static function planFeatureColumnLabels(): array
     {
-        $featureMap = [
+        return [
             'has_automated_approval' => __('Automated approval'),
             'has_appointment_history' => __('Appointment history'),
             'has_monthly_reports' => __('Monthly reports'),
@@ -117,11 +117,48 @@ class Plan extends Model
             'has_full_web_customization' => __('Full web customization'),
             'has_announcements_events' => __('Announcements and events'),
         ];
+    }
 
+    /**
+     * Human-readable labels for enabled plan features.
+     *
+     * @return array<int, string>
+     */
+    public function enabledFeatureLabels(): array
+    {
         $labels = [];
-        foreach ($featureMap as $column => $label) {
+        foreach (self::planFeatureColumnLabels() as $column => $label) {
             if ((bool) $this->{$column}) {
                 $labels[] = $label;
+            }
+        }
+
+        $labels[] = __('Custom roles up to :count', ['count' => $this->maxCustomRoles()]);
+
+        return $labels;
+    }
+
+    /**
+     * Labels for the public "Apply for tenant" pricing cards only: each row must
+     * be enabled on the plan and listed in config `bhcas.apply_for_tenant_feature_columns`.
+     *
+     * @return array<int, string>
+     */
+    public function applyForTenantFeatureLabels(): array
+    {
+        $columns = config('bhcas.apply_for_tenant_feature_columns', []);
+        if (! is_array($columns) || $columns === []) {
+            return $this->enabledFeatureLabels();
+        }
+
+        $map = self::planFeatureColumnLabels();
+        $labels = [];
+        foreach ($columns as $column) {
+            if (! is_string($column) || ! isset($map[$column])) {
+                continue;
+            }
+            if ((bool) $this->{$column}) {
+                $labels[] = $map[$column];
             }
         }
 

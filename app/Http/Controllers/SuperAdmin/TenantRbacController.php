@@ -6,12 +6,14 @@ use App\Events\TenantRbacUpdated;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Services\TenantRbacSeeder;
+use App\Support\TenantRbacExcludedPermissions;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -112,7 +114,7 @@ class TenantRbacController extends Controller
                     ->pluck('permission_name')
                     ->toArray();
                 if ($fromTable !== []) {
-                    $permissionsByRole[$roleName] = $fromTable;
+                    $permissionsByRole[$roleName] = TenantRbacExcludedPermissions::filterList($fromTable);
                 } else {
                     $roleModel = $roles->firstWhere('name', $roleName);
                     $permissionsByRole[$roleName] = $tenantHasAnyRbac
@@ -148,8 +150,10 @@ class TenantRbacController extends Controller
         $permissions = collect();
         $currentPermissionNames = [];
         $tenantHasAnyRbac = false;
-        $tenant->run(function () use (&$permissions, &$currentPermissionNames, &$tenantHasAnyRbac, $allowedPermissionNames, $tenant, $role): void {
+        $excluded = TenantRbacExcludedPermissions::names();
+        $tenant->run(function () use (&$permissions, &$currentPermissionNames, &$tenantHasAnyRbac, $allowedPermissionNames, $tenant, $role, $excluded): void {
             $permissions = Permission::where('guard_name', 'web')
+                ->when($excluded !== [], fn ($q) => $q->whereNotIn('name', $excluded))
                 ->when($allowedPermissionNames !== ['*'] && $allowedPermissionNames !== [], function ($q) use ($allowedPermissionNames) {
                     $q->whereIn('name', $allowedPermissionNames);
                 })
@@ -194,8 +198,10 @@ class TenantRbacController extends Controller
                 : array_values(array_intersect($allowedPermissionNames, $residentPerms));
         }
         $permissions = [];
-        $tenant->run(function () use (&$permissions, $allowedPermissionNames): void {
+        $excluded = TenantRbacExcludedPermissions::names();
+        $tenant->run(function () use (&$permissions, $allowedPermissionNames, $excluded): void {
             $permissions = Permission::where('guard_name', 'web')
+                ->when($excluded !== [], fn ($q) => $q->whereNotIn('name', $excluded))
                 ->when($allowedPermissionNames !== ['*'] && $allowedPermissionNames !== [], function ($q) use ($allowedPermissionNames) {
                     $q->whereIn('name', $allowedPermissionNames);
                 })
@@ -208,7 +214,7 @@ class TenantRbacController extends Controller
 
         $validated = $request->validate([
             'permissions' => ['nullable', 'array'],
-            'permissions.*' => ['string', 'in:'.implode(',', $permissions)],
+            'permissions.*' => ['string', Rule::in($permissions)],
         ]);
 
         $toSync = array_values($validated['permissions'] ?? []);
@@ -262,6 +268,6 @@ class TenantRbacController extends Controller
             $defaults = array_values(array_intersect($defaults, $residentPerms));
         }
 
-        return $defaults;
+        return TenantRbacExcludedPermissions::filterList($defaults);
     }
 }

@@ -71,6 +71,7 @@
             <a href="{{ route('backend.announcements.index') }}" class="{{ request()->routeIs('backend.announcements.*') ? $sbActive : $sbDefault }} inline-flex items-center gap-2"><x-tenant-nav-icon name="announcements" class="h-4 w-4 shrink-0 opacity-90" />Announcements</a>
             <a href="{{ route('backend.events.index') }}" class="{{ request()->routeIs('backend.events.*') ? $sbActive : $sbDefault }} inline-flex items-center gap-2"><x-tenant-nav-icon name="events" class="h-4 w-4 shrink-0 opacity-90" />Events</a>
             <a href="{{ route('backend.rbac.index') }}" class="{{ request()->routeIs('backend.rbac.*') ? $sbActive : $sbDefault }} inline-flex items-center gap-2"><x-tenant-nav-icon name="rbac" class="h-4 w-4 shrink-0 opacity-90" />Roles</a>
+            <a href="{{ route('backend.audit-log.index') }}" class="{{ request()->routeIs('backend.audit-log.*') ? $sbActive : $sbDefault }} inline-flex items-center gap-2"><x-tenant-nav-icon name="audit-log" class="h-4 w-4 shrink-0 opacity-90" />Audit log</a>
             @if($hasFeatureWebCustomization ?? false)
             <a href="{{ route('backend.customize-web.edit') }}" class="{{ request()->routeIs('backend.customize-web.*') ? $sbActive : $sbDefault }} inline-flex items-center gap-2"><x-tenant-nav-icon name="customize" class="h-4 w-4 shrink-0 opacity-90" />Customize</a>
             @endif
@@ -135,6 +136,7 @@
                             <a href="{{ route('backend.announcements.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"><x-tenant-nav-icon name="announcements" class="h-4 w-4 shrink-0 text-slate-400" />Announcements</a>
                             <a href="{{ route('backend.events.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"><x-tenant-nav-icon name="events" class="h-4 w-4 shrink-0 text-slate-400" />Events</a>
                             <a href="{{ route('backend.rbac.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"><x-tenant-nav-icon name="rbac" class="h-4 w-4 shrink-0 text-slate-400" />Roles</a>
+                            <a href="{{ route('backend.audit-log.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"><x-tenant-nav-icon name="audit-log" class="h-4 w-4 shrink-0 text-slate-400" />Audit log</a>
                             @if($hasFeatureWebCustomization ?? false)
                             <a href="{{ route('backend.customize-web.edit') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"><x-tenant-nav-icon name="customize" class="h-4 w-4 shrink-0 text-slate-400" />Customize</a>
                             @endif
@@ -183,7 +185,7 @@
                 @php
                     $navDefault = 'whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium text-white/80 transition hover:bg-white/15 hover:text-white';
                     $navActive  = 'whitespace-nowrap rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-teal-700 shadow-sm';
-                    $moreIsActive = request()->routeIs('backend.rbac.*') || request()->routeIs('backend.customize-web.*') || request()->routeIs('backend.inventory.*');
+                    $moreIsActive = request()->routeIs('backend.rbac.*') || request()->routeIs('backend.audit-log.*') || request()->routeIs('backend.customize-web.*') || request()->routeIs('backend.inventory.*');
                 @endphp
                 <div id="nav-links" class="hidden items-center gap-0.5 lg:flex">
                     <a href="{{ route($dashboardRouteName) }}" class="{{ $dashboardIsActive ? $navActive : $navDefault }} inline-flex items-center gap-1"><x-tenant-nav-icon name="dashboard" class="h-3.5 w-3.5 shrink-0 opacity-90" />Dashboard</a>
@@ -220,6 +222,10 @@
                             <a href="{{ route('backend.rbac.index') }}" class="flex items-center gap-2 px-3 py-2 text-sm {{ request()->routeIs('backend.rbac.*') ? 'bg-teal-50 font-medium text-teal-700' : 'text-slate-700 hover:bg-slate-50' }}">
                                 <svg class="h-4 w-4 {{ request()->routeIs('backend.rbac.*') ? 'text-teal-500' : 'text-slate-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                                 Roles &amp; Permissions
+                            </a>
+                            <a href="{{ route('backend.audit-log.index') }}" class="flex items-center gap-2 px-3 py-2 text-sm {{ request()->routeIs('backend.audit-log.*') ? 'bg-teal-50 font-medium text-teal-700' : 'text-slate-700 hover:bg-slate-50' }}">
+                                <svg class="h-4 w-4 {{ request()->routeIs('backend.audit-log.*') ? 'text-teal-500' : 'text-slate-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                Audit log
                             </a>
                             @if($hasFeatureWebCustomization ?? false)
                             <a href="{{ route('backend.customize-web.edit') }}" class="flex items-center gap-2 px-3 py-2 text-sm {{ request()->routeIs('backend.customize-web.*') ? 'bg-teal-50 font-medium text-teal-700' : 'text-slate-700 hover:bg-slate-50' }}">
@@ -296,6 +302,7 @@
                     <a href="{{ route('backend.announcements.index') }}" class="{{ request()->routeIs('backend.announcements.*') ? $mobActive : $mobDefault }} inline-flex items-center gap-2"><x-tenant-nav-icon name="announcements" class="h-4 w-4 shrink-0 opacity-90" />Announcements</a>
                     <a href="{{ route('backend.events.index') }}" class="{{ request()->routeIs('backend.events.*') ? $mobActive : $mobDefault }} inline-flex items-center gap-2"><x-tenant-nav-icon name="events" class="h-4 w-4 shrink-0 opacity-90" />Events</a>
                     <a href="{{ route('backend.rbac.index') }}" class="{{ request()->routeIs('backend.rbac.*') ? $mobActive : $mobDefault }} inline-flex items-center gap-2"><x-tenant-nav-icon name="rbac" class="h-4 w-4 shrink-0 opacity-90" />Roles &amp; Permissions</a>
+                    <a href="{{ route('backend.audit-log.index') }}" class="{{ request()->routeIs('backend.audit-log.*') ? $mobActive : $mobDefault }} inline-flex items-center gap-2"><x-tenant-nav-icon name="audit-log" class="h-4 w-4 shrink-0 opacity-90" />Audit log</a>
                     @if($hasFeatureWebCustomization ?? false)
                     <a href="{{ route('backend.customize-web.edit') }}" class="{{ request()->routeIs('backend.customize-web.*') ? $mobActive : $mobDefault }} inline-flex items-center gap-2"><x-tenant-nav-icon name="customize" class="h-4 w-4 shrink-0 opacity-90" />Customize</a>
                     @endif

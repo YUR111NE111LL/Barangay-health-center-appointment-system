@@ -19,11 +19,13 @@ class SeedTenantRbacCommand extends Command
             $tenantId = (int) $this->option('tenant');
             TenantRbacSeeder::seedTenant($tenantId);
             $this->info("Seeded RBAC for tenant ID {$tenantId}.");
+
             return self::SUCCESS;
         }
 
         $count = TenantRbacSeeder::seedAllTenants();
         $this->info("Seeded RBAC for {$count} tenant(s). Tenants with existing RBAC were skipped.");
+
         return self::SUCCESS;
     }
 }

@@ -11,9 +11,10 @@ class EventController extends Controller
     public function index(): View
     {
         $tenant = auth()->user()->tenant;
+        $today = now()->timezone((string) config('bhcas.display_timezone', 'Asia/Manila'))->toDateString();
         $events = $tenant->events()
             ->where('is_published', true)
-            ->where('event_date', '>=', now()->toDateString())
+            ->whereDate('event_date', '>=', $today)
             ->orderBy('event_date')
             ->orderBy('event_time')
             ->paginate(10);

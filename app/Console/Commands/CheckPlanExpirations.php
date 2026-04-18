@@ -31,7 +31,7 @@ class CheckPlanExpirations extends Command
     {
         $now = now();
         $gracePeriodDays = 3;
-        
+
         // Find tenants with subscriptions expiring today or tomorrow (notify before expiry)
         $expiringSoon = Tenant::whereNotNull('subscription_ends_at')
             ->where('subscription_ends_at', '>=', $now->copy()->startOfDay())
@@ -46,7 +46,7 @@ class CheckPlanExpirations extends Command
             $admin = $tenant->users()
                 ->where('role', User::ROLE_HEALTH_CENTER_ADMIN)
                 ->first();
-            
+
             if ($admin && $admin->email) {
                 Mail::to($admin->email)->send(new PlanExpiryNotification($tenant, 'expiring_soon'));
                 $tenant->update(['expiry_notification_sent_at' => $now]);
@@ -67,12 +67,12 @@ class CheckPlanExpirations extends Command
         foreach ($expiredTenants as $tenant) {
             $gracePeriodEnds = $tenant->subscription_ends_at->copy()->addDays($gracePeriodDays);
             $tenant->update(['grace_period_ends_at' => $gracePeriodEnds]);
-            
+
             // Send notification about expiry and grace period
             $admin = $tenant->users()
                 ->where('role', User::ROLE_HEALTH_CENTER_ADMIN)
                 ->first();
-            
+
             if ($admin && $admin->email) {
                 Mail::to($admin->email)->send(new PlanExpiryNotification($tenant, 'expired_grace_period'));
                 $tenant->update(['expiry_notification_sent_at' => $now]);
@@ -91,12 +91,12 @@ class CheckPlanExpirations extends Command
         $deactivatedCount = 0;
         foreach ($pastGracePeriod as $tenant) {
             $tenant->update(['is_active' => false]);
-            
+
             // Send final notification
             $admin = $tenant->users()
                 ->where('role', User::ROLE_HEALTH_CENTER_ADMIN)
                 ->first();
-            
+
             if ($admin && $admin->email) {
                 Mail::to($admin->email)->send(new PlanExpiryNotification($tenant, 'deactivated'));
                 $deactivatedCount++;
@@ -104,7 +104,7 @@ class CheckPlanExpirations extends Command
             }
         }
 
-        $this->info("Plan expiration check completed:");
+        $this->info('Plan expiration check completed:');
         $this->info("  - Notified {$notifiedCount} tenant(s) about upcoming expiry");
         $this->info("  - Set grace period for {$gracePeriodSetCount} expired tenant(s)");
         $this->info("  - Deactivated {$deactivatedCount} tenant(s) past grace period");

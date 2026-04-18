@@ -24,7 +24,6 @@
                 <button type="submit" class="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 font-medium text-emerald-700 hover:bg-emerald-100" id="toggle-status-btn">Activate Tenant</button>
             @endif
         </form>
-        <a href="{{ route('super-admin.tenants.rbac.index', $tenant) }}" class="rounded-xl border border-violet-300 bg-violet-50 px-4 py-2 font-medium text-violet-700 hover:bg-violet-100">RBAC for this tenant</a>
         <form action="{{ route('super-admin.tenants.provision-database', $tenant) }}" method="POST" class="inline">
             @csrf
             <button type="submit" class="rounded-xl border border-sky-300 bg-sky-50 px-4 py-2 font-medium text-sky-700 hover:bg-sky-100">

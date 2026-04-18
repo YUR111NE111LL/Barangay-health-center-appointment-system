@@ -85,7 +85,7 @@
                     <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         @foreach($plans as $plan)
                             @php
-                                $featureLabels = $plan->enabledFeatureLabels();
+                                $featureLabels = $plan->applyForTenantFeatureLabels();
                                 $planTheme = match ($plan->slug) {
                                     'basic' => [
                                         'badge' => 'bg-cyan-100 text-cyan-800 ring-cyan-200',

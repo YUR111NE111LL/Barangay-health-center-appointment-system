@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\TenantRbacSeeder;
+use App\Support\TenantRbacExcludedPermissions;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -149,7 +151,7 @@ class RolePermissionsController extends Controller
                 ->pluck('permission_name')
                 ->toArray();
             if ($fromTable !== []) {
-                $permissionsByRole[$roleName] = $fromTable;
+                $permissionsByRole[$roleName] = TenantRbacExcludedPermissions::filterList($fromTable);
             } else {
                 $roleModel = $roles->firstWhere('name', $roleName);
                 $permissionsByRole[$roleName] = $tenantHasAnyRbac
@@ -175,16 +177,7 @@ class RolePermissionsController extends Controller
         }
 
         $tenant->load('plan');
-        $allowedPermissionNames = $this->allowedPermissionsForPlan($tenant->plan?->slug);
-        $permissions = Permission::where('guard_name', 'web')
-            ->when($allowedPermissionNames !== ['*'] && $allowedPermissionNames !== [], function ($q) use ($allowedPermissionNames) {
-                $q->whereIn('name', $allowedPermissionNames);
-            })
-            ->when($allowedPermissionNames === [], function ($q) {
-                $q->whereRaw('1 = 0');
-            })
-            ->orderBy('name')
-            ->get();
+        $permissions = $this->permissionsForPlanQuery($tenant)->get();
 
         return view('tenant.rbac.permissions-create', compact('tenant', 'permissions'));
     }
@@ -203,21 +196,12 @@ class RolePermissionsController extends Controller
         }
 
         $tenant->load('plan');
-        $allowedPermissionNames = $this->allowedPermissionsForPlan($tenant->plan?->slug);
-        $permissions = Permission::where('guard_name', 'web')
-            ->when($allowedPermissionNames !== ['*'] && $allowedPermissionNames !== [], function ($q) use ($allowedPermissionNames) {
-                $q->whereIn('name', $allowedPermissionNames);
-            })
-            ->when($allowedPermissionNames === [], function ($q) {
-                $q->whereRaw('1 = 0');
-            })
-            ->pluck('name')
-            ->toArray();
+        $permissionNames = $this->permissionsForPlanQuery($tenant)->pluck('name')->toArray();
 
         $validated = $request->validate([
             'role_name' => ['required', 'string', 'max:100'],
             'permissions' => ['required', 'array', 'min:1'],
-            'permissions.*' => ['string', 'in:'.implode(',', $permissions)],
+            'permissions.*' => ['string', Rule::in($permissionNames)],
         ]);
 
         $roleName = trim($validated['role_name']);
@@ -303,22 +287,7 @@ class RolePermissionsController extends Controller
                 ->with('error', 'That role cannot be edited.');
         }
 
-        $allowedPermissionNames = $this->allowedPermissionsForPlan($tenant->plan?->slug);
-        if ($role->name === 'Resident') {
-            $residentPerms = config('bhcas.resident_role_permissions', ['book appointments']);
-            $allowedPermissionNames = $allowedPermissionNames === ['*']
-                ? $residentPerms
-                : array_values(array_intersect($allowedPermissionNames, $residentPerms));
-        }
-        $permissions = Permission::where('guard_name', 'web')
-            ->when($allowedPermissionNames !== ['*'] && $allowedPermissionNames !== [], function ($q) use ($allowedPermissionNames) {
-                $q->whereIn('name', $allowedPermissionNames);
-            })
-            ->when($allowedPermissionNames === [], function ($q) {
-                $q->whereRaw('1 = 0');
-            })
-            ->orderBy('name')
-            ->get();
+        $permissions = $this->permissionsForPlanQuery($tenant)->get();
 
         $currentPermissionNames = DB::table('tenant_role_permissions')
             ->where('tenant_id', $tenant->id)
@@ -353,26 +322,11 @@ class RolePermissionsController extends Controller
             return redirect()->route('backend.rbac.permissions.index')->with('error', 'Invalid role.');
         }
 
-        $allowedPermissionNames = $this->allowedPermissionsForPlan($tenant->plan?->slug);
-        if ($role->name === 'Resident') {
-            $residentPerms = config('bhcas.resident_role_permissions', ['book appointments']);
-            $allowedPermissionNames = $allowedPermissionNames === ['*']
-                ? $residentPerms
-                : array_values(array_intersect($allowedPermissionNames, $residentPerms));
-        }
-        $permissions = Permission::where('guard_name', 'web')
-            ->when($allowedPermissionNames !== ['*'] && $allowedPermissionNames !== [], function ($q) use ($allowedPermissionNames) {
-                $q->whereIn('name', $allowedPermissionNames);
-            })
-            ->when($allowedPermissionNames === [], function ($q) {
-                $q->whereRaw('1 = 0');
-            })
-            ->pluck('name')
-            ->toArray();
+        $allowedNames = $this->permissionsForPlanQuery($tenant)->pluck('name')->toArray();
 
         $validated = $request->validate([
             'permissions' => ['nullable', 'array'],
-            'permissions.*' => ['string', 'in:'.implode(',', $permissions)],
+            'permissions.*' => ['string', Rule::in($allowedNames)],
         ]);
 
         $toSync = array_values($validated['permissions'] ?? []);
@@ -440,6 +394,26 @@ class RolePermissionsController extends Controller
             ->with('success', "Role \"{$role->name}\" deleted.".($usersUsingRole > 0 ? ' Users currently assigned to this role keep their role name until you reassign them.' : ''));
     }
 
+    /**
+     * Spatie permissions query for the tenant's plan (same pool as Add role — includes Resident).
+     *
+     * @return \Illuminate\Database\Eloquent\Builder<Permission>
+     */
+    private function permissionsForPlanQuery(Tenant $tenant): \Illuminate\Database\Eloquent\Builder
+    {
+        $tenant->loadMissing('plan');
+        $allowedPermissionNames = $this->allowedPermissionsForPlan($tenant->plan?->slug);
+
+        $excluded = TenantRbacExcludedPermissions::names();
+
+        return Permission::query()
+            ->where('guard_name', 'web')
+            ->when($excluded !== [], fn ($q) => $q->whereNotIn('name', $excluded))
+            ->when($allowedPermissionNames !== ['*'] && $allowedPermissionNames !== [], fn ($q) => $q->whereIn('name', $allowedPermissionNames))
+            ->when($allowedPermissionNames === [], fn ($q) => $q->whereRaw('1 = 0'))
+            ->orderBy('name');
+    }
+
     private function allowedPermissionsForPlan(?string $planSlug): array
     {
         $planSlug = $planSlug ?: 'basic';
@@ -475,6 +449,6 @@ class RolePermissionsController extends Controller
             $defaults = array_values(array_intersect($defaults, $residentPerms));
         }
 
-        return $defaults;
+        return TenantRbacExcludedPermissions::filterList($defaults);
     }
 }

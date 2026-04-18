@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Tenant;
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Services\CloudinaryService;
+use App\Support\TenantContentEmailNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -33,6 +34,7 @@ class AnnouncementController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string'],
             'is_published' => ['boolean'],
+            'notify_users_by_email' => ['boolean'],
         ];
         if ($tenant->hasFeature('announcements_events')) {
             $rules['image'] = ['nullable', File::types(['png', 'jpg', 'jpeg', 'gif', 'webp'])->max(2048)];
@@ -57,7 +59,12 @@ class AnnouncementController extends Controller
                 $validated['image_path'] = $uploadResult['secure_url'];
             }
         }
-        $tenant->announcements()->create($validated);
+        /** @var Announcement $announcement */
+        $announcement = $tenant->announcements()->create($validated);
+
+        if ($request->boolean('notify_users_by_email') && $announcement->is_published) {
+            TenantContentEmailNotifier::queueAnnouncementEmails($tenant, $announcement);
+        }
 
         return redirect()->route('backend.announcements.index')->with('success', 'Announcement created.');
     }
@@ -90,6 +97,7 @@ class AnnouncementController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string'],
             'is_published' => ['boolean'],
+            'notify_users_by_email' => ['boolean'],
         ];
         if ($tenant->hasFeature('announcements_events')) {
             $rules['image'] = ['nullable', File::types(['png', 'jpg', 'jpeg', 'gif', 'webp'])->max(2048)];
@@ -136,6 +144,10 @@ class AnnouncementController extends Controller
             }
         }
         $announcement->update($validated);
+
+        if ($request->boolean('notify_users_by_email') && $announcement->is_published) {
+            TenantContentEmailNotifier::queueAnnouncementEmails($tenant, $announcement->fresh());
+        }
 
         return redirect()->route('backend.announcements.index')->with('success', 'Announcement updated.');
     }

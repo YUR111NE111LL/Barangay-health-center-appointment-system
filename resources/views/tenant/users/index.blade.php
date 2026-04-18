@@ -52,7 +52,7 @@
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Profile</th>
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Email</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Role</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Role &amp; permissions</th>
                     <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600">Action</th>
                 </tr>
             </thead>
@@ -66,7 +66,20 @@
                         </div>
                     </td>
                     <td class="px-4 py-3 text-sm text-slate-600">{{ $u->email }}</td>
-                    <td class="px-4 py-3"><span class="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">{{ $u->role }}</span></td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">{{ $u->role }}</span>
+                        @php
+                            $rolePerms = \App\Support\TenantRoleEffectivePermissions::forRoleName($tenantRolePermissionsByKey ?? [], $u->role);
+                        @endphp
+                        @if(count($rolePerms) > 0)
+                            <p class="mt-2 max-w-xl text-xs leading-relaxed text-slate-600" title="{{ implode(', ', $rolePerms) }}">{{ implode(', ', $rolePerms) }}</p>
+                        @else
+                            <p class="mt-2 max-w-xl text-xs text-slate-400">No permissions listed for this role yet.</p>
+                            @can('manage users')
+                                <p class="mt-1 text-xs"><a href="{{ route('backend.rbac.permissions.index') }}" class="font-medium text-teal-600 hover:text-teal-700 hover:underline">Configure role permissions</a></p>
+                            @endcan
+                        @endif
+                    </td>
                     <td class="px-4 py-3 text-right">
                         @can('manage users')
                             @if((int) $u->id !== (int) auth()->id())

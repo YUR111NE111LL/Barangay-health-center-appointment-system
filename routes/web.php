@@ -141,6 +141,8 @@ Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('bac
         Route::put('rbac/permissions/roles/{role}', [\App\Http\Controllers\Tenant\RolePermissionsController::class, 'update'])->name('rbac.permissions.update');
         Route::delete('rbac/permissions/roles/{role}', [\App\Http\Controllers\Tenant\RolePermissionsController::class, 'destroy'])->name('rbac.permissions.destroy');
 
+        Route::get('audit-log', [\App\Http\Controllers\Tenant\AuditLogController::class, 'index'])->name('audit-log.index');
+
         Route::resource('announcements', \App\Http\Controllers\Tenant\AnnouncementController::class);
         Route::resource('events', \App\Http\Controllers\Tenant\EventController::class);
         Route::resource('services', \App\Http\Controllers\Tenant\ServiceController::class)->except(['show']);
@@ -151,7 +153,9 @@ Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('bac
     });
 });
 
-Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant', 'permission:book appointments'])->prefix('resident')->name('resident.')->group(function (): void {
+// Resident portal: browsing announcements, events, profile, and support does not require "book appointments".
+// Only booking actions are gated by that permission (see BookingController and route middleware below).
+Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('resident')->name('resident.')->group(function (): void {
     Route::get('/', [\App\Http\Controllers\TenantUser\ResidentController::class, 'dashboard'])->name('dashboard');
     Route::get('/book', [\App\Http\Controllers\TenantUser\BookingController::class, 'create'])->name('book')->middleware('permission:book appointments');
     Route::post('/book', [\App\Http\Controllers\TenantUser\BookingController::class, 'store'])->name('book.store')->middleware('permission:book appointments');
@@ -204,6 +208,8 @@ Route::middleware(['auth', 'role:Super Admin'])->prefix('super-admin')->name('su
     Route::put('plans/{plan}', [\App\Http\Controllers\SuperAdmin\PlanManagementController::class, 'update'])->name('plans.update');
     Route::post('tenants/{tenant}/provision-database', [\App\Http\Controllers\SuperAdmin\TenantManagementController::class, 'provisionDatabase'])->name('tenants.provision-database');
     Route::patch('tenants/{tenant}/toggle-status', [\App\Http\Controllers\SuperAdmin\TenantManagementController::class, 'toggleStatus'])->name('tenants.toggle-status');
+    Route::get('tenant-audit-logs', [\App\Http\Controllers\SuperAdmin\TenantAuditLogController::class, 'directory'])->name('tenant-audit-logs.index');
+    Route::get('tenants/{tenant}/audit-log', [\App\Http\Controllers\SuperAdmin\TenantAuditLogController::class, 'index'])->name('tenants.audit-log.index');
     Route::get('tenants/{tenant}/rbac', [\App\Http\Controllers\SuperAdmin\TenantRbacController::class, 'index'])->name('tenants.rbac.index');
     Route::get('tenants/{tenant}/rbac/roles/{role}', [\App\Http\Controllers\SuperAdmin\TenantRbacController::class, 'edit'])->name('tenants.rbac.edit');
     Route::put('tenants/{tenant}/rbac/roles/{role}', [\App\Http\Controllers\SuperAdmin\TenantRbacController::class, 'update'])->name('tenants.rbac.update');

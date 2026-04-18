@@ -20,7 +20,7 @@ class AppointmentReminder extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Reminder: Your appointment tomorrow – ' . config('bhcas.name'),
+            subject: 'Reminder: Your appointment tomorrow – '.config('bhcas.name'),
         );
     }
 

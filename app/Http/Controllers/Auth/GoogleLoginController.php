@@ -753,6 +753,15 @@ class GoogleLoginController extends Controller
                 ->withErrors(['barangay' => __('Could not derive a website address from the barangay. Please contact support.')]);
         }
 
+        if (TenantApplication::query()
+            ->whereRaw('LOWER(TRIM(email)) = ?', [$emailNormalized])
+            ->whereIn('status', [TenantApplication::STATUS_PENDING, TenantApplication::STATUS_APPROVED])
+            ->exists()) {
+            return redirect()
+                ->route('tenant-applications.create')
+                ->withErrors(['email' => __('This email already has a barangay application. You cannot apply again while it is pending or after it has been approved. Use a different email or contact support if you need help.')]);
+        }
+
         $autoAllowed = $this->isAllowedAutoProvisionGoogleAdmin($emailNormalized);
 
         $tenantApplication = TenantApplication::query()->create([

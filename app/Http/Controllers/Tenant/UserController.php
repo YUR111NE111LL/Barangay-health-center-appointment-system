@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\TenantRoleEffectivePermissions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -89,7 +90,20 @@ class UserController extends Controller
             ->unique()
             ->values();
 
-        return view('tenant.users.index', compact('users', 'canAddUser', 'userCount', 'maxUsers', 'planName', 'roleOptions'));
+        $tenantRolePermissionsByKey = [];
+        if ($tenantId !== null && Schema::hasTable('tenant_role_permissions')) {
+            $tenantRolePermissionsByKey = TenantRoleEffectivePermissions::groupedByRoleKey((int) $tenantId);
+        }
+
+        return view('tenant.users.index', compact(
+            'users',
+            'canAddUser',
+            'userCount',
+            'maxUsers',
+            'planName',
+            'roleOptions',
+            'tenantRolePermissionsByKey',
+        ));
     }
 
     /**

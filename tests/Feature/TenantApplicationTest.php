@@ -17,4 +17,7 @@ it('registers tenant application routes', function (): void {
     expect(Route::has('backend.appointments.reject'))->toBeTrue();
     expect(Route::has('backend.support.updates.clear-notification'))->toBeTrue();
     expect(Route::has('resident.support.updates.clear-notification'))->toBeTrue();
+    expect(Route::has('backend.audit-log.index'))->toBeTrue();
+    expect(Route::has('super-admin.tenants.audit-log.index'))->toBeTrue();
+    expect(Route::has('super-admin.tenant-audit-logs.index'))->toBeTrue();
 });
