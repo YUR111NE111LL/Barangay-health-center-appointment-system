@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\TenantApplication;
+use App\Rules\TenantContactEmailUniqueInCentral;
 use App\Support\Recaptcha;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -39,6 +40,7 @@ class StoreTenantApplicationRequest extends FormRequest
                 'required',
                 'email',
                 'max:255',
+                new TenantContactEmailUniqueInCentral,
                 function (string $attribute, mixed $value, \Closure $fail): void {
                     $normalized = strtolower(trim((string) $value));
                     if ($normalized === '') {

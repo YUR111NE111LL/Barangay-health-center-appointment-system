@@ -8,6 +8,7 @@ use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\TenantApplication;
 use App\Models\User;
+use App\Rules\TenantContactEmailUniqueInCentral;
 use App\Services\TenantCreationService;
 use App\Support\TenantPortalLoginUrls;
 use Illuminate\Http\RedirectResponse;
@@ -239,7 +240,7 @@ class TenantManagementController extends Controller
                 'domain' => ['nullable', 'string', 'max:255', 'unique:domains,domain'],
                 'address' => ['nullable', 'string'],
                 'contact_number' => ['nullable', 'string', 'max:50'],
-                'email' => ['nullable', 'email'],
+                'email' => ['nullable', 'email', 'max:255', new TenantContactEmailUniqueInCentral],
                 'is_active' => ['boolean'],
                 'subscription_ends_at' => ['nullable', 'date'],
             ]);
@@ -361,7 +362,7 @@ class TenantManagementController extends Controller
             'domain' => ['required', 'string', 'max:255', Rule::unique('domains', 'domain')->ignore($tenant->domains()->first())],
             'address' => ['nullable', 'string'],
             'contact_number' => ['nullable', 'string', 'max:50'],
-            'email' => ['nullable', 'email'],
+            'email' => ['nullable', 'email', 'max:255', new TenantContactEmailUniqueInCentral($tenant->id)],
             'is_active' => ['boolean'],
             'subscription_ends_at' => ['nullable', 'date'],
         ]);
