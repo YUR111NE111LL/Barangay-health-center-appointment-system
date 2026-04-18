@@ -50,6 +50,10 @@ class CustomizeWebController extends Controller
             $rules['font_family'] = ['nullable', 'string', 'in:default,inter,open-sans,roboto,lora,poppins'];
             $rules['nav_order'] = ['nullable', 'array'];
             $rules['nav_order.*'] = ['string', 'in:'.implode(',', \App\Models\Tenant::residentNavItemKeys())];
+            $rules['appearance_content_width'] = ['nullable', 'string', 'in:standard,narrow,wide'];
+            $rules['appearance_logo_shape'] = ['nullable', 'string', 'in:circle,rounded,square'];
+            $rules['appearance_page_background'] = ['nullable', 'string', 'in:default,soft_gray,warm,cool'];
+            $rules['appearance_accent_style'] = ['nullable', 'string', 'in:default,flat,elevated'];
         }
         $validated = $request->validate($rules);
 
@@ -72,6 +76,16 @@ class CustomizeWebController extends Controller
                     $data['nav_order'] = array_values(array_intersect($keys, $data['nav_order'])) ?: $keys;
                 }
             }
+            $cw = $validated['appearance_content_width'] ?? 'standard';
+            $ls = $validated['appearance_logo_shape'] ?? 'circle';
+            $pb = $validated['appearance_page_background'] ?? 'default';
+            $ac = $validated['appearance_accent_style'] ?? 'default';
+            $data['appearance_settings'] = [
+                'content_width' => in_array($cw, ['standard', 'narrow', 'wide'], true) ? $cw : 'standard',
+                'logo_shape' => in_array($ls, ['circle', 'rounded', 'square'], true) ? $ls : 'circle',
+                'page_background' => in_array($pb, ['default', 'soft_gray', 'warm', 'cool'], true) ? $pb : 'default',
+                'accent_style' => in_array($ac, ['default', 'flat', 'elevated'], true) ? $ac : 'default',
+            ];
         }
 
         if ($request->hasFile('logo')) {

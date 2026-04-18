@@ -99,9 +99,9 @@ class AppServiceProvider extends ServiceProvider
             }
             $brandColor = $tenant?->getPrimaryColor() ?? '#0d9488';
             $brandName = $tenant ? $tenant->barangayDisplayName() : config('bhcas.acronym');
-            $brandLogo = $tenant && $tenant->logo_path
-                ? (str_contains($tenant->logo_path, 'cloudinary.com') ? $tenant->logo_path : asset('storage/'.$tenant->logo_path))
-                : null;
+            $brandLogo = $tenant?->logoUrl();
+            $brandLogoClass = $tenant ? $tenant->brandLogoImgClass() : 'h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-white/25';
+            $tenantMainMaxWidthClass = $tenant?->appearanceMainMaxWidthClass('staff') ?? 'max-w-7xl';
             $theme = $tenant?->theme ?? 'default';
             $themeClass = 'theme-'.(in_array($theme, ['default', 'modern', 'minimal'], true) ? $theme : 'default');
             $navLayout = in_array($tenant?->nav_layout ?? 'navbar', ['navbar', 'sidebar', 'dropdown'], true) ? ($tenant?->nav_layout ?? 'navbar') : 'navbar';
@@ -125,7 +125,7 @@ class AppServiceProvider extends ServiceProvider
             if ($user instanceof User && $user->tenant_id) {
                 $supportUpdatesNotificationCount = GlobalUpdateReadState::unreadGlobalCount($user);
             }
-            $view->with(compact('tenant', 'brandColor', 'brandName', 'brandLogo', 'themeClass', 'navLayout', 'hasFeatureWebCustomization', 'fontUrl', 'backendPendingCount', 'backendPendingAppointmentsCount', 'supportUpdatesNotificationCount'));
+            $view->with(compact('tenant', 'brandColor', 'brandName', 'brandLogo', 'brandLogoClass', 'tenantMainMaxWidthClass', 'themeClass', 'navLayout', 'hasFeatureWebCustomization', 'fontUrl', 'backendPendingCount', 'backendPendingAppointmentsCount', 'supportUpdatesNotificationCount'));
         });
         View::composer('tenant-user.layouts.app', function (\Illuminate\View\View $view): void {
             $user = Auth::user();
@@ -135,9 +135,9 @@ class AppServiceProvider extends ServiceProvider
             }
             $brandColor = $tenant?->getPrimaryColor() ?? '#0d9488';
             $brandName = $tenant ? $tenant->barangayDisplayName() : config('bhcas.acronym');
-            $brandLogo = $tenant && $tenant->logo_path
-                ? (str_contains($tenant->logo_path, 'cloudinary.com') ? $tenant->logo_path : asset('storage/'.$tenant->logo_path))
-                : null;
+            $brandLogo = $tenant?->logoUrl();
+            $brandLogoClass = $tenant ? $tenant->brandLogoImgClass() : 'h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-white/25';
+            $tenantMainMaxWidthClass = $tenant?->appearanceMainMaxWidthClass('resident') ?? 'max-w-4xl';
             $theme = $tenant?->theme ?? 'default';
             $themeClass = 'theme-'.(in_array($theme, ['default', 'modern', 'minimal'], true) ? $theme : 'default');
             $navLayout = in_array($tenant?->nav_layout ?? 'navbar', ['navbar', 'sidebar', 'dropdown'], true) ? ($tenant?->nav_layout ?? 'navbar') : 'navbar';
@@ -183,7 +183,7 @@ class AppServiceProvider extends ServiceProvider
                 }
             }
             $fontUrl = $tenant ? Tenant::fontFamilyGoogleUrl($tenant->font_family) : null;
-            $view->with(compact('tenant', 'brandColor', 'brandName', 'brandLogo', 'themeClass', 'navLayout', 'navOrder', 'residentNavConfig', 'residentNavItems', 'fontUrl', 'residentSupportStatusUpdateCount', 'residentGlobalUpdateNotificationCount'));
+            $view->with(compact('tenant', 'brandColor', 'brandName', 'brandLogo', 'brandLogoClass', 'tenantMainMaxWidthClass', 'themeClass', 'navLayout', 'navOrder', 'residentNavConfig', 'residentNavItems', 'fontUrl', 'residentSupportStatusUpdateCount', 'residentGlobalUpdateNotificationCount'));
         });
         View::composer('superadmin.layouts.app', function (\Illuminate\View\View $view): void {
             $count = 0;

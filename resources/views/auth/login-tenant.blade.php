@@ -1,7 +1,7 @@
 @php
     $pageTitle = 'Tenant Login';
     $subtitle = 'Sign in with your barangay account.';
-    $logoPath = $tenant->logo_path ? asset($tenant->logo_path) : null;
+    $logoPath = $tenant->logoUrl();
     $loginBg = config('bhcas.login_background', 'teal');
     $loginBgColor = $tenant->primary_color ?: config('bhcas.login_background_color');
     if ($loginBg === 'custom' && $loginBgColor) {
@@ -57,7 +57,7 @@
         <div class="w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-300/50 flex flex-col md:flex-row bg-white">
             <div class="login-panel-left tenant-brand-gradient md:w-[44%] flex flex-col items-center justify-center p-8 md:p-12 text-white" style="--tenant-brand: {{ e($tenant->getPrimaryColor()) }}">
                 @if($logoPath)
-                <img src="{{ $logoPath }}" alt="{{ $barangayDisplay }}" class="max-w-full h-auto max-h-48 md:max-h-56 w-auto object-contain" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
+                <img src="{{ $logoPath }}" alt="{{ $barangayDisplay }}" class="h-24 w-24 md:h-28 md:w-28 shrink-0 rounded-full object-cover ring-4 ring-white/25 shadow-lg" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
                 <div class="hidden text-center">
                     <span class="text-2xl md:text-3xl font-bold tracking-tight">{{ $barangayDisplay }}</span>
                 </div>

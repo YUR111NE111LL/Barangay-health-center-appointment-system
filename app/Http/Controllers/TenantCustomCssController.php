@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\TenantAppearanceCss;
 use Illuminate\Http\Response;
 
 class TenantCustomCssController extends Controller
@@ -22,6 +23,10 @@ class TenantCustomCssController extends Controller
             if ($tenant->getFontFamilyCss()) {
                 $fontCss = $tenant->getFontFamilyCss();
                 $parts[] = "body { font-family: {$fontCss}; }";
+            }
+            $appearanceCss = TenantAppearanceCss::toCssString($tenant);
+            if ($appearanceCss !== '') {
+                $parts[] = $appearanceCss;
             }
             if ($tenant->hasFeature('full_web_customization') && ! empty(trim($tenant->custom_css ?? ''))) {
                 $parts[] = str_replace('</style>', '\3C/style>', $tenant->custom_css);

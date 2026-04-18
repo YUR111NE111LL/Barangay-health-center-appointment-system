@@ -59,6 +59,7 @@ class Tenant extends Model implements TenantWithDatabase
         'theme',
         'font_family',
         'custom_css',
+        'appearance_settings',
         'nav_layout',
         'nav_order',
         'address',
@@ -79,6 +80,7 @@ class Tenant extends Model implements TenantWithDatabase
             'expiry_notification_sent_at' => 'datetime',
             'grace_period_ends_at' => 'datetime',
             'nav_order' => 'array',
+            'appearance_settings' => 'array',
         ];
     }
 
@@ -381,6 +383,123 @@ class Tenant extends Model implements TenantWithDatabase
         }
 
         return ['navbar'];
+    }
+
+    /**
+     * Public URL for the tenant logo, or null (supports Cloudinary and local storage paths).
+     */
+    public function logoUrl(): ?string
+    {
+        if (! $this->logo_path) {
+            return null;
+        }
+
+        return str_contains($this->logo_path, 'cloudinary.com')
+            ? $this->logo_path
+            : asset('storage/'.$this->logo_path);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function appearanceContentWidthOptions(): array
+    {
+        return [
+            'standard' => 'Standard width',
+            'narrow' => 'Narrow (more focused)',
+            'wide' => 'Wide (more space)',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function appearanceLogoShapeOptions(): array
+    {
+        return [
+            'circle' => 'Circle (recommended)',
+            'rounded' => 'Rounded square',
+            'square' => 'Square',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function appearancePageBackgroundOptions(): array
+    {
+        return [
+            'default' => 'Default (light gray)',
+            'soft_gray' => 'Soft gray',
+            'warm' => 'Warm cream',
+            'cool' => 'Cool blue tint',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function appearanceAccentStyleOptions(): array
+    {
+        return [
+            'default' => 'Default bar',
+            'flat' => 'Flat (no shadow)',
+            'elevated' => 'Elevated (stronger shadow)',
+        ];
+    }
+
+    /**
+     * Defaults merged with saved Premium appearance settings.
+     *
+     * @return array{content_width: string, logo_shape: string, page_background: string, accent_style: string}
+     */
+    public function mergedAppearanceSettings(): array
+    {
+        $defaults = [
+            'content_width' => 'standard',
+            'logo_shape' => 'circle',
+            'page_background' => 'default',
+            'accent_style' => 'default',
+        ];
+        $saved = is_array($this->appearance_settings) ? $this->appearance_settings : [];
+
+        return array_merge($defaults, array_intersect_key($saved, array_flip(array_keys($defaults))));
+    }
+
+    /**
+     * Tailwind classes for the header logo image (fixed footprint for layout stability).
+     */
+    public function brandLogoImgClass(): string
+    {
+        $shape = $this->mergedAppearanceSettings()['logo_shape'] ?? 'circle';
+        $base = 'h-8 w-8 shrink-0 object-cover ring-2 ring-white/25';
+
+        return match ($shape) {
+            'rounded' => $base.' rounded-lg',
+            'square' => $base.' rounded-none',
+            default => $base.' rounded-full',
+        };
+    }
+
+    /**
+     * Max-width class for the main content column (staff vs resident use different baselines).
+     */
+    public function appearanceMainMaxWidthClass(string $portal): string
+    {
+        $w = $this->mergedAppearanceSettings()['content_width'] ?? 'standard';
+        if ($portal === 'resident') {
+            return match ($w) {
+                'narrow' => 'max-w-3xl',
+                'wide' => 'max-w-6xl',
+                default => 'max-w-4xl',
+            };
+        }
+
+        return match ($w) {
+            'narrow' => 'max-w-5xl',
+            'wide' => 'max-w-screen-2xl',
+            default => 'max-w-7xl',
+        };
     }
 
     /**

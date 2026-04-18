@@ -32,7 +32,7 @@
     <aside class="tenant-brand-nav sidebar-drawer fixed left-0 top-0 z-40 h-full w-56 border-r border-white/10 bg-teal-600 shadow-lg md:translate-x-0" id="resident-nav" data-brand-color="{{ e($brandColor) }}">
         <div class="flex h-14 items-center justify-between gap-2 border-b border-white/20 px-4">
             <div class="flex min-w-0 items-center gap-2">
-                @if($brandLogo)<img src="{{ $brandLogo }}" alt="" class="h-8 w-auto shrink-0 rounded">@endif
+                @if($brandLogo)<img src="{{ $brandLogo }}" alt="" class="{{ $brandLogoClass ?? 'h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-white/25' }}">@endif
                 <span class="truncate font-semibold text-white">{{ $brandName }} – {{ $portalLabel }}</span>
             </div>
             <button type="button" id="resident-sidebar-close" class="rounded-lg p-2 text-white/90 hover:bg-white/10 md:hidden" aria-label="Close menu">
@@ -69,7 +69,10 @@
         <button type="button" id="resident-sidebar-open" class="rounded-lg p-2 text-white/90 hover:bg-white/10" aria-label="Open menu">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
-        <span class="truncate font-semibold text-white">{{ $brandName }}</span>
+        <span class="flex min-w-0 items-center justify-center gap-2 font-semibold text-white">
+            @if($brandLogo)<img src="{{ $brandLogo }}" alt="" class="{{ $brandLogoClass ?? 'h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-white/25' }}">@endif
+            <span class="truncate">{{ $brandName }}</span>
+        </span>
         <div class="w-10"></div>
     </header>
     @elseif($navLayout === 'dropdown')
@@ -77,7 +80,7 @@
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div class="flex h-14 min-w-0 items-center justify-between gap-2">
                 <a href="{{ route('resident.dashboard') }}" class="flex min-w-0 shrink-0 items-center gap-2 font-semibold text-white">
-                    @if($brandLogo)<img src="{{ $brandLogo }}" alt="" class="h-8 w-auto rounded">@endif
+                    @if($brandLogo)<img src="{{ $brandLogo }}" alt="" class="{{ $brandLogoClass ?? 'h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-white/25' }}">@endif
                     <span class="truncate">{{ $brandName }} – {{ $portalLabel }}</span>
                 </a>
                 <div class="relative shrink-0">
@@ -114,7 +117,7 @@
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div class="flex h-14 min-w-0 items-center justify-between gap-2">
                 <a href="{{ route('resident.dashboard') }}" class="flex min-w-0 shrink-0 items-center gap-2 font-semibold text-white">
-                    @if($brandLogo)<img src="{{ $brandLogo }}" alt="" class="h-8 w-auto rounded">@endif
+                    @if($brandLogo)<img src="{{ $brandLogo }}" alt="" class="{{ $brandLogoClass ?? 'h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-white/25' }}">@endif
                     <span class="truncate">{{ $brandName }} – {{ $portalLabel }}</span>
                 </a>
                 <button type="button" id="resident-nav-mobile-btn" class="rounded-lg p-2 text-white/90 hover:bg-white/10 md:hidden" aria-label="Menu" aria-expanded="false">
@@ -175,7 +178,7 @@
     </nav>
     @endif
 
-    <main class="px-4 py-8 sm:px-6 lg:px-8 @if($navLayout === 'sidebar') main-with-sidebar pt-14 md:pt-8 @else mx-auto max-w-4xl @endif">
+    <main class="px-4 py-8 sm:px-6 lg:px-8 @if($navLayout === 'sidebar') main-with-sidebar pt-14 md:pt-8 @else mx-auto {{ $tenantMainMaxWidthClass ?? 'max-w-4xl' }} @endif">
         @if(session('success'))
             <div class="mb-4 flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3 text-emerald-800 ring-1 ring-emerald-200">
                 <span>{{ session('success') }}</span>

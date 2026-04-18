@@ -4,13 +4,20 @@ namespace App\Http\Controllers\TenantUser;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class EventController extends Controller
 {
     public function index(): View
     {
-        $tenant = auth()->user()->tenant;
+        $user = Auth::user();
+        if (! $user instanceof User) {
+            abort(403);
+        }
+
+        $tenant = $user->tenant;
         $today = now()->timezone((string) config('bhcas.display_timezone', 'Asia/Manila'))->toDateString();
         $events = $tenant->events()
             ->where('is_published', true)
@@ -25,10 +32,15 @@ class EventController extends Controller
 
     public function show(Event $event): View
     {
-        if ($event->tenant_id !== auth()->user()->tenant_id || ! $event->is_published) {
+        $user = Auth::user();
+        if (! $user instanceof User) {
+            abort(403);
+        }
+
+        if ($event->tenant_id !== $user->tenant_id || ! $event->is_published) {
             abort(404);
         }
-        $hasAnnouncementsEvents = auth()->user()->tenant?->hasFeature('announcements_events') ?? false;
+        $hasAnnouncementsEvents = $user->tenant?->hasFeature('announcements_events') ?? false;
 
         return view('tenant-user.events.show', compact('event', 'hasAnnouncementsEvents'));
     }

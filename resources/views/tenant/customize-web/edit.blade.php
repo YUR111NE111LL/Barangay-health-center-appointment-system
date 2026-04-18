@@ -65,7 +65,7 @@
                 <div class="mb-3">
                     <div id="logo-preview-container" class="flex items-center gap-3">
                         @if($tenant->logo_path)
-                            <img src="{{ str_contains($tenant->logo_path, 'cloudinary.com') ? $tenant->logo_path : asset('storage/' . $tenant->logo_path) }}" 
+                            <img src="{{ $tenant->logoUrl() }}" 
                                  alt="Current logo" 
                                  id="logo-preview"
                                  class="max-h-20 rounded-lg border-2 border-slate-200 object-contain shadow-sm">
@@ -167,12 +167,60 @@
             @endif
 
             @if($tenant->hasFeature('full_web_customization'))
-            <div>
-                <label for="custom_css" class="mb-1 block text-sm font-medium text-slate-700">Custom CSS (Premium)</label>
-                <textarea name="custom_css" id="custom_css" rows="12" maxlength="50000" placeholder="/* Override styles site-wide */&#10;.navbar { border-radius: 0.5rem; }" class="w-full rounded-xl border-slate-300 bg-slate-50 font-mono text-sm px-4 py-2.5 focus:border-teal-500 focus:ring-teal-500">{{ old('custom_css', $tenant->custom_css) }}</textarea>
-                <p class="mt-1 text-xs text-slate-500">Premium: add your own CSS to alter the whole site. Use with care.</p>
-                @error('custom_css')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
+            @php
+                $appearance = $tenant->mergedAppearanceSettings();
+            @endphp
+            <div class="space-y-4 rounded-xl border border-teal-100 bg-teal-50/50 p-4 ring-1 ring-teal-100/60">
+                <h3 class="text-sm font-semibold text-teal-900">Premium look &amp; layout</h3>
+                <p class="text-xs text-teal-800/80">Pick options below—no need to write CSS for common changes.</p>
+                <div>
+                    <label for="appearance_content_width" class="mb-1 block text-sm font-medium text-slate-700">Content width</label>
+                    <select name="appearance_content_width" id="appearance_content_width" class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 focus:border-teal-500 focus:ring-teal-500">
+                        @foreach(\App\Models\Tenant::appearanceContentWidthOptions() as $value => $label)
+                        <option value="{{ $value }}" {{ old('appearance_content_width', $appearance['content_width'] ?? 'standard') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">How wide the main column feels on staff and resident pages.</p>
+                    @error('appearance_content_width')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="appearance_logo_shape" class="mb-1 block text-sm font-medium text-slate-700">Logo shape in header</label>
+                    <select name="appearance_logo_shape" id="appearance_logo_shape" class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 focus:border-teal-500 focus:ring-teal-500">
+                        @foreach(\App\Models\Tenant::appearanceLogoShapeOptions() as $value => $label)
+                        <option value="{{ $value }}" {{ old('appearance_logo_shape', $appearance['logo_shape'] ?? 'circle') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">Applies when you have uploaded a logo (navbar and login).</p>
+                    @error('appearance_logo_shape')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="appearance_page_background" class="mb-1 block text-sm font-medium text-slate-700">Page background</label>
+                    <select name="appearance_page_background" id="appearance_page_background" class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 focus:border-teal-500 focus:ring-teal-500">
+                        @foreach(\App\Models\Tenant::appearancePageBackgroundOptions() as $value => $label)
+                        <option value="{{ $value }}" {{ old('appearance_page_background', $appearance['page_background'] ?? 'default') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">Subtle tint behind page content (applies after save).</p>
+                    @error('appearance_page_background')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="appearance_accent_style" class="mb-1 block text-sm font-medium text-slate-700">Top bar style</label>
+                    <select name="appearance_accent_style" id="appearance_accent_style" class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 focus:border-teal-500 focus:ring-teal-500">
+                        @foreach(\App\Models\Tenant::appearanceAccentStyleOptions() as $value => $label)
+                        <option value="{{ $value }}" {{ old('appearance_accent_style', $appearance['accent_style'] ?? 'default') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">Shadow on the teal navigation bar (applies after save).</p>
+                    @error('appearance_accent_style')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
+                </div>
             </div>
+            <details class="group rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                <summary class="cursor-pointer text-sm font-medium text-slate-800 marker:text-slate-400">Advanced: custom CSS (optional)</summary>
+                <p class="mt-2 text-xs text-slate-500">Only if you need overrides beyond the options above. Invalid CSS can break layouts—use with care.</p>
+                <label for="custom_css" class="sr-only">Custom CSS</label>
+                <textarea name="custom_css" id="custom_css" rows="8" maxlength="50000" placeholder="/* Example: tweak a specific class */" class="mt-2 w-full rounded-xl border-slate-300 bg-white font-mono text-sm px-4 py-2.5 focus:border-teal-500 focus:ring-teal-500">{{ old('custom_css', $tenant->custom_css) }}</textarea>
+                @error('custom_css')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
+            </details>
             @endif
         </div>
     </div>
@@ -287,10 +335,21 @@ if (hoverSwatch && hoverInput) {
         } else if (fontEl) {
             preview.style.fontFamily = '';
         }
+
+        var pageBg = document.getElementById('appearance_page_background');
+        if (pageBg) {
+            var bgMap = { default: 'rgb(248 250 252)', soft_gray: 'rgb(248 250 252)', warm: 'rgb(255 251 235)', cool: 'rgb(240 249 255)' };
+            preview.style.backgroundColor = bgMap[pageBg.value] || bgMap.default;
+        }
+        var contentW = document.getElementById('appearance_content_width');
+        if (contentW) {
+            var wMap = { standard: '42rem', narrow: '28rem', wide: '56rem' };
+            preview.style.maxWidth = wMap[contentW.value] || wMap.standard;
+        }
     }
 
     ['input', 'change'].forEach(function(ev) {
-        ['site_name', 'primary_color', 'primary_color_swatch', 'hover_color', 'hover_color_swatch', 'theme', 'font_family'].forEach(function(id) {
+        ['site_name', 'primary_color', 'primary_color_swatch', 'hover_color', 'hover_color_swatch', 'theme', 'font_family', 'appearance_page_background', 'appearance_content_width'].forEach(function(id) {
             var el = document.getElementById(id);
             if (el) el.addEventListener(ev, updatePreview);
         });
