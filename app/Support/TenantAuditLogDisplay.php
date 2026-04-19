@@ -6,6 +6,7 @@ use App\Models\Announcement;
 use App\Models\Appointment;
 use App\Models\AuditLog;
 use App\Models\Event;
+use App\Models\Medicine;
 use App\Models\Service;
 use App\Models\User;
 
@@ -22,6 +23,7 @@ final class TenantAuditLogDisplay
             Announcement::class => 'Announcement',
             Service::class => 'Service',
             Appointment::class => 'Appointment',
+            Medicine::class => 'Medicine',
             User::class => 'User account',
             default => class_basename($auditableType),
         };
@@ -42,6 +44,7 @@ final class TenantAuditLogDisplay
             Service::class => self::firstNonEmptyString($new, $old, ['name']),
             User::class => self::firstNonEmptyString($new, $old, ['name', 'email']),
             Appointment::class => self::appointmentContextLine($old, $new),
+            Medicine::class => self::medicineAcquireContextLine($new),
             default => null,
         };
     }
@@ -66,6 +69,39 @@ final class TenantAuditLogDisplay
         }
 
         return null;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $newValues
+     */
+    private static function medicineAcquireContextLine(?array $newValues): ?string
+    {
+        if (! is_array($newValues)) {
+            return null;
+        }
+
+        $name = isset($newValues['name']) && is_string($newValues['name']) ? $newValues['name'] : '';
+        $took = $newValues['quantity_acquired'] ?? null;
+        $left = $newValues['quantity_remaining'] ?? null;
+        $lineTotal = $newValues['line_total'] ?? null;
+        $isFree = $newValues['is_free'] ?? null;
+
+        $parts = [];
+        if ($name !== '') {
+            $parts[] = $name;
+        }
+        if (is_numeric($took)) {
+            $parts[] = (int) $took.' unit(s) acquired';
+        }
+        if (is_numeric($left)) {
+            $parts[] = (int) $left.' remaining in stock';
+        }
+        if ($isFree === false && is_numeric($lineTotal)) {
+            $sym = config('bhcas.currency_symbol', '₱');
+            $parts[] = $sym.number_format((float) $lineTotal, 2).' line total';
+        }
+
+        return $parts === [] ? null : implode(' · ', $parts);
     }
 
     /**

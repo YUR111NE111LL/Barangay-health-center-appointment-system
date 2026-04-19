@@ -160,6 +160,8 @@ return [
             'view reports',
             'book appointments',
             'manage schedules',
+            'manage medicine',
+            'acquire medicine',
         ],
         'standard' => [
             'view appointments',
@@ -170,6 +172,8 @@ return [
             'manage schedules',
             'record notes',
             'update visit status',
+            'manage medicine',
+            'acquire medicine',
         ],
         'premium' => ['*'], // all permissions
     ],
@@ -183,6 +187,25 @@ return [
     */
     'resident_role_permissions' => [
         'book appointments',
+        'acquire medicine',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Permission labels (Role permissions UI)
+    |--------------------------------------------------------------------------
+    | Optional friendly titles and hints for checkboxes in tenant and Super Admin
+    | RBAC screens. Keys are Spatie permission names.
+    */
+    'permission_help' => [
+        'manage medicine' => [
+            'label' => 'Post & manage medicine',
+            'description' => 'Open Backend → Medicine → Add medicine to publish stock and photos. Requires the Inventory plan feature.',
+        ],
+        'acquire medicine' => [
+            'label' => 'Acquire medicine',
+            'description' => 'Allows residents to request units from posted medicine stock.',
+        ],
     ],
 
     /*

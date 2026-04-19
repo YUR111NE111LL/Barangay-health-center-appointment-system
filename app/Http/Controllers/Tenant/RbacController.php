@@ -15,10 +15,10 @@ use Illuminate\View\View;
  */
 class RbacController extends Controller
 {
-    /** Ensure only Health Center Admin can access (defence-in-depth; routes also use role middleware). */
+    /** Ensure only barangay administrators can access (defence-in-depth; routes also use tenant.barangay_admin). */
     private function ensureBarangayAdmin(): void
     {
-        if (auth()->user()->role !== User::ROLE_HEALTH_CENTER_ADMIN) {
+        if (! auth()->user()->hasTenantBarangayAdministrationAccess()) {
             abort(403, 'Only Barangay (Health Center) Admin can view and manage roles. Nurses and Residents do not have access.');
         }
     }

@@ -25,9 +25,9 @@
         @else
             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach($permissions as $p)
-                <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50">
-                    <input type="checkbox" name="permissions[]" value="{{ $p->name }}" id="perm-{{ $p->id }}" {{ in_array($p->name, $currentPermissionNames, true) ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500">
-                    <span class="text-sm text-slate-700">{{ $p->name }}</span>
+                <label class="flex cursor-pointer items-start gap-2 rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50">
+                    <input type="checkbox" name="permissions[]" value="{{ $p->name }}" id="perm-{{ $p->id }}" {{ in_array($p->name, $currentPermissionNames, true) ? 'checked' : '' }} class="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-violet-600 focus:ring-violet-500">
+                    <x-permission-label :name="$p->name" class="min-w-0 flex-1" />
                 </label>
                 @endforeach
             </div>

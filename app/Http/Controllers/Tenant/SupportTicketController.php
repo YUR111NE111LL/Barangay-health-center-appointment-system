@@ -22,7 +22,7 @@ class SupportTicketController extends Controller
     {
         $user = Auth::user();
         $tenant = $user->tenant;
-        $isAdmin = $user->role === 'Health Center Admin';
+        $isAdmin = $user->hasTenantBarangayAdministrationAccess();
 
         $tickets = SupportTicket::query()
             ->where('tenant_id', $tenant->id)
@@ -93,7 +93,7 @@ class SupportTicketController extends Controller
     {
         $this->authorizeTicket($ticket);
         $user = Auth::user();
-        $isAdmin = $user->role === 'Health Center Admin';
+        $isAdmin = $user->hasTenantBarangayAdministrationAccess();
 
         $ticket->load([
             'creator:id,name,email',
@@ -110,7 +110,7 @@ class SupportTicketController extends Controller
     {
         $this->authorizeTicket($ticket);
         $user = Auth::user();
-        $isAdmin = $user->role === 'Health Center Admin';
+        $isAdmin = $user->hasTenantBarangayAdministrationAccess();
 
         $validated = $request->validate([
             'message' => ['required', 'string', 'min:2'],
@@ -140,7 +140,7 @@ class SupportTicketController extends Controller
     {
         $this->authorizeTicket($ticket);
         $user = Auth::user();
-        $isAdmin = $user->role === 'Health Center Admin';
+        $isAdmin = $user->hasTenantBarangayAdministrationAccess();
 
         $validated = $request->validate([
             'status' => ['required', 'in:open,in_progress,resolved,closed'],
@@ -175,7 +175,7 @@ class SupportTicketController extends Controller
             abort(403);
         }
 
-        $isAdmin = $user->role === 'Health Center Admin';
+        $isAdmin = $user->hasTenantBarangayAdministrationAccess();
         if (! $isAdmin && (int) $ticket->user_id !== (int) $user->id) {
             abort(403);
         }

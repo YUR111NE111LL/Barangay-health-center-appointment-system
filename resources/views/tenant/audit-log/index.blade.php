@@ -4,7 +4,7 @@
 
 @section('content')
 <h1 class="mb-2 text-2xl font-bold text-slate-800">Audit log</h1>
-<p class="mb-6 text-slate-500">Sign-ins, sign-outs, and changes to appointments, services, announcements, events, and user accounts. Only <strong>Health Center Admin</strong> can open this page. Password values are never stored in plain text.</p>
+<p class="mb-6 text-slate-500">Sign-ins, sign-outs, resident <strong>medicine acquisitions</strong> (who acquired what and remaining stock), and changes to appointments, services, announcements, events, and user accounts. Only <strong>barangay administrators</strong> (Health Center Admin or an equivalent role your barangay configured) can open this page. Password values are never stored in plain text.</p>
 
 @if(!empty($auditLogTableMissing))
     <div class="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -41,6 +41,7 @@
                             @elseif($log->event === 'deleted') bg-rose-100 text-rose-800
                             @elseif($log->event === 'login') bg-violet-100 text-violet-800
                             @elseif($log->event === 'logout') bg-slate-200 text-slate-800
+                            @elseif($log->event === 'acquired') bg-teal-100 text-teal-900
                             @else bg-amber-100 text-amber-900
                             @endif">{{ $log->event }}</span>
                     </td>
@@ -79,6 +80,14 @@
                             @endif
                         @elseif($log->event === 'logout')
                             <p class="leading-relaxed text-slate-700">Session ended for this account.</p>
+                        @elseif($log->event === 'acquired' && is_array($log->new_values))
+                            <p class="leading-relaxed text-slate-700">
+                                Acquired <strong>{{ $log->new_values['quantity_acquired'] ?? '—' }}</strong> unit(s) of <strong>{{ $log->new_values['name'] ?? 'medicine' }}</strong>.
+                                Stock after: <strong>{{ $log->new_values['quantity_remaining'] ?? '—' }}</strong>.
+                                @if(is_array($log->old_values) && array_key_exists('quantity', $log->old_values))
+                                    <span class="mt-1 block text-xs text-slate-500">Previous stock level: {{ $log->old_values['quantity'] }}.</span>
+                                @endif
+                            </p>
                         @elseif($log->old_values || $log->new_values)
                             <details class="group text-xs">
                                 <summary class="cursor-pointer list-none text-teal-700 hover:underline">View changes</summary>

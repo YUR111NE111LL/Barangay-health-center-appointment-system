@@ -77,13 +77,13 @@ Route::get('/dashboard', function () {
 
 Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('backend')->name('backend.')->group(function (): void {
     Route::get('/', [BackendDashboardController::class, 'index'])->name('dashboard');
-    Route::get('/admin', [BackendDashboardController::class, 'admin'])->name('admin.dashboard')->middleware('role:Health Center Admin');
+    Route::get('/admin', [BackendDashboardController::class, 'admin'])->name('admin.dashboard')->middleware('tenant.barangay_admin');
     Route::get('/nurse', [BackendDashboardController::class, 'nurse'])->name('nurse.dashboard')->middleware('role:Nurse');
     Route::get('/staff', [BackendDashboardController::class, 'staff'])->name('staff.dashboard')->middleware('role:Staff');
 
     Route::middleware('throttle:90,1')->group(function (): void {
         Route::get('/dashboard/live/summary', [DashboardLiveUpdateController::class, 'summary'])->name('dashboard.live.summary');
-        Route::get('/dashboard/live/admin', [DashboardLiveUpdateController::class, 'admin'])->name('dashboard.live.admin')->middleware('role:Health Center Admin');
+        Route::get('/dashboard/live/admin', [DashboardLiveUpdateController::class, 'admin'])->name('dashboard.live.admin')->middleware('tenant.barangay_admin');
         Route::get('/dashboard/live/nurse', [DashboardLiveUpdateController::class, 'nurse'])->name('dashboard.live.nurse')->middleware('role:Nurse');
         Route::get('/dashboard/live/staff', [DashboardLiveUpdateController::class, 'staff'])->name('dashboard.live.staff')->middleware('role:Staff');
     });
@@ -98,6 +98,7 @@ Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('bac
 
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('inventory', [\App\Http\Controllers\Tenant\InventoryController::class, 'index'])->name('inventory.index');
+    Route::resource('medicines', \App\Http\Controllers\Tenant\MedicineController::class)->except(['show']);
 
     Route::get('users', [\App\Http\Controllers\Tenant\UserController::class, 'index'])->name('users.index');
     Route::get('users/create', [\App\Http\Controllers\Tenant\UserController::class, 'create'])->name('users.create');
@@ -127,7 +128,7 @@ Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('bac
     });
 
     // RBAC: Barangay (Health Center) Admin only. Nurses and Residents cannot view or access these routes; tenant permissions are plan-based and per-tenant (no overlap with other tenants).
-    Route::middleware('role:Health Center Admin')->group(function (): void {
+    Route::middleware('tenant.barangay_admin')->group(function (): void {
         Route::get('pending-approvals', [\App\Http\Controllers\Tenant\PendingApprovalsController::class, 'index'])->name('pending-approvals.index');
         Route::put('pending-approvals/{user}', [\App\Http\Controllers\Tenant\PendingApprovalsController::class, 'approve'])->name('pending-approvals.approve');
         Route::match(['delete'], 'pending-approvals/{user}', [\App\Http\Controllers\Tenant\PendingApprovalsController::class, 'deny'])->name('pending-approvals.deny');
@@ -166,6 +167,11 @@ Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('res
     Route::get('/profile', [\App\Http\Controllers\TenantUser\ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile/edit', [\App\Http\Controllers\TenantUser\ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [\App\Http\Controllers\TenantUser\ProfileController::class, 'update'])->name('profile.update');
+
+    Route::get('/medicine', [\App\Http\Controllers\TenantUser\MedicineController::class, 'index'])->name('medicine.index');
+    Route::post('/medicine/{medicine}/acquire', [\App\Http\Controllers\TenantUser\MedicineController::class, 'acquire'])
+        ->name('medicine.acquire')
+        ->middleware(['permission:acquire medicine', 'throttle:30,1']);
 
     Route::prefix('support')->name('support.')->group(function (): void {
         Route::get('help', [\App\Http\Controllers\Tenant\SupportHelpController::class, 'index'])->name('help');

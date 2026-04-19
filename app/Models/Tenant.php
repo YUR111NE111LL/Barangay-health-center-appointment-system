@@ -507,7 +507,7 @@ class Tenant extends Model implements TenantWithDatabase
      */
     public static function residentNavItemKeys(): array
     {
-        return ['dashboard', 'book', 'announcements', 'events', 'profile'];
+        return ['dashboard', 'book', 'medicine', 'announcements', 'events', 'profile'];
     }
 
     /**

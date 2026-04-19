@@ -15,6 +15,7 @@ use App\Models\TenantApplication;
 use App\Models\User;
 use App\Observers\TenantAuditObserver;
 use App\Support\GlobalUpdateReadState;
+use App\Support\MedicineAcquisitionNavBadge;
 use App\Support\SessionPortal;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
@@ -68,8 +69,8 @@ class AppServiceProvider extends ServiceProvider
                 return null;
             }
 
-            // Add/manage barangay user accounts: Barangay (Health Center) Admin only; not driven by tenant_role_permissions rows.
-            if ($ability === 'manage users' && $user->role === User::ROLE_HEALTH_CENTER_ADMIN) {
+            // Add/manage barangay user accounts: Health Center Admin or equivalent tenant custom role.
+            if ($ability === 'manage users' && $user->hasTenantBarangayAdministrationAccess()) {
                 return true;
             }
 
@@ -108,7 +109,7 @@ class AppServiceProvider extends ServiceProvider
             $hasFeatureWebCustomization = $tenant?->hasFeature('web_customization') ?? false;
             $fontUrl = $tenant ? Tenant::fontFamilyGoogleUrl($tenant->font_family) : null;
             $backendPendingCount = 0;
-            if ($user && $user->role === User::ROLE_HEALTH_CENTER_ADMIN && $user->tenant_id) {
+            if ($user && $user->tenant_id && $user instanceof User && $user->hasTenantBarangayAdministrationAccess()) {
                 $backendPendingCount = User::withoutGlobalScopes()
                     ->where('tenant_id', $user->tenant_id)
                     ->whereIn('role', User::rolesApprovedByBarangayAdmin())
@@ -125,7 +126,11 @@ class AppServiceProvider extends ServiceProvider
             if ($user instanceof User && $user->tenant_id) {
                 $supportUpdatesNotificationCount = GlobalUpdateReadState::unreadGlobalCount($user);
             }
-            $view->with(compact('tenant', 'brandColor', 'brandName', 'brandLogo', 'brandLogoClass', 'tenantMainMaxWidthClass', 'themeClass', 'navLayout', 'hasFeatureWebCustomization', 'fontUrl', 'backendPendingCount', 'backendPendingAppointmentsCount', 'supportUpdatesNotificationCount'));
+            $backendMedicineAcquisitionNotifyCount = 0;
+            if ($user instanceof User) {
+                $backendMedicineAcquisitionNotifyCount = MedicineAcquisitionNavBadge::unseenCount($user);
+            }
+            $view->with(compact('tenant', 'brandColor', 'brandName', 'brandLogo', 'brandLogoClass', 'tenantMainMaxWidthClass', 'themeClass', 'navLayout', 'hasFeatureWebCustomization', 'fontUrl', 'backendPendingCount', 'backendPendingAppointmentsCount', 'supportUpdatesNotificationCount', 'backendMedicineAcquisitionNotifyCount'));
         });
         View::composer('tenant-user.layouts.app', function (\Illuminate\View\View $view): void {
             $user = Auth::user();
@@ -145,6 +150,7 @@ class AppServiceProvider extends ServiceProvider
             $residentNavConfig = [
                 'dashboard' => ['route' => 'resident.dashboard', 'label' => 'My Appointments', 'icon' => 'clipboard'],
                 'book' => ['route' => 'resident.book', 'label' => 'Book', 'icon' => 'book'],
+                'medicine' => ['route' => 'resident.medicine.index', 'label' => 'Medicine', 'icon' => 'medicine'],
                 'announcements' => ['route' => 'resident.announcements.index', 'label' => 'Announcements', 'icon' => 'announcements'],
                 'events' => ['route' => 'resident.events.index', 'label' => 'Events', 'icon' => 'events'],
                 'support' => ['route' => 'resident.support.help', 'label' => 'Support', 'icon' => 'support'],
@@ -168,6 +174,12 @@ class AppServiceProvider extends ServiceProvider
             }
             if ($user instanceof User && ! $user->hasTenantPermission('book appointments')) {
                 unset($residentNavConfig['book']);
+            }
+            if ($user instanceof User) {
+                // Medicine is a default resident tab whenever the plan includes inventory (same as staff Medicine area).
+                if (! ($tenant?->hasFeature('inventory') ?? false)) {
+                    unset($residentNavConfig['medicine']);
+                }
             }
             $residentNavItems = [];
             foreach ($navOrder as $key) {

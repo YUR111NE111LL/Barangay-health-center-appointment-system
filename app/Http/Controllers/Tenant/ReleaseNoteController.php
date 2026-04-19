@@ -18,7 +18,7 @@ class ReleaseNoteController extends Controller
         /** @var \App\Models\User|null $user */
         $user = Auth::user();
         $tenant = $user?->tenant;
-        $isAdmin = $user?->role === 'Health Center Admin';
+        $isAdmin = $user?->hasTenantBarangayAdministrationAccess();
         $routeBase = request()->routeIs('resident.*') ? 'resident.support' : 'backend.support';
 
         $notes = ReleaseNote::query()
@@ -111,7 +111,7 @@ class ReleaseNoteController extends Controller
 
     private function ensureAdmin(): void
     {
-        if (Auth::user()?->role !== 'Health Center Admin') {
+        if (! Auth::user()?->hasTenantBarangayAdministrationAccess()) {
             abort(403);
         }
     }

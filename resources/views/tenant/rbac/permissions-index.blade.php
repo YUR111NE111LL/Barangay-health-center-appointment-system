@@ -38,7 +38,7 @@
                             <span class="text-slate-500">None</span>
                         @else
                             @foreach($perms as $p)
-                                <span class="mr-1 inline-flex rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-medium text-teal-700">{{ $p }}</span>
+                                <span class="mr-1 inline-flex rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-medium text-teal-700">{{ config('bhcas.permission_help.'.$p.'.label', str($p)->headline()) }}</span>
                             @endforeach
                         @endif
                     </td>

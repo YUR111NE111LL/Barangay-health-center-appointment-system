@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Support\TenantRoleEffectivePermissions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -32,11 +33,39 @@ class UserController extends Controller
     }
 
     /**
+     * Same base roles as {@see assignableRolesForCreate()}, plus any custom roles
+     * this barangay added under Role permissions (tenant_role_permissions).
+     *
+     * @return array<string, string> role => label
+     */
+    private function assignableRolesForCreateWithTenant(?int $tenantId): array
+    {
+        $roles = $this->assignableRolesForCreate();
+        if ($tenantId === null || ! Schema::hasTable('tenant_role_permissions')) {
+            return $roles;
+        }
+
+        $baseKeys = array_keys($roles);
+        $customRoles = DB::table('tenant_role_permissions')
+            ->where('tenant_id', $tenantId)
+            ->whereNotIn('role_name', array_merge($baseKeys, [User::ROLE_SUPER_ADMIN]))
+            ->distinct()
+            ->orderBy('role_name')
+            ->pluck('role_name');
+
+        foreach ($customRoles as $roleName) {
+            $roles[$roleName] = $roleName;
+        }
+
+        return $roles;
+    }
+
+    /**
      * @return list<string>
      */
     private function allowedRoleKeysForStore(): array
     {
-        return array_keys($this->assignableRolesForCreate());
+        return array_keys($this->assignableRolesForCreateWithTenant(Auth::user()?->tenant_id));
     }
 
     /**
@@ -44,7 +73,10 @@ class UserController extends Controller
      */
     public function index(Request $request): View
     {
-        $query = User::where('tenant_id', auth()->user()->tenant_id)
+        /** @var User|null $currentUser */
+        $currentUser = Auth::user();
+
+        $query = User::where('tenant_id', $currentUser?->tenant_id)
             ->orderBy('role')
             ->orderBy('name');
 
@@ -60,13 +92,13 @@ class UserController extends Controller
 
         $users = $query->paginate(15);
 
-        $tenant = auth()->user()->tenant;
-        $tenantId = auth()->user()->tenant_id;
+        $tenant = $currentUser?->tenant;
+        $tenantId = $currentUser?->tenant_id;
         $canAddUser = $tenant ? $tenant->canAddUser() : false;
         $userCount = User::where('tenant_id', $tenantId)->count();
         $maxUsers = $tenant ? $tenant->maxUsersFromPlan() : 0;
         $planName = $tenant && $tenant->plan ? $tenant->plan->name : null;
-        $canAddUser = $canAddUser && auth()->user()?->role === User::ROLE_HEALTH_CENTER_ADMIN;
+        $canAddUser = $canAddUser && $currentUser?->hasTenantBarangayAdministrationAccess();
         $baseRoleOptions = array_keys($this->assignableRolesForCreate());
         $roleOptions = collect($baseRoleOptions);
         if (Schema::hasTable('tenant_role_permissions')) {
@@ -113,13 +145,13 @@ class UserController extends Controller
     {
         $this->authorize('manage users');
 
-        $tenant = auth()->user()->tenant;
+        $tenant = Auth::user()?->tenant;
         if (! $tenant || ! $tenant->canAddUser()) {
             return redirect()->route('backend.users.index')
                 ->with('error', 'User limit for your plan has been reached. Upgrade your plan to add more users.');
         }
 
-        $roles = $this->assignableRolesForCreate();
+        $roles = $this->assignableRolesForCreateWithTenant(Auth::user()?->tenant_id);
 
         return view('tenant.users.create', compact('roles'));
     }
@@ -131,8 +163,8 @@ class UserController extends Controller
     {
         $this->authorize('manage users');
 
-        $tenant = auth()->user()->tenant;
-        $tenantId = auth()->user()->tenant_id;
+        $tenant = Auth::user()?->tenant;
+        $tenantId = Auth::user()?->tenant_id;
 
         if (! $tenant || ! $tenant->canAddUser()) {
             return redirect()->route('backend.users.index')
@@ -172,8 +204,8 @@ class UserController extends Controller
     {
         $this->authorize('manage users');
 
-        $tenant = auth()->user()->tenant;
-        $tenantId = auth()->user()->tenant_id;
+        $tenant = Auth::user()?->tenant;
+        $tenantId = Auth::user()?->tenant_id;
 
         if (! $tenant || ! $tenant->canAddUser()) {
             return redirect()->route('backend.users.index')
@@ -183,12 +215,15 @@ class UserController extends Controller
         $state = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode(json_encode([
             'action' => 'create_user',
             'tenant_id' => $tenantId,
-            'admin_id' => auth()->id(),
+            'admin_id' => Auth::id(),
         ])));
 
         $callbackUrl = request()->getSchemeAndHttpHost().'/backend/users/google/callback';
 
-        return Socialite::driver('google')
+        /** @var \Laravel\Socialite\Two\AbstractProvider $googleDriver */
+        $googleDriver = Socialite::driver('google');
+
+        return $googleDriver
             ->redirectUrl($callbackUrl)
             ->stateless()
             ->with(['state' => $state])
@@ -202,8 +237,8 @@ class UserController extends Controller
     {
         $this->authorize('manage users');
 
-        $tenant = auth()->user()->tenant;
-        $tenantId = auth()->user()->tenant_id;
+        $tenant = Auth::user()?->tenant;
+        $tenantId = Auth::user()?->tenant_id;
 
         if (! $tenant || ! $tenant->canAddUser()) {
             return redirect()->route('backend.users.index')
@@ -212,7 +247,7 @@ class UserController extends Controller
 
         $action = 'create_user';
         $stateTenantId = $tenantId;
-        $adminId = auth()->id();
+        $adminId = Auth::id();
         $stateParam = $request->query('state');
 
         if ($stateParam) {
@@ -222,7 +257,7 @@ class UserController extends Controller
             if (is_array($decoded)) {
                 $action = $decoded['action'] ?? 'create_user';
                 $stateTenantId = $decoded['tenant_id'] ?? $tenantId;
-                $adminId = $decoded['admin_id'] ?? auth()->id();
+                $adminId = $decoded['admin_id'] ?? Auth::id();
             }
         }
 
@@ -245,7 +280,10 @@ class UserController extends Controller
         $callbackUrl = $request->getSchemeAndHttpHost().'/backend/users/google/callback';
 
         try {
-            $googleUser = Socialite::driver('google')
+            /** @var \Laravel\Socialite\Two\AbstractProvider $googleDriver */
+            $googleDriver = Socialite::driver('google');
+
+            $googleUser = $googleDriver
                 ->redirectUrl($callbackUrl)
                 ->stateless()
                 ->user();
@@ -312,8 +350,8 @@ class UserController extends Controller
     {
         $this->authorize('manage users');
 
-        $tenant = auth()->user()->tenant;
-        $tenantId = auth()->user()->tenant_id;
+        $tenant = Auth::user()?->tenant;
+        $tenantId = Auth::user()?->tenant_id;
 
         if (! $tenant || ! $tenant->canAddUser()) {
             return redirect()->route('backend.users.index')
@@ -350,13 +388,13 @@ class UserController extends Controller
     {
         $this->authorize('manage users');
 
-        $tenantId = auth()->user()->tenant_id;
+        $tenantId = Auth::user()?->tenant_id;
         if ((int) $user->tenant_id !== (int) $tenantId) {
             return redirect()->route('backend.users.index')
                 ->with('error', 'You can only delete users from your own barangay.');
         }
 
-        if ((int) $user->id === (int) auth()->id()) {
+        if ((int) $user->id === (int) Auth::id()) {
             return redirect()->route('backend.users.index')
                 ->with('error', 'You cannot delete your own account.');
         }

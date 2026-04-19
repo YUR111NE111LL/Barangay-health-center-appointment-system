@@ -42,6 +42,7 @@ class User extends Authenticatable
         'password',
         'google_id',
         'is_approved',
+        'medicine_acquisitions_last_ack_id',
     ];
 
     /**
@@ -66,6 +67,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_approved' => 'boolean',
             'last_seen_global_update_at' => 'datetime',
+            'medicine_acquisitions_last_ack_id' => 'integer',
         ];
     }
 
@@ -174,6 +176,55 @@ class User extends Authenticatable
             ->exists();
     }
 
+    /**
+     * Permission names that imply the account should use the staff/backend area (not resident-only).
+     *
+     * @return list<string>
+     */
+    public static function tenantPermissionsIndicatingStaffBackend(): array
+    {
+        return [
+            'approve appointments',
+            'encode appointments',
+            'manage schedules',
+            'view appointments',
+            'view reports',
+            'update visit status',
+            'record notes',
+            'manage inventory',
+            'manage medicine',
+        ];
+    }
+
+    /**
+     * Barangay-wide administration: Health Center Admin, or a tenant-defined role granted
+     * equivalent control via tenant_role_permissions (e.g. "Captain" with approve + view).
+     */
+    public function hasTenantBarangayAdministrationAccess(): bool
+    {
+        if (! $this->hasTenant()) {
+            return false;
+        }
+
+        if ($this->role === self::ROLE_HEALTH_CENTER_ADMIN) {
+            return true;
+        }
+
+        if (in_array($this->role, [
+            self::ROLE_RESIDENT,
+            self::ROLE_NURSE,
+            self::ROLE_STAFF,
+        ], true)) {
+            return false;
+        }
+
+        return $this->hasTenantPermission('manage schedules')
+            || (
+                $this->hasTenantPermission('approve appointments')
+                && $this->hasTenantPermission('view appointments')
+            );
+    }
+
     public function canAccessResidentPortal(): bool
     {
         if (! $this->hasTenant()) {
@@ -184,6 +235,24 @@ class User extends Authenticatable
             return true;
         }
 
-        return $this->hasTenantPermission('book appointments');
+        if (in_array($this->role, [
+            self::ROLE_HEALTH_CENTER_ADMIN,
+            self::ROLE_NURSE,
+            self::ROLE_STAFF,
+        ], true)) {
+            return false;
+        }
+
+        if (! $this->hasTenantPermission('book appointments')) {
+            return false;
+        }
+
+        foreach (self::tenantPermissionsIndicatingStaffBackend() as $perm) {
+            if ($this->hasTenantPermission($perm)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

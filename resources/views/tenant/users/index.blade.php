@@ -52,6 +52,7 @@
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Profile</th>
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Email</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Address</th>
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Role &amp; permissions</th>
                     <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600">Action</th>
                 </tr>
@@ -61,11 +62,26 @@
                 <tr class="hover:bg-slate-50/50">
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-3">
-                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm font-medium text-teal-700" aria-hidden="true">{{ $u->initials }}</span>
+                            @if($u->profile_picture)
+                                <img src="{{ str_contains($u->profile_picture, 'cloudinary.com') ? $u->profile_picture : asset('storage/' . $u->profile_picture) }}"
+                                     alt=""
+                                     class="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-slate-200/80"
+                                     width="36"
+                                     height="36" />
+                            @else
+                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm font-medium text-teal-700" aria-hidden="true">{{ $u->initials }}</span>
+                            @endif
                             <span class="text-sm font-medium text-slate-800">{{ $u->name }}</span>
                         </div>
                     </td>
                     <td class="px-4 py-3 text-sm text-slate-600">{{ $u->email }}</td>
+                    <td class="px-4 py-3 text-sm text-slate-600">
+                        @if(filled($u->purok_address))
+                            <span class="max-w-xs inline-block align-top wrap-break-word" title="{{ $u->purok_address }}">{{ $u->purok_address }}</span>
+                        @else
+                            <span class="text-slate-400">—</span>
+                        @endif
+                    </td>
                     <td class="px-4 py-3">
                         <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">{{ $u->role }}</span>
                         @php
@@ -93,7 +109,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="4" class="px-4 py-12 text-center text-slate-500">No users found.</td></tr>
+                <tr><td colspan="5" class="px-4 py-12 text-center text-slate-500">No users found.</td></tr>
                 @endforelse
             </tbody>
         </table>

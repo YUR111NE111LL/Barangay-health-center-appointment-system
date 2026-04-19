@@ -8,25 +8,50 @@ use Spatie\Permission\Models\Role;
 
 class RoleAndPermissionSeeder extends Seeder
 {
-    public function run(): void
+    /**
+     * Ensure all application permission rows exist (idempotent). Call after upgrades
+     * so new permissions appear in Role permissions checkboxes without wiping the DB.
+     */
+    public static function syncPermissionTable(): void
     {
         $guard = 'web';
 
-        Permission::firstOrCreate(['name' => 'manage schedules', 'guard_name' => $guard]);
-        Permission::firstOrCreate(['name' => 'approve appointments', 'guard_name' => $guard]);
-        Permission::firstOrCreate(['name' => 'view reports', 'guard_name' => $guard]);
-        Permission::firstOrCreate(['name' => 'view appointments', 'guard_name' => $guard]);
-        Permission::firstOrCreate(['name' => 'update visit status', 'guard_name' => $guard]);
-        Permission::firstOrCreate(['name' => 'record notes', 'guard_name' => $guard]);
-        Permission::firstOrCreate(['name' => 'encode appointments', 'guard_name' => $guard]);
-        Permission::firstOrCreate(['name' => 'book appointments', 'guard_name' => $guard]);
-        Permission::firstOrCreate(['name' => 'manage inventory', 'guard_name' => $guard]);
+        foreach (self::permissionNames() as $name) {
+            Permission::firstOrCreate(['name' => $name, 'guard_name' => $guard]);
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function permissionNames(): array
+    {
+        return [
+            'manage schedules',
+            'approve appointments',
+            'view reports',
+            'view appointments',
+            'update visit status',
+            'record notes',
+            'encode appointments',
+            'book appointments',
+            'manage inventory',
+            'manage medicine',
+            'acquire medicine',
+        ];
+    }
+
+    public function run(): void
+    {
+        self::syncPermissionTable();
+
+        $guard = 'web';
 
         $superAdmin = Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => $guard]);
         $superAdmin->givePermissionTo(['view reports']);
 
         $healthCenterAdmin = Role::firstOrCreate(['name' => 'Health Center Admin', 'guard_name' => $guard]);
-        $healthCenterAdmin->givePermissionTo(['manage schedules', 'approve appointments', 'view reports', 'view appointments', 'encode appointments']);
+        $healthCenterAdmin->givePermissionTo(['manage schedules', 'approve appointments', 'view reports', 'view appointments', 'encode appointments', 'manage medicine']);
 
         $nurse = Role::firstOrCreate(['name' => 'Nurse', 'guard_name' => $guard]);
         $nurse->givePermissionTo(['view appointments', 'update visit status', 'record notes']);
@@ -35,6 +60,6 @@ class RoleAndPermissionSeeder extends Seeder
         $staff->givePermissionTo(['view appointments', 'encode appointments']);
 
         $resident = Role::firstOrCreate(['name' => 'Resident', 'guard_name' => $guard]);
-        $resident->givePermissionTo(['book appointments']);
+        $resident->givePermissionTo(['book appointments', 'acquire medicine']);
     }
 }

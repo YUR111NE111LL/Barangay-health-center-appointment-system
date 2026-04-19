@@ -25,16 +25,16 @@
         @else
             <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach($permissions as $p)
-                    <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-slate-300 hover:bg-slate-50/80">
+                    <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-slate-300 hover:bg-slate-50/80">
                         <input
                             type="checkbox"
                             name="permissions[]"
                             value="{{ $p->name }}"
                             id="perm-{{ $p->id }}"
                             {{ in_array($p->name, $currentPermissionNames, true) ? 'checked' : '' }}
-                            class="h-4 w-4 shrink-0 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                            class="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
                         >
-                        <span class="text-sm lowercase text-slate-600">{{ $p->name }}</span>
+                        <x-permission-label :name="$p->name" class="flex-1" />
                     </label>
                 @endforeach
             </div>

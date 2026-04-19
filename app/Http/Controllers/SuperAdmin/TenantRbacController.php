@@ -81,6 +81,8 @@ class TenantRbacController extends Controller
 
                 if ($roleCount < count(self::TENANT_ROLE_NAMES) || $permissionCount === 0) {
                     (new RoleAndPermissionSeeder)->run();
+                } else {
+                    RoleAndPermissionSeeder::syncPermissionTable();
                 }
 
                 TenantRbacSeeder::seedTenant((int) $tenant->id);
@@ -117,9 +119,7 @@ class TenantRbacController extends Controller
                     $permissionsByRole[$roleName] = TenantRbacExcludedPermissions::filterList($fromTable);
                 } else {
                     $roleModel = $roles->firstWhere('name', $roleName);
-                    $permissionsByRole[$roleName] = $tenantHasAnyRbac
-                        ? []
-                        : $this->defaultPermissionsForRole($tenant, $roleName, $roleModel);
+                    $permissionsByRole[$roleName] = $this->defaultPermissionsForRole($tenant, $roleName, $roleModel);
                 }
             }
         });
@@ -170,8 +170,11 @@ class TenantRbacController extends Controller
                 ->toArray();
 
             $tenantHasAnyRbac = Schema::hasTable('tenant_role_permissions') && DB::table('tenant_role_permissions')->where('tenant_id', $tenant->id)->exists();
-            if ($currentPermissionNames === [] && ! $tenantHasAnyRbac) {
-                $currentPermissionNames = $this->defaultPermissionsForRole($tenant, $role->name, $role);
+            if ($currentPermissionNames === []) {
+                $fillDefaults = ! $tenantHasAnyRbac || in_array($role->name, self::TENANT_ROLE_NAMES, true);
+                if ($fillDefaults) {
+                    $currentPermissionNames = $this->defaultPermissionsForRole($tenant, $role->name, $role);
+                }
             }
         });
 

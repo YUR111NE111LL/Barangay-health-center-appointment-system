@@ -11,6 +11,7 @@ use App\Support\TenantRbacExcludedPermissions;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -53,7 +54,7 @@ class RolePermissionsController extends Controller
 
     private function ensureBarangayAdmin(): void
     {
-        if (Auth::user()?->role !== User::ROLE_HEALTH_CENTER_ADMIN) {
+        if (! Auth::user()?->hasTenantBarangayAdministrationAccess()) {
             abort(403, 'Only Barangay (Health Center) Admin can manage role permissions.');
         }
     }
@@ -154,9 +155,8 @@ class RolePermissionsController extends Controller
                 $permissionsByRole[$roleName] = TenantRbacExcludedPermissions::filterList($fromTable);
             } else {
                 $roleModel = $roles->firstWhere('name', $roleName);
-                $permissionsByRole[$roleName] = $tenantHasAnyRbac
-                    ? []
-                    : $this->defaultPermissionsForRole($tenant, $roleName, $roleModel);
+                // Empty table rows for a role: show plan/role defaults (new tenants have no Spatie seed until first request).
+                $permissionsByRole[$roleName] = $this->defaultPermissionsForRole($tenant, $roleName, $roleModel);
             }
         }
 
@@ -177,7 +177,7 @@ class RolePermissionsController extends Controller
         }
 
         $tenant->load('plan');
-        $permissions = $this->permissionsForPlanQuery($tenant)->get();
+        $permissions = $this->permissionsForTenantPlan($tenant);
 
         return view('tenant.rbac.permissions-create', compact('tenant', 'permissions'));
     }
@@ -196,7 +196,7 @@ class RolePermissionsController extends Controller
         }
 
         $tenant->load('plan');
-        $permissionNames = $this->permissionsForPlanQuery($tenant)->pluck('name')->toArray();
+        $permissionNames = $this->allowedPermissionNamesForTenantPlan($tenant);
 
         $validated = $request->validate([
             'role_name' => ['required', 'string', 'max:100'],
@@ -287,7 +287,7 @@ class RolePermissionsController extends Controller
                 ->with('error', 'That role cannot be edited.');
         }
 
-        $permissions = $this->permissionsForPlanQuery($tenant)->get();
+        $permissions = $this->permissionsForTenantPlan($tenant);
 
         $currentPermissionNames = DB::table('tenant_role_permissions')
             ->where('tenant_id', $tenant->id)
@@ -296,8 +296,11 @@ class RolePermissionsController extends Controller
             ->toArray();
 
         $tenantHasAnyRbac = Schema::hasTable('tenant_role_permissions') && DB::table('tenant_role_permissions')->where('tenant_id', $tenant->id)->exists();
-        if ($currentPermissionNames === [] && ! $tenantHasAnyRbac) {
-            $currentPermissionNames = $this->defaultPermissionsForRole($tenant, $role->name, $role);
+        if ($currentPermissionNames === []) {
+            $fillDefaults = ! $tenantHasAnyRbac || in_array($role->name, self::TENANT_ROLE_NAMES, true);
+            if ($fillDefaults) {
+                $currentPermissionNames = $this->defaultPermissionsForRole($tenant, $role->name, $role);
+            }
         }
 
         return view('tenant.rbac.permissions-edit', compact('tenant', 'role', 'permissions', 'currentPermissionNames'));
@@ -322,7 +325,7 @@ class RolePermissionsController extends Controller
             return redirect()->route('backend.rbac.permissions.index')->with('error', 'Invalid role.');
         }
 
-        $allowedNames = $this->permissionsForPlanQuery($tenant)->pluck('name')->toArray();
+        $allowedNames = $this->allowedPermissionNamesForTenantPlan($tenant);
 
         $validated = $request->validate([
             'permissions' => ['nullable', 'array'],
@@ -395,6 +398,57 @@ class RolePermissionsController extends Controller
     }
 
     /**
+     * Load plan-scoped permissions from the tenant's Spatie tables. Runs inside
+     * {@see Tenant::run()} so we always read the tenant database (after {@see Tenant::run()}
+     * in seeding, the default connection can revert to central).
+     *
+     * @return Collection<int, Permission>
+     */
+    private function permissionsForTenantPlan(Tenant $tenant): Collection
+    {
+        /** @var Collection<int, Permission> */
+        return $tenant->run(function () use ($tenant) {
+            $this->ensureTenantSpatiePermissionsSeeded($tenant);
+
+            return $this->permissionsForPlanQuery($tenant)->get();
+        });
+    }
+
+    /**
+     * Permission names allowed for validation (tenant DB, plan-scoped).
+     *
+     * @return list<string>
+     */
+    private function allowedPermissionNamesForTenantPlan(Tenant $tenant): array
+    {
+        return $tenant->run(function () use ($tenant) {
+            $this->ensureTenantSpatiePermissionsSeeded($tenant);
+
+            return $this->permissionsForPlanQuery($tenant)->pluck('name')->unique()->values()->all();
+        });
+    }
+
+    /**
+     * Ensure Spatie permission rows exist in the current (tenant) connection.
+     */
+    private function ensureTenantSpatiePermissionsSeeded(Tenant $tenant): void
+    {
+        $table = config('permission.table_names.permissions', 'permissions');
+        if (! Schema::hasTable($table)) {
+            return;
+        }
+
+        if (Permission::query()->where('guard_name', 'web')->count() === 0) {
+            (new RoleAndPermissionSeeder)->run();
+
+            return;
+        }
+
+        RoleAndPermissionSeeder::syncPermissionTable();
+        TenantRbacSeeder::seedTenant((int) $tenant->id);
+    }
+
+    /**
      * Spatie permissions query for the tenant's plan (same pool as Add role — includes Resident).
      *
      * @return \Illuminate\Database\Eloquent\Builder<Permission>
@@ -416,7 +470,7 @@ class RolePermissionsController extends Controller
 
     private function allowedPermissionsForPlan(?string $planSlug): array
     {
-        $planSlug = $planSlug ?: 'basic';
+        $planSlug = strtolower((string) ($planSlug ?: 'basic'));
         $map = config('bhcas.plan_permissions', []);
         $allowed = $map[$planSlug] ?? $map['basic'] ?? ['*'];
         if ($allowed === ['*']) {
@@ -428,7 +482,7 @@ class RolePermissionsController extends Controller
 
     private function maxCustomRolesForPlan(?string $planSlug): int
     {
-        return match ($planSlug ?: 'basic') {
+        return match (strtolower((string) ($planSlug ?: 'basic'))) {
             'premium' => 10,
             'standard' => 5,
             default => 2,

@@ -9,6 +9,7 @@ use App\Models\Tenant;
 use App\Models\TenantApplication;
 use App\Models\User;
 use App\Rules\TenantContactEmailUniqueInCentral;
+use App\Services\SeedTenantInitialData;
 use App\Services\TenantCreationService;
 use App\Support\TenantPortalLoginUrls;
 use Illuminate\Http\RedirectResponse;
@@ -332,6 +333,14 @@ class TenantManagementController extends Controller
                 ]);
             } catch (\Throwable $e) {
                 return back()->with('success', 'Tenant database was created. Tenant migrations failed, so this tenant may need migration cleanup before full feature use.');
+            }
+
+            try {
+                (new SeedTenantInitialData($tenant))->handle();
+            } catch (\Throwable $e) {
+                report($e);
+
+                return back()->with('success', 'Tenant database provisioned and migrated. Initial roles and services could not be seeded automatically; open Role permissions or contact support if features are missing.');
             }
 
             return back()->with('success', 'Tenant database provisioned successfully.');

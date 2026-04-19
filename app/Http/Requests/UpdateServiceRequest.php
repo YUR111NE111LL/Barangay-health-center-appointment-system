@@ -10,7 +10,7 @@ class UpdateServiceRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->role === 'Health Center Admin';
+        return (bool) $this->user()?->hasTenantBarangayAdministrationAccess();
     }
 
     /**
