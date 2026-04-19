@@ -3,14 +3,13 @@
 namespace Database\Seeders;
 
 use App\Models\Plan;
-use App\Models\Tenant;
 use Illuminate\Database\Seeder;
 
 class TenantSeeder extends Seeder
 {
     public function run(): void
     {
-        $basic = Plan::updateOrCreate(
+        Plan::updateOrCreate(
             ['slug' => 'basic'],
             [
                 'name' => 'Basic',
@@ -29,7 +28,7 @@ class TenantSeeder extends Seeder
             ]
         );
 
-        $standard = Plan::updateOrCreate(
+        Plan::updateOrCreate(
             ['slug' => 'standard'],
             [
                 'name' => 'Standard',
@@ -48,7 +47,7 @@ class TenantSeeder extends Seeder
             ]
         );
 
-        $premium = Plan::updateOrCreate(
+        Plan::updateOrCreate(
             ['slug' => 'premium'],
             [
                 'name' => 'Premium',
@@ -67,41 +66,7 @@ class TenantSeeder extends Seeder
             ]
         );
 
-        $sumpong = Tenant::firstOrCreate(
-            ['name' => 'Brgy Sumpong'],
-            [
-                'plan_id' => $standard->id,
-                'address' => 'Sumpong, Malaybalay City',
-                'contact_number' => '088-123-4567',
-                'email' => 'sumpong@bhc.example.com',
-                'is_active' => true,
-            ]
-        );
-        $sumpong->domains()->firstOrCreate(['domain' => 'brgy-sumpong.test']);
-
-        $casisang = Tenant::firstOrCreate(
-            ['name' => 'Brgy Casisang'],
-            [
-                'plan_id' => $basic->id,
-                'address' => 'Casisang, Malaybalay City',
-                'contact_number' => '088-234-5678',
-                'email' => 'casisang@bhc.example.com',
-                'is_active' => true,
-            ]
-        );
-        $casisang->domains()->firstOrCreate(['domain' => 'brgy-casisang.test']);
-
-        // Premium plan tenant (full web customization, etc.)
-        $kalasungay = Tenant::firstOrCreate(
-            ['name' => 'Brgy Kalasungay'],
-            [
-                'plan_id' => $premium->id,
-                'address' => 'Kalasungay, Malaybalay City',
-                'contact_number' => '088-345-6789',
-                'email' => 'kalasungay@bhc.example.com',
-                'is_active' => true,
-            ]
-        );
-        $kalasungay->domains()->firstOrCreate(['domain' => 'brgy-kalasungay.test']);
+        // Keep seeding focused on plan data only.
+        // Tenants should be created manually from the Super Admin UI to avoid accidental demo tenants.
     }
 }

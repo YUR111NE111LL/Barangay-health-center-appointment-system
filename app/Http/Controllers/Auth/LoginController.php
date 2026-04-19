@@ -109,12 +109,12 @@ class LoginController extends Controller
                 ->whereRaw('LOWER(email) = ?', [strtolower($email)])
                 ->exists();
             if ($alreadyUnderTenant) {
-                $message = 'This email is registered under a barangay account and cannot log in as Super Admin.';
+                $message = 'This email is registered under a barangay account and cannot log in as Super Admin. Use your barangay sign in page, or submit Apply for tenant if you need a new tenant portal.';
 
                 return back()
                     ->withInput($request->only('email', 'for'))
                     ->with('auth_scope_alert', $message)
-                    ->withErrors(['email' => $message.' Please use Resident or Staff login and select your barangay.']);
+                    ->withErrors(['email' => $message]);
             }
             $user = User::whereNull('tenant_id')
                 ->whereRaw('LOWER(email) = ?', [strtolower($email)])

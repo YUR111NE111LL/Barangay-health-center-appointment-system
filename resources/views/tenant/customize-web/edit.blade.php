@@ -135,7 +135,7 @@
             @endphp
             <div>
                 <span class="mb-2 block text-sm font-medium text-slate-700">Navigation style</span>
-                <p class="mb-3 text-xs text-slate-500">Choose how the menu appears on resident and staff pages. @if(count($allowedLayouts) === 2)<strong>Standard:</strong> Nav bar or Dropdown. @elseif(count($allowedLayouts) >= 3)<strong>Premium:</strong> Full options. @endif</p>
+                <p class="mb-3 text-xs text-slate-500">Choose how the menu appears on resident and staff pages. @if(count($allowedLayouts) === 2)<strong>Standard:</strong> Nav bar or Dropdown. @elseif(count($allowedLayouts) >= 3)<strong>Premium:</strong> Nav bar, Dropdown, and Sidebar. @endif</p>
                 <div class="flex flex-wrap gap-3">
                     @foreach($allowedLayouts as $layout)
                     <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 px-4 py-3 transition {{ $currentNavLayout === $layout ? 'border-teal-500 bg-teal-50' : 'border-slate-200 bg-white hover:border-slate-300' }}">
@@ -212,6 +212,26 @@
                     </select>
                     <p class="mt-1 text-xs text-slate-500">Shadow on the teal navigation bar (applies after save).</p>
                     @error('appearance_accent_style')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="appearance_sidebar_density" class="mb-1 block text-sm font-medium text-slate-700">Sidebar density</label>
+                    <select name="appearance_sidebar_density" id="appearance_sidebar_density" class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 focus:border-teal-500 focus:ring-teal-500">
+                        @foreach(\App\Models\Tenant::appearanceSidebarDensityOptions() as $value => $label)
+                        <option value="{{ $value }}" {{ old('appearance_sidebar_density', $appearance['sidebar_density'] ?? 'comfortable') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">Premium sidebar: choose bigger taps or a compact list when many tabs are enabled.</p>
+                    @error('appearance_sidebar_density')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="appearance_sidebar_surface" class="mb-1 block text-sm font-medium text-slate-700">Sidebar surface</label>
+                    <select name="appearance_sidebar_surface" id="appearance_sidebar_surface" class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 focus:border-teal-500 focus:ring-teal-500">
+                        @foreach(\App\Models\Tenant::appearanceSidebarSurfaceOptions() as $value => $label)
+                        <option value="{{ $value }}" {{ old('appearance_sidebar_surface', $appearance['sidebar_surface'] ?? 'solid') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">Premium sidebar visual style. Best seen when Navigation style is set to Sidebar.</p>
+                    @error('appearance_sidebar_surface')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
                 </div>
             </div>
             <details class="group rounded-xl border border-slate-200 bg-slate-50/80 p-4">

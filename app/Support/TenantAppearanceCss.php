@@ -39,6 +39,22 @@ final class TenantAppearanceCss
             $parts[] = $navRules;
         }
 
+        $sidebarDensity = $settings['sidebar_density'] ?? 'comfortable';
+        if ($sidebarDensity === 'compact') {
+            $parts[] = 'body.layout-sidebar .sidebar-drawer nav a, body.layout-sidebar .sidebar-drawer nav button { padding-top: 0.45rem !important; padding-bottom: 0.45rem !important; font-size: 0.82rem !important; }';
+            $parts[] = 'body.layout-sidebar .sidebar-drawer nav { gap: 0.2rem !important; }';
+        }
+
+        $sidebarSurface = $settings['sidebar_surface'] ?? 'solid';
+        $sidebarRules = match ($sidebarSurface) {
+            'soft' => 'body.layout-sidebar .sidebar-drawer { background: linear-gradient(180deg, rgb(13 148 136 / 0.95) 0%, rgb(15 118 110 / 0.95) 100%) !important; }',
+            'glass' => 'body.layout-sidebar .sidebar-drawer { background: rgb(13 148 136 / 0.82) !important; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }',
+            default => null,
+        };
+        if ($sidebarRules !== null) {
+            $parts[] = $sidebarRules;
+        }
+
         return implode("\n", array_filter($parts));
     }
 }

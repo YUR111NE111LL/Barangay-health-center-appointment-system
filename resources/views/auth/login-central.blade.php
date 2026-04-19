@@ -170,8 +170,8 @@
             <div class="flex-1 p-6 sm:p-8 md:p-10 flex flex-col justify-start">
                 <div class="mb-6">
                     <p class="text-slate-500 text-sm">Central app</p>
-                    <h1 class="text-2xl font-bold text-slate-800 mt-0.5">Super Admin Login</h1>
-                    <p class="text-slate-500 text-xs mt-0.5">Platform administrator access. Staff or residents? Use your barangay’s own website to log in.</p>
+                    <h1 class="text-2xl font-bold text-slate-800 mt-0.5">Central App Login</h1>
+                    <p class="text-slate-500 text-xs mt-0.5">Central administrator access. Staff or residents should use their own barangay sign in and sign up pages.</p>
                 </div>
                 @if($displayAuthErrorMessage)
                     <div data-auth-alert class="mb-4 rounded-xl border border-rose-300 bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-800 transition-opacity duration-500" role="alert">
@@ -259,9 +259,8 @@
                 @endif
 
                 @if(Route::has('sign-up'))
-                    <p class="mt-4 text-center text-sm text-slate-600">Resident or staff? <a href="{{ route('sign-up') }}" class="font-medium text-teal-600 hover:text-teal-700 hover:underline">Sign up</a> (choose your barangay and role).</p>
-                    <a href="{{ route('sign-up') }}" class="mt-3 flex w-full items-center justify-center rounded-xl bg-teal-50 px-4 py-2.5 text-sm font-semibold text-teal-800 shadow-sm ring-1 ring-teal-500/10 transition hover:bg-teal-100">
-                        Create an account
+                    <a href="{{ route('sign-up', ['for' => 'super-admin']) }}" class="mt-4 flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50">
+                        Register Super Admin
                     </a>
                 @endif
                 @if(Route::has('tenant-applications.create'))

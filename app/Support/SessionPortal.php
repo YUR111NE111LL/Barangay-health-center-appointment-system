@@ -52,6 +52,12 @@ class SessionPortal
             return 'public';
         }
 
+        // Central hosts only serve Super Admin login at /login; POST always sends for=super-admin.
+        // GET usually has no ?for= query, which would pick the "public" portal and a different session — CSRF 419.
+        if ($isCentralHost && $pathTrim === 'login') {
+            return 'superadmin';
+        }
+
         if ($for === '' && ! $isCentralHost && in_array($pathTrim, ['login', 'register', 'sign-up', 'forgot-password'], true)) {
             $for = 'resident';
         }

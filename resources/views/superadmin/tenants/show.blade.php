@@ -64,7 +64,7 @@
                 @endforelse
             </dd>
         </div>
-        <div><dt class="text-sm font-medium text-slate-500">Plan</dt><dd class="mt-1 text-slate-800">{{ $tenant->plan->name }}</dd></div>
+        <div><dt class="text-sm font-medium text-slate-500">Plan</dt><dd class="mt-1 text-slate-800">{{ $tenant->plan?->name ?? '—' }}</dd></div>
         <div><dt class="text-sm font-medium text-slate-500">Active</dt><dd class="mt-1">{{ $tenant->is_active ? 'Yes' : 'No' }}</dd></div>
         @if($tenant->address)<div class="sm:col-span-2"><dt class="text-sm font-medium text-slate-500">Address</dt><dd class="mt-1 text-slate-800">{{ $tenant->address }}</dd></div>@endif
         @if($tenant->contact_number)<div><dt class="text-sm font-medium text-slate-500">Contact</dt><dd class="mt-1 text-slate-800">{{ $tenant->contact_number }}</dd></div>@endif
@@ -113,12 +113,12 @@
                 @endif
             </dd>
         </div>
-        <div><dt class="text-sm font-medium text-slate-500">Users</dt><dd class="mt-1 text-slate-800">{{ $tenant->users_count }}</dd></div>
-        <div><dt class="text-sm font-medium text-slate-500">Appointments</dt><dd class="mt-1 text-slate-800">{{ $tenant->appointments_count }}</dd></div>
+        <div><dt class="text-sm font-medium text-slate-500">Users</dt><dd class="mt-1 text-slate-800">{{ $tenantUsersCount }}</dd></div>
+        <div><dt class="text-sm font-medium text-slate-500">Appointments</dt><dd class="mt-1 text-slate-800">{{ $tenantAppointmentsCount }}</dd></div>
     </dl>
 </div>
 
-@if($tenant->users->isNotEmpty())
+@if($tenantUsers->isNotEmpty())
 <div class="mt-8">
     <h2 class="mb-4 text-lg font-semibold text-slate-800">Users in this tenant</h2>
     <div class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60">
@@ -132,7 +132,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 bg-white">
-                    @foreach($tenant->users as $u)
+                    @foreach($tenantUsers as $u)
                     <tr class="hover:bg-slate-50/50">
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-3">
@@ -175,7 +175,7 @@
 @push('scripts')
 <div id="tenant-status-meta" class="hidden"
     data-is-active="{{ $tenant->is_active ? '1' : '0' }}"
-    data-user-count="{{ $tenant->users_count ?? 0 }}"
+    data-user-count="{{ $tenantUsersCount ?? 0 }}"
     data-tenant-name="{{ $tenant->name }}"
 ></div>
 <script>

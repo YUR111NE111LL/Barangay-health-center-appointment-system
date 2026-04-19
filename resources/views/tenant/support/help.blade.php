@@ -47,6 +47,49 @@
     </div>
 </div>
 
+<div class="mt-6 grid gap-6 lg:grid-cols-3">
+    <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/60 lg:col-span-2">
+        <h2 class="text-lg font-semibold text-slate-800">Quick actions</h2>
+        <p class="mt-1 text-sm text-slate-500">Common support tasks you can do right away.</p>
+        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+            @foreach($quickActions as $action)
+                <a href="{{ $action['url'] }}" class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 transition hover:border-teal-200 hover:bg-teal-50/40">
+                    <p class="text-sm font-semibold text-slate-800">{{ $action['label'] }}</p>
+                    <p class="mt-1 text-xs text-slate-600">{{ $action['description'] }}</p>
+                </a>
+            @endforeach
+        </div>
+    </div>
+
+    <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/60">
+        <h2 class="text-lg font-semibold text-slate-800">Before creating a ticket</h2>
+        <ul class="mt-4 space-y-2 text-sm text-slate-700">
+            @foreach($ticketChecklist as $item)
+                <li class="flex items-start gap-2">
+                    <span class="mt-0.5 text-teal-600">•</span>
+                    <span>{{ $item }}</span>
+                </li>
+            @endforeach
+        </ul>
+    </div>
+</div>
+
+<div class="mt-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/60">
+    <h2 class="text-lg font-semibold text-slate-800">Role-based help guides</h2>
+    <div class="mt-4 grid gap-4 lg:grid-cols-3">
+        @foreach($roleGuides as $guide)
+            <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                <h3 class="text-sm font-semibold text-slate-800">{{ $guide['title'] }}</h3>
+                <ol class="mt-2 list-decimal space-y-1 pl-4 text-sm text-slate-600">
+                    @foreach($guide['steps'] as $step)
+                        <li>{{ $step }}</li>
+                    @endforeach
+                </ol>
+            </div>
+        @endforeach
+    </div>
+</div>
+
 <div class="mt-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/60">
     <h2 class="text-lg font-semibold text-slate-800">Recent updates</h2>
     <div class="mt-4 space-y-3">

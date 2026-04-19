@@ -82,8 +82,14 @@ class PendingApprovalsController extends Controller
             return redirect()->route('super-admin.pending-approvals.index')
                 ->with('error', 'That account is not pending approval.');
         }
+        $wasSuperAdminSignup = $user->role === User::ROLE_SUPER_ADMIN;
         $name = $user->name;
         $user->delete();
+
+        if ($wasSuperAdminSignup) {
+            return redirect()->route('super-admin.pending-approvals.index')
+                ->with('success', "Registration for {$name} has been denied and removed. If needed, advise them to use Apply for tenant or ask an existing Super Admin to add a tenant.");
+        }
 
         return redirect()->route('super-admin.pending-approvals.index')
             ->with('success', "Registration for {$name} has been denied and removed.");

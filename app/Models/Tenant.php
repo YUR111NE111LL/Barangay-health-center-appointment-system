@@ -449,9 +449,39 @@ class Tenant extends Model implements TenantWithDatabase
     }
 
     /**
+     * @return array<string, string>
+     */
+    public static function appearanceSidebarDensityOptions(): array
+    {
+        return [
+            'comfortable' => 'Comfortable spacing',
+            'compact' => 'Compact (more items visible)',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function appearanceSidebarSurfaceOptions(): array
+    {
+        return [
+            'solid' => 'Solid teal',
+            'soft' => 'Soft gradient',
+            'glass' => 'Glass blur',
+        ];
+    }
+
+    /**
      * Defaults merged with saved Premium appearance settings.
      *
-     * @return array{content_width: string, logo_shape: string, page_background: string, accent_style: string}
+     * @return array{
+     *   content_width: string,
+     *   logo_shape: string,
+     *   page_background: string,
+     *   accent_style: string,
+     *   sidebar_density: string,
+     *   sidebar_surface: string
+     * }
      */
     public function mergedAppearanceSettings(): array
     {
@@ -460,6 +490,8 @@ class Tenant extends Model implements TenantWithDatabase
             'logo_shape' => 'circle',
             'page_background' => 'default',
             'accent_style' => 'default',
+            'sidebar_density' => 'comfortable',
+            'sidebar_surface' => 'solid',
         ];
         $saved = is_array($this->appearance_settings) ? $this->appearance_settings : [];
 

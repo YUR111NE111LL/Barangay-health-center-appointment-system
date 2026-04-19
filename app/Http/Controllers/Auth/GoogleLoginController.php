@@ -451,9 +451,9 @@ class GoogleLoginController extends Controller
             ->whereRaw('LOWER(email) = ?', [$emailNormalized])
             ->exists();
         if ($alreadyUnderTenant) {
-            $message = 'This Google account is registered under a barangay account and cannot log in as Super Admin.';
+            $message = 'This Google account is registered under a barangay account and cannot log in as Super Admin. Use your barangay sign in page, or submit Apply for tenant if you need a new tenant portal.';
 
-            return $this->redirectSuperAdminLoginError($message.' Please use Resident or Staff login and select your barangay.');
+            return $this->redirectSuperAdminLoginError($message);
         }
         if ($intent !== 'signup') {
             $message = __('This Google account is not registered as a Super Admin account. Please use the correct Super Admin email, or sign up first.');
@@ -468,12 +468,12 @@ class GoogleLoginController extends Controller
             'email' => $emailNormalized ?: $email,
             'password' => null,
             'google_id' => $googleId,
+            'is_approved' => false,
         ]);
         $newUser->syncRoles([User::ROLE_SUPER_ADMIN]);
-        Auth::login($newUser, true);
-        $request->session()->regenerate();
 
-        return redirect()->intended(route('super-admin.dashboard'));
+        return redirect()->route('pending-approval')
+            ->with('status', 'Your Super Admin account has been created. Approval is required before first login.');
     }
 
     /**

@@ -37,7 +37,7 @@
     @if($navLayout === 'sidebar')
     <div class="sidebar-overlay" id="backend-sidebar-overlay" aria-hidden="true"></div>
     <!-- Sidebar: drawer on mobile, fixed on md+ -->
-    <aside class="tenant-brand-nav sidebar-drawer fixed left-0 top-0 z-40 h-full w-56 border-r border-white/10 bg-teal-600 shadow-lg md:translate-x-0" id="backend-nav" data-brand-color="{{ e($brandColor) }}">
+    <aside class="tenant-brand-nav sidebar-drawer fixed left-0 top-0 z-40 flex h-full w-56 flex-col border-r border-white/10 bg-teal-600 shadow-lg md:translate-x-0" id="backend-nav" data-brand-color="{{ e($brandColor) }}">
         <div class="flex h-14 items-center justify-between gap-2 border-b border-white/20 px-4">
             <a href="{{ route($dashboardRouteName) }}" class="flex min-w-0 items-center gap-2">
                 @if($brandLogo)<img src="{{ $brandLogo }}" alt="" class="{{ $brandLogoClass ?? 'h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-white/25' }}">@endif
@@ -51,7 +51,7 @@
             $sbDefault = 'rounded-lg px-3 py-2.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition';
             $sbActive  = 'rounded-lg bg-white/25 px-3 py-2.5 text-sm font-semibold text-white border-l-4 border-white';
         @endphp
-        <nav class="flex flex-col gap-1 overflow-y-auto p-3">
+        <nav class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
             <a href="{{ route($dashboardRouteName) }}" class="{{ $dashboardIsActive ? $sbActive : $sbDefault }} inline-flex items-center gap-2"><x-tenant-nav-icon name="dashboard" class="h-4 w-4 shrink-0 opacity-90" />Dashboard</a>
             @if(auth()->user()->hasTenantPermission('view appointments'))
             <a href="{{ route('backend.appointments.index') }}" class="{{ request()->routeIs('backend.appointments.*') ? $sbActive : $sbDefault }} {{ ($backendPendingAppointmentsCount ?? 0) > 0 ? 'ring-1 ring-emerald-400 ring-offset-2 ring-offset-teal-600' : '' }} inline-flex items-center gap-2"><x-tenant-nav-icon name="appointments" class="h-4 w-4 shrink-0 opacity-90" />Appointments @if(($backendPendingAppointmentsCount ?? 0) > 0)<span class="ml-1 rounded-full bg-emerald-400 px-1.5 py-0.5 text-xs font-semibold text-teal-900">{{ $backendPendingAppointmentsCount }}</span>@endif</a>

@@ -54,6 +54,8 @@ class CustomizeWebController extends Controller
             $rules['appearance_logo_shape'] = ['nullable', 'string', 'in:circle,rounded,square'];
             $rules['appearance_page_background'] = ['nullable', 'string', 'in:default,soft_gray,warm,cool'];
             $rules['appearance_accent_style'] = ['nullable', 'string', 'in:default,flat,elevated'];
+            $rules['appearance_sidebar_density'] = ['nullable', 'string', 'in:comfortable,compact'];
+            $rules['appearance_sidebar_surface'] = ['nullable', 'string', 'in:solid,soft,glass'];
         }
         $validated = $request->validate($rules);
 
@@ -80,11 +82,15 @@ class CustomizeWebController extends Controller
             $ls = $validated['appearance_logo_shape'] ?? 'circle';
             $pb = $validated['appearance_page_background'] ?? 'default';
             $ac = $validated['appearance_accent_style'] ?? 'default';
+            $sd = $validated['appearance_sidebar_density'] ?? 'comfortable';
+            $ss = $validated['appearance_sidebar_surface'] ?? 'solid';
             $data['appearance_settings'] = [
                 'content_width' => in_array($cw, ['standard', 'narrow', 'wide'], true) ? $cw : 'standard',
                 'logo_shape' => in_array($ls, ['circle', 'rounded', 'square'], true) ? $ls : 'circle',
                 'page_background' => in_array($pb, ['default', 'soft_gray', 'warm', 'cool'], true) ? $pb : 'default',
                 'accent_style' => in_array($ac, ['default', 'flat', 'elevated'], true) ? $ac : 'default',
+                'sidebar_density' => in_array($sd, ['comfortable', 'compact'], true) ? $sd : 'comfortable',
+                'sidebar_surface' => in_array($ss, ['solid', 'soft', 'glass'], true) ? $ss : 'solid',
             ];
         }
 

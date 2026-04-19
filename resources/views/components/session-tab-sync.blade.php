@@ -1,4 +1,4 @@
-{{-- When another tab logs in/out on the same host + portal, localStorage updates and this tab reloads so the UI matches the shared session cookie. --}}
+{{-- When another tab logs in/out on the same host + portal, localStorage updates and this tab reloads so the UI matches the shared session cookie. Same-tab: only sync storage — do not reload (avoids flicker and broken UI when the key/user id briefly disagrees). --}}
 @if(auth()->check())
 <script>
 (function() {
@@ -7,12 +7,6 @@
     var uid = document.body.getAttribute('data-current-user-id');
     var key = 'bhcas_uid_' + host + '_' + portal;
     if (!uid) {
-        return;
-    }
-    var prev = localStorage.getItem(key);
-    if (prev !== null && prev !== String(uid)) {
-        localStorage.setItem(key, String(uid));
-        location.reload();
         return;
     }
     localStorage.setItem(key, String(uid));

@@ -189,6 +189,7 @@ return [
         '--path' => [
             database_path('migrations/2026_02_27_030632_create_permission_tables.php'),
             database_path('migrations/2026_02_27_200000_create_tenant_role_permissions_table.php'),
+            database_path('migrations/2026_04_19_160000_ensure_core_users_columns_on_tenant_databases.php'),
             database_path('migrations/0001_01_01_000006_create_services_table.php'),
             database_path('migrations/0001_01_01_000007_create_appointments_table.php'),
             database_path('migrations/2026_03_29_133528_add_rejection_reason_to_appointments_table.php'),

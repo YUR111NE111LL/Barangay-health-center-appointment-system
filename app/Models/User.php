@@ -112,13 +112,13 @@ class User extends Authenticatable
     /** Roles that require admin approval before access. */
     public static function rolesRequiringApproval(): array
     {
-        return [self::ROLE_STAFF, self::ROLE_NURSE, self::ROLE_HEALTH_CENTER_ADMIN];
+        return [self::ROLE_SUPER_ADMIN, self::ROLE_STAFF, self::ROLE_NURSE, self::ROLE_HEALTH_CENTER_ADMIN];
     }
 
     /** Roles that only Super Admin can approve (new Barangay Admin only). */
     public static function rolesApprovedBySuperAdmin(): array
     {
-        return [self::ROLE_HEALTH_CENTER_ADMIN];
+        return [self::ROLE_SUPER_ADMIN, self::ROLE_HEALTH_CENTER_ADMIN];
     }
 
     /** Roles that Barangay Admin can approve (Staff, Nurse in their tenant). */

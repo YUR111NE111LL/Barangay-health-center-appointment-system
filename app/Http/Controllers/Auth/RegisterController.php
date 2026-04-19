@@ -110,6 +110,9 @@ class RegisterController extends Controller
 
         $tenants = Tenant::with('domains')->where('is_active', true)->orderBy('name')->get();
         $currentTenant = tenant();
+        if (! $currentTenant && ! $request->filled('for')) {
+            $request->query->set('for', 'super-admin');
+        }
         $tenantRoleOptions = [];
         foreach ($tenants as $tenant) {
             $tenantRoleOptions[(int) $tenant->id] = $this->allowedTenantRolesForSignup((int) $tenant->id);
@@ -121,6 +124,14 @@ class RegisterController extends Controller
     public function register(Request $request): RedirectResponse
     {
         $currentTenant = tenant();
+        if (! $currentTenant) {
+            // Central sign-up is strictly for Super Admin accounts.
+            $request->merge([
+                'for' => 'super-admin',
+                'role' => User::ROLE_SUPER_ADMIN,
+                'tenant_id' => null,
+            ]);
+        }
         $tenantId = $request->input('tenant_id');
         $tenant = $currentTenant ?: ($tenantId ? Tenant::query()->find($tenantId) : null);
 
@@ -129,6 +140,22 @@ class RegisterController extends Controller
         $tenantIdForUnique = $tenant ? (int) $tenant->id : null;
 
         $doRegister = function () use ($request, $isSuperAdminSignup, $tenantIdForUnique, $currentTenant): RedirectResponse {
+            if ($isSuperAdminSignup) {
+                $emailNormalized = strtolower((string) $request->input('email', ''));
+                $alreadyUnderTenant = User::withoutGlobalScopes()
+                    ->whereNotNull('tenant_id')
+                    ->whereRaw('LOWER(email) = ?', [$emailNormalized])
+                    ->exists();
+                if ($alreadyUnderTenant) {
+                    $message = 'This email is already used by a barangay tenant account. Please use your barangay sign in/sign up page. If you need your own barangay portal, submit Apply for tenant.';
+
+                    return back()
+                        ->withInput($request->only('name', 'email'))
+                        ->with('auth_scope_alert', $message)
+                        ->withErrors(['email' => $message]);
+                }
+            }
+
             $allowedRoles = $isSuperAdminSignup
                 ? [User::ROLE_SUPER_ADMIN]
                 : $this->allowedTenantRolesForSignup($tenantIdForUnique);

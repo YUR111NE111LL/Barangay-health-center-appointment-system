@@ -4,7 +4,9 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Mail\TenantSiteReady;
+use App\Models\Appointment;
 use App\Models\Plan;
+use App\Models\Scopes\TenantScope;
 use App\Models\Tenant;
 use App\Models\TenantApplication;
 use App\Models\User;
@@ -304,10 +306,45 @@ class TenantManagementController extends Controller
     public function show(Tenant $tenant): View
     {
         $tenant->load('plan', 'domains');
-        $tenant->loadCount(['users', 'appointments']);
-        $tenant->load(['users' => fn ($q) => $q->orderBy('role')->orderBy('name')]);
 
-        return view('superadmin.tenants.show', compact('tenant'));
+        $tenantId = (int) $tenant->getTenantKey();
+        $tenantUsers = collect();
+        $tenantUsersCount = 0;
+        $tenantAppointmentsCount = 0;
+
+        try {
+            $tenant->run(function () use ($tenantId, &$tenantUsers, &$tenantUsersCount, &$tenantAppointmentsCount): void {
+                $tenantUsersCount = User::withoutGlobalScopes()
+                    ->where('tenant_id', $tenantId)
+                    ->count();
+                $tenantAppointmentsCount = Appointment::withoutGlobalScope(TenantScope::class)
+                    ->where('tenant_id', $tenantId)
+                    ->count();
+                $tenantUsers = User::withoutGlobalScopes()
+                    ->where('tenant_id', $tenantId)
+                    ->orderBy('role')
+                    ->orderBy('name')
+                    ->get();
+            });
+        } catch (\Throwable $e) {
+            report($e);
+            // Tenant DB missing or unreachable: fall back to central mirrored rows (may be empty).
+            $tenantUsersCount = $tenant->users()->count();
+            $tenantAppointmentsCount = $tenant->appointments()
+                ->withoutGlobalScope(TenantScope::class)
+                ->count();
+            $tenantUsers = $tenant->users()
+                ->orderBy('role')
+                ->orderBy('name')
+                ->get();
+        }
+
+        return view('superadmin.tenants.show', compact(
+            'tenant',
+            'tenantUsers',
+            'tenantUsersCount',
+            'tenantAppointmentsCount'
+        ));
     }
 
     /**
