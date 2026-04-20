@@ -6,7 +6,7 @@
 </head>
 <body style="font-family: ui-sans-serif, system-ui, sans-serif; line-height: 1.5; color: #1e293b;">
     <p>{{ __('Hello :name,', ['name' => $recipientName]) }}</p>
-    <p>{{ __(':barangay posted a new health announcement.', ['barangay' => $barangayName]) }}</p>
+    <p>{{ __(':poster posted a new health announcement.', ['poster' => $posterName]) }}</p>
     <p style="font-size: 1.125rem; font-weight: 600;">{{ $title }}</p>
     <p style="white-space: pre-wrap;">{{ $excerpt }}</p>
     <p>

@@ -51,9 +51,9 @@
                         <td class="px-4 py-3"><span class="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">{{ \App\Models\SupportTicket::statusLabel($ticket->status) }}</span></td>
                         <td class="px-4 py-3 text-sm text-slate-700">{{ ucfirst($ticket->priority) }}</td>
                         <td class="px-4 py-3 text-sm text-slate-700">
-                            <div class="font-medium text-slate-800">{{ $ticket->resolved_reporter_name ?: ($ticket->reporter_name ?: ($ticket->creator?->name ?? 'Unknown')) }}</div>
-                            @if($ticket->resolved_reporter_email || $ticket->reporter_email || $ticket->creator?->email)
-                                <div class="text-xs text-slate-500">{{ $ticket->resolved_reporter_email ?: ($ticket->reporter_email ?: $ticket->creator?->email) }}</div>
+                            <div class="font-medium text-slate-800">{{ $ticket->resolved_reporter_name ?: ($ticket->reporter_name ?: ('Unknown (user #'.$ticket->user_id.')')) }}</div>
+                            @if($ticket->resolved_reporter_email || $ticket->reporter_email)
+                                <div class="text-xs text-slate-500">{{ $ticket->resolved_reporter_email ?: $ticket->reporter_email }}</div>
                             @endif
                         </td>
                         <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-500">{{ $ticket->created_at?->format('M d, Y h:i A') }}</td>

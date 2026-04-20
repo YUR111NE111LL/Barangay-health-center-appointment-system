@@ -13,3 +13,8 @@ Schedule::command('app:check-plan-expirations')
     ->dailyAt('09:00')
     ->timezone('Asia/Manila')
     ->withoutOverlapping();
+
+Schedule::command('github:sync-releases')
+    ->hourly()
+    ->withoutOverlapping()
+    ->when(fn (): bool => is_string(config('github.token')) && config('github.token') !== '');

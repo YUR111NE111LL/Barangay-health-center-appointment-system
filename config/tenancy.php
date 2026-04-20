@@ -194,6 +194,7 @@ return [
             database_path('migrations/0001_01_01_000007_create_appointments_table.php'),
             database_path('migrations/2026_03_29_133528_add_rejection_reason_to_appointments_table.php'),
             database_path('migrations/2026_02_27_140000_create_announcements_table.php'),
+            database_path('migrations/2026_04_20_150000_add_created_by_user_id_to_announcements_table.php'),
             database_path('migrations/2026_02_27_140001_create_events_table.php'),
             database_path('migrations/2026_04_18_122646_create_audit_logs_table.php'),
             database_path('migrations/2026_04_16_120000_remove_manage_tenants_and_manage_billing_permissions.php'),

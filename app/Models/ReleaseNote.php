@@ -12,6 +12,7 @@ class ReleaseNote extends Model
 
     protected $fillable = [
         'tenant_id',
+        'external_ref',
         'created_by',
         'title',
         'summary',

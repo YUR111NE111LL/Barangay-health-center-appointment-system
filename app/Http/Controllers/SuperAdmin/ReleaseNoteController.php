@@ -4,9 +4,11 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ReleaseNote;
+use App\Support\GitHubReleasePublisher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ReleaseNoteController extends Controller
@@ -35,10 +37,12 @@ class ReleaseNoteController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'summary' => ['nullable', 'string', 'max:500'],
             'content' => ['nullable', 'string'],
-            'version' => ['nullable', 'string', 'max:50'],
+            'version' => ['nullable', 'string', 'max:50', Rule::requiredIf(fn () => $request->boolean('create_github_release'))],
             'type' => ['required', 'in:feature,fix,maintenance,security'],
             'is_pinned' => ['boolean'],
             'published_at' => ['nullable', 'date'],
+            'create_github_release' => ['boolean'],
+            'github_target_branch' => ['nullable', 'string', 'max:255'],
         ]);
 
         ReleaseNote::create([
@@ -53,7 +57,39 @@ class ReleaseNoteController extends Controller
             'published_at' => $validated['published_at'] ?? now(),
         ]);
 
-        return redirect()->route('super-admin.updates.index')->with('success', 'Global update published.');
+        $successMessage = 'Global update published.';
+        $githubWarning = null;
+
+        if ($request->boolean('create_github_release')) {
+            $bodyParts = array_filter([
+                $validated['summary'] ?? null,
+                $validated['content'] ?? null,
+            ]);
+            $releaseBody = $bodyParts !== [] ? implode("\n\n", $bodyParts) : null;
+
+            try {
+                app(GitHubReleasePublisher::class)->publishRelease(
+                    tagName: (string) $validated['version'],
+                    releaseName: $validated['title'],
+                    body: $releaseBody,
+                    targetBranch: $validated['github_target_branch'] ?? null,
+                );
+                $successMessage .= ' GitHub release created.';
+            } catch (\Throwable $e) {
+                report($e);
+                $githubWarning = 'Saved in BHCAS, but GitHub release failed: '.$e->getMessage();
+            }
+        }
+
+        $redirect = redirect()
+            ->route('super-admin.updates.index')
+            ->with('success', $successMessage);
+
+        if ($githubWarning !== null) {
+            $redirect->with('warning', $githubWarning);
+        }
+
+        return $redirect;
     }
 
     public function edit(ReleaseNote $update): View

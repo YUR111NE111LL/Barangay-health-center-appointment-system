@@ -190,7 +190,6 @@ Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('res
 
 Route::middleware(['auth', 'role:Super Admin'])->prefix('super-admin')->name('super-admin.')->group(function (): void {
     Route::get('/', [\App\Http\Controllers\SuperAdmin\SuperAdminController::class, 'dashboard'])->name('dashboard');
-    Route::get('accounts', [\App\Http\Controllers\SuperAdmin\SuperAdminController::class, 'accounts'])->name('accounts.index');
     Route::get('pending-approvals', [\App\Http\Controllers\SuperAdmin\PendingApprovalsController::class, 'index'])->name('pending-approvals.index');
     Route::put('pending-approvals/{user}', [\App\Http\Controllers\SuperAdmin\PendingApprovalsController::class, 'approve'])->name('pending-approvals.approve');
     Route::match(['delete'], 'pending-approvals/{user}', [\App\Http\Controllers\SuperAdmin\PendingApprovalsController::class, 'deny'])->name('pending-approvals.deny');
@@ -208,6 +207,9 @@ Route::middleware(['auth', 'role:Super Admin'])->prefix('super-admin')->name('su
     Route::get('updates/{update}/edit', [\App\Http\Controllers\SuperAdmin\ReleaseNoteController::class, 'edit'])->name('updates.edit');
     Route::put('updates/{update}', [\App\Http\Controllers\SuperAdmin\ReleaseNoteController::class, 'update'])->name('updates.update');
     Route::delete('updates/{update}', [\App\Http\Controllers\SuperAdmin\ReleaseNoteController::class, 'destroy'])->name('updates.destroy');
+    Route::post('updates/sync-github', \App\Http\Controllers\SuperAdmin\GitHubReleaseSyncController::class)
+        ->middleware('throttle:12,1')
+        ->name('updates.sync-github');
 
     Route::resource('tenants', \App\Http\Controllers\SuperAdmin\TenantManagementController::class);
     Route::get('plans', [\App\Http\Controllers\SuperAdmin\PlanManagementController::class, 'index'])->name('plans.index');

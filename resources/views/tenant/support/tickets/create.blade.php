@@ -32,19 +32,28 @@
 
     <div>
         <label for="subject" class="mb-1 block text-sm font-medium text-slate-700">Subject <span class="text-rose-500">*</span></label>
-        <input type="text" name="subject" id="subject" value="{{ old('subject') }}" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5" required>
+        <input type="text" name="subject" id="subject" value="{{ old('subject') }}" class="@error('subject') border-rose-500 ring-1 ring-rose-500 @enderror w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5" required maxlength="180">
+        @error('subject')
+            <p class="mt-1 text-sm text-rose-600">{{ $message }}</p>
+        @enderror
     </div>
 
     <div>
         <label for="description" class="mb-1 block text-sm font-medium text-slate-700">Description <span class="text-rose-500">*</span></label>
-        <textarea name="description" id="description" rows="6" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5" required>{{ old('description') }}</textarea>
-        <p class="mt-1 text-xs text-slate-500">Please include clear steps and expected result.</p>
+        <textarea name="description" id="description" rows="6" class="@error('description') border-rose-500 ring-1 ring-rose-500 @enderror w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5" required minlength="10">{{ old('description') }}</textarea>
+        <p class="mt-1 text-xs text-slate-500">Please include clear steps and expected result (at least 10 characters).</p>
+        @error('description')
+            <p class="mt-1 text-sm text-rose-600">{{ $message }}</p>
+        @enderror
     </div>
 
     <div>
         <label for="attachment" class="mb-1 block text-sm font-medium text-slate-700">Screenshot (optional)</label>
-        <input type="file" name="attachment" id="attachment" accept=".png,.jpg,.jpeg,.webp" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5">
+        <input type="file" name="attachment" id="attachment" accept=".png,.jpg,.jpeg,.webp" class="@error('attachment') border-rose-500 ring-1 ring-rose-500 @enderror w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5">
         <p class="mt-1 text-xs text-slate-500">Upload a screenshot of the bug (PNG/JPG/WEBP, max 4MB).</p>
+        @error('attachment')
+            <p class="mt-1 text-sm text-rose-600">{{ $message }}</p>
+        @enderror
     </div>
 
     <div class="flex gap-3">

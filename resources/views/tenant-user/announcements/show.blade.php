@@ -10,7 +10,7 @@
     @endif
     <div class="{{ ($hasAnnouncementsEvents ?? false) ? 'p-6 sm:p-8' : 'p-4 sm:p-6' }}">
         <h1 class="text-2xl font-bold text-slate-800">{{ $announcement->title }}</h1>
-        <p class="mt-2 text-sm text-slate-500">{{ $announcement->created_at->format('F d, Y') }}</p>
+        <p class="mt-2 text-sm text-slate-500">{{ $announcement->created_at->format('F d, Y') }}@if($announcement->creator) &middot; {{ $announcement->creator->name }}@endif</p>
         <div class="mt-4 whitespace-pre-wrap text-slate-700">{{ $announcement->body }}</div>
     </div>
 </article>

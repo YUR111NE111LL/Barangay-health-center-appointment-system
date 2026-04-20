@@ -25,19 +25,26 @@ class SupportReportController extends Controller
                 $rawStatus = (string) $request->query('status');
                 $mappedStatus = $superAdminStatusChoices[$rawStatus] ?? null;
                 if ($mappedStatus) {
-                    $query->where('status', $mappedStatus);
+                    if ($rawStatus === 'done') {
+                        $query->whereIn('status', [
+                            SupportTicket::STATUS_RESOLVED,
+                            SupportTicket::STATUS_CLOSED,
+                        ]);
+                    } else {
+                        $query->where('status', $mappedStatus);
+                    }
                 }
             })
             ->when($request->filled('priority'), function ($query) use ($request): void {
                 $query->where('priority', (string) $request->query('priority'));
             })
-            ->with(['tenant:id,name,site_name', 'tenant.domains', 'creator:id,name,email'])
+            ->with(['tenant:id,name,site_name', 'tenant.domains'])
             ->latest()
             ->paginate(20)
             ->withQueryString();
 
         $tickets->getCollection()->transform(function (SupportTicket $ticket): SupportTicket {
-            [$name, $email] = $this->resolveReporterIdentity($ticket);
+            [$name, $email] = $this->reporterFromStoredColumnsOnly($ticket);
             $ticket->setAttribute('resolved_reporter_name', $name);
             $ticket->setAttribute('resolved_reporter_email', $email);
 
@@ -64,6 +71,12 @@ class SupportReportController extends Controller
         $ticket->setAttribute('resolved_reporter_email', $email);
 
         $ticket->messages->each(function ($message) use ($ticket): void {
+            if (filled($message->author_name) || filled($message->author_email)) {
+                $message->setAttribute('resolved_author_name', $message->author_name);
+                $message->setAttribute('resolved_author_email', $message->author_email);
+
+                return;
+            }
             [$authorName, $authorEmail] = $this->resolveTenantUserIdentity((int) $ticket->tenant_id, (int) $message->user_id);
             $message->setAttribute('resolved_author_name', $authorName);
             $message->setAttribute('resolved_author_email', $authorEmail);
@@ -103,11 +116,25 @@ class SupportReportController extends Controller
     }
 
     /**
+     * List view: never opens tenant DB connections (misconfigured/slow tenant DBs caused endless loads).
+     *
+     * @return array{0:?string,1:?string}
+     */
+    private function reporterFromStoredColumnsOnly(SupportTicket $ticket): array
+    {
+        if (filled($ticket->reporter_name) || filled($ticket->reporter_email)) {
+            return [$ticket->reporter_name, $ticket->reporter_email];
+        }
+
+        return [null, null];
+    }
+
+    /**
      * @return array{0:?string,1:?string}
      */
     private function resolveReporterIdentity(SupportTicket $ticket): array
     {
-        if ($ticket->reporter_name || $ticket->reporter_email) {
+        if (filled($ticket->reporter_name) || filled($ticket->reporter_email)) {
             return [$ticket->reporter_name, $ticket->reporter_email];
         }
 

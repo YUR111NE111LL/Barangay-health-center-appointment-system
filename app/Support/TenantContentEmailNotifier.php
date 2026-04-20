@@ -15,15 +15,18 @@ use Illuminate\Support\Str;
 final class TenantContentEmailNotifier
 {
     /**
-     * Send announcement emails to approved tenant users (same pattern as appointment status mail: synchronous send, explicit mailer).
+     * Send announcement emails to tenant users who may use the app and have an email on file:
+     * approved users, plus roles that do not require approval (e.g. residents) even if {@see User::$is_approved} is false.
+     * Same pattern as appointment status mail: synchronous send, explicit mailer.
      *
      * @return int Number of send attempts (one per recipient)
      */
     public static function queueAnnouncementEmails(Tenant $tenant, Announcement $announcement): int
     {
         $tenant->loadMissing('domains');
+        $announcement->loadMissing('creator');
         $viewUrl = self::residentAbsoluteUrl($tenant, 'resident/announcements/'.$announcement->getKey());
-        $barangayName = $tenant->barangayDisplayName();
+        $posterName = $announcement->creator?->name ?? $tenant->barangayDisplayName();
         $title = $announcement->title;
         $excerpt = Str::limit(strip_tags((string) $announcement->body), 220);
 
@@ -32,7 +35,7 @@ final class TenantContentEmailNotifier
         foreach (self::recipients($tenant) as $user) {
             try {
                 Mail::mailer($mailer)->to($user->email)->send(new TenantAnnouncementEmail(
-                    barangayName: $barangayName,
+                    posterName: $posterName,
                     recipientName: $user->name,
                     title: $title,
                     excerpt: $excerpt,
@@ -48,7 +51,7 @@ final class TenantContentEmailNotifier
     }
 
     /**
-     * Send event emails to approved tenant users (same pattern as appointment status mail).
+     * Send event emails to the same recipient set as announcements.
      *
      * @return int Number of send attempts (one per recipient)
      */
@@ -92,11 +95,16 @@ final class TenantContentEmailNotifier
      */
     private static function recipients(Tenant $tenant): \Illuminate\Support\Collection
     {
+        $rolesRequiringApproval = User::rolesRequiringApproval();
+
         return User::query()
             ->where('tenant_id', (int) $tenant->id)
             ->whereNotNull('email')
             ->where('email', '!=', '')
-            ->where('is_approved', true)
+            ->where(function ($q) use ($rolesRequiringApproval) {
+                $q->where('is_approved', true)
+                    ->orWhereNotIn('role', $rolesRequiringApproval);
+            })
             ->get()
             ->unique(fn (User $user): string => strtolower((string) $user->email));
     }

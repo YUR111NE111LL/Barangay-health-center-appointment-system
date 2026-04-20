@@ -6,9 +6,15 @@
 <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <div>
         <h1 class="text-2xl font-bold text-slate-800">Global Updates</h1>
-        <p class="mt-1 text-sm text-slate-500">Publish one update for all tenants and resident portals.</p>
+        <p class="mt-1 text-sm text-slate-500">Publish one update for all tenants and resident portals. Sync from GitHub to import releases into this list.</p>
     </div>
-    <a href="{{ route('super-admin.updates.create') }}" class="rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-violet-800">Publish global update</a>
+    <div class="flex flex-wrap items-center gap-2">
+        <form action="{{ route('super-admin.updates.sync-github') }}" method="POST" class="inline" onsubmit="return confirm('Fetch latest releases and tags from GitHub and update global notes?');">
+            @csrf
+            <button type="submit" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Sync from GitHub</button>
+        </form>
+        <a href="{{ route('super-admin.updates.create') }}" class="rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-violet-800">Publish global update</a>
+    </div>
 </div>
 
 <div class="space-y-4">

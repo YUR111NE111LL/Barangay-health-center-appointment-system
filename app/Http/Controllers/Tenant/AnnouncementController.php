@@ -17,7 +17,7 @@ class AnnouncementController extends Controller
     public function index(): View
     {
         $tenant = auth()->user()->tenant;
-        $announcements = $tenant->announcements()->latest()->paginate(15);
+        $announcements = $tenant->announcements()->with('creator')->latest()->paginate(15);
 
         return view('tenant.announcements.index', compact('announcements'));
     }
@@ -60,7 +60,9 @@ class AnnouncementController extends Controller
             }
         }
         /** @var Announcement $announcement */
-        $announcement = $tenant->announcements()->create($validated);
+        $announcement = $tenant->announcements()->create(array_merge($validated, [
+            'created_by_user_id' => auth()->id(),
+        ]));
 
         if ($request->boolean('notify_users_by_email') && $announcement->is_published) {
             TenantContentEmailNotifier::queueAnnouncementEmails($tenant, $announcement);
@@ -74,6 +76,8 @@ class AnnouncementController extends Controller
         if ($announcement->tenant_id !== auth()->user()->tenant_id) {
             abort(403);
         }
+
+        $announcement->loadMissing('creator');
 
         return view('tenant.announcements.show', compact('announcement'));
     }

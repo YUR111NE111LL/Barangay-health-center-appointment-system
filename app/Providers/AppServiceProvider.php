@@ -8,6 +8,7 @@ use App\Listeners\SendAppointmentNotification;
 use App\Models\Announcement;
 use App\Models\Appointment;
 use App\Models\Event as EventModel;
+use App\Models\ReleaseNote;
 use App\Models\Service;
 use App\Models\SupportTicket;
 use App\Models\Tenant;
@@ -54,6 +55,8 @@ class AppServiceProvider extends ServiceProvider
             if (! app()->runningInConsole()) {
                 $view->with('sessionPortalKey', SessionPortal::portalKey(request()));
             }
+
+            $view->with('appVersion', $this->resolveAppVersionLabel());
         });
 
         // Per-tenant RBAC: tenant users use tenant_role_permissions only (via User::hasTenantPermission). Never Spatie.
@@ -261,5 +264,32 @@ class AppServiceProvider extends ServiceProvider
                 ->line(__('This password reset link will expire in :count minutes.', ['count' => config('auth.passwords.users.expire')]))
                 ->line(__('If you did not request a password reset, no further action is required.'));
         });
+    }
+
+    private function resolveAppVersionLabel(): string
+    {
+        $fallbackVersion = trim((string) config('app.version', '1.0.0'));
+
+        if (app()->runningInConsole()) {
+            return $fallbackVersion;
+        }
+
+        try {
+            $latestReleaseVersion = ReleaseNote::query()
+                ->whereNull('tenant_id')
+                ->whereNotNull('published_at')
+                ->whereNotNull('version')
+                ->orderByDesc('published_at')
+                ->orderByDesc('id')
+                ->value('version');
+
+            if (is_string($latestReleaseVersion) && trim($latestReleaseVersion) !== '') {
+                return trim($latestReleaseVersion);
+            }
+        } catch (\Throwable) {
+            // Keep UI stable even if release query fails.
+        }
+
+        return $fallbackVersion;
     }
 }

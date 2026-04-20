@@ -8,6 +8,7 @@ use App\Models\SupportTicketMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rules\File;
 use Illuminate\View\View;
 
@@ -65,26 +66,43 @@ class SupportTicketController extends Controller
             'attachment' => ['nullable', File::types(['png', 'jpg', 'jpeg', 'webp'])->max(4096)],
         ]);
 
-        $ticketNo = sprintf('SUP-%s-%04d', now()->format('Y'), ((int) SupportTicket::whereYear('created_at', now()->year)->count()) + 1);
-
         $attachmentPath = null;
         if ($request->hasFile('attachment')) {
             $attachmentPath = $request->file('attachment')->store('support-tickets/'.$tenant->id, 'public');
         }
 
-        SupportTicket::create([
-            'tenant_id' => $tenant->id,
-            'user_id' => $user->id,
-            'reporter_name' => $user->name,
-            'reporter_email' => $user->email,
-            'ticket_no' => $ticketNo,
-            'category' => $validated['category'],
-            'priority' => $validated['priority'],
-            'subject' => $validated['subject'],
-            'description' => $validated['description'],
-            'attachment_path' => $attachmentPath,
-            'status' => 'open',
-        ]);
+        $centralConnection = (string) config('tenancy.database.central_connection', 'central');
+
+        try {
+            DB::connection($centralConnection)->transaction(function () use ($user, $tenant, $validated, $attachmentPath): void {
+                $year = (int) now()->format('Y');
+                $nextSeq = (int) SupportTicket::query()
+                    ->whereYear('created_at', $year)
+                    ->lockForUpdate()
+                    ->count() + 1;
+                $ticketNo = sprintf('SUP-%d-%04d', $year, $nextSeq);
+
+                SupportTicket::create([
+                    'tenant_id' => $tenant->id,
+                    'user_id' => $user->id,
+                    'reporter_name' => $user->name,
+                    'reporter_email' => $user->email,
+                    'ticket_no' => $ticketNo,
+                    'category' => $validated['category'],
+                    'priority' => $validated['priority'],
+                    'subject' => $validated['subject'],
+                    'description' => $validated['description'],
+                    'attachment_path' => $attachmentPath,
+                    'status' => 'open',
+                ]);
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()
+                ->withInput()
+                ->with('error', __('We could not save your ticket. Please try again in a moment.'));
+        }
 
         return redirect()->route($this->routeBase().'.tickets.index')->with('success', 'Support ticket created successfully.');
     }

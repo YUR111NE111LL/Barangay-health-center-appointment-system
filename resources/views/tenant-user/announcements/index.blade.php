@@ -17,7 +17,7 @@
             <h2 class="text-lg font-semibold text-slate-800">
                 <a href="{{ route('resident.announcements.show', $a) }}" class="hover:text-teal-600">{{ $a->title }}</a>
             </h2>
-            <p class="mt-1 text-sm text-slate-500">{{ $a->created_at->format('M d, Y') }}</p>
+            <p class="mt-1 text-sm text-slate-500">{{ $a->created_at->format('M d, Y') }}@if($a->creator) &middot; {{ $a->creator->name }}@endif</p>
             <p class="mt-2 text-slate-600">{{ Str::limit(strip_tags($a->body), ($hasAnnouncementsEvents ?? false) ? 200 : 120) }}</p>
             <a href="{{ route('resident.announcements.show', $a) }}" class="mt-3 inline-block text-sm font-medium text-teal-600 hover:text-teal-700">Read more</a>
         </div>

@@ -51,6 +51,9 @@
                                 </span>
                             @endif
                             <span class="text-xs text-slate-400">{{ $a->created_at->format('M d, Y') }}</span>
+                            @if($a->creator)
+                                <span class="text-xs text-slate-400">&middot; {{ $a->creator->name }}</span>
+                            @endif
                         </div>
                         <h2 class="text-lg font-semibold text-slate-800 group-hover:text-teal-700 transition">{{ $a->title }}</h2>
                         <p class="mt-1.5 line-clamp-2 text-sm leading-relaxed text-slate-500">{{ Str::limit(strip_tags($a->body), 150) }}</p>

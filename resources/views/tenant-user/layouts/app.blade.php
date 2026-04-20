@@ -178,6 +178,7 @@
     </nav>
     @endif
 
+    @php($appVersion = trim((string) ($appVersion ?? config('app.version', ''))))
     <main class="px-4 py-8 sm:px-6 lg:px-8 @if($navLayout === 'sidebar') main-with-sidebar pt-14 md:pt-8 @else mx-auto {{ $tenantMainMaxWidthClass ?? 'max-w-4xl' }} @endif">
         @if(session('success'))
             <div class="mb-4 flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3 text-emerald-800 ring-1 ring-emerald-200">
@@ -189,6 +190,16 @@
             <div class="mb-4 flex items-center justify-between rounded-xl bg-rose-50 px-4 py-3 text-rose-800 ring-1 ring-rose-200">
                 <span>{{ session('error') }}</span>
                 <button type="button" onclick="this.parentElement.remove()" class="rounded p-1 hover:bg-rose-100" aria-label="Dismiss">&times;</button>
+            </div>
+        @endif
+        @if($errors->any())
+            <div class="mb-4 rounded-xl bg-rose-50 px-4 py-3 text-rose-800 ring-1 ring-rose-200" role="alert">
+                <p class="font-medium">{{ __('Please correct the following:') }}</p>
+                <ul class="mt-2 list-inside list-disc text-sm">
+                    @foreach ($errors->all() as $message)
+                        <li>{{ $message }}</li>
+                    @endforeach
+                </ul>
             </div>
         @endif
         @yield('content')
@@ -265,9 +276,16 @@
     </script>
     @include('components.professional-alerts')
     @include('components.session-tab-sync')
-    @if($tenant && $tenant->footer_text)
+    @if(($tenant && $tenant->footer_text) || $appVersion !== '')
     <footer class="mt-auto border-t border-slate-200 bg-white py-4">
-        <div class="mx-auto max-w-7xl px-4 text-center text-sm text-slate-500 sm:px-6 lg:px-8">{{ $tenant->footer_text }}</div>
+        <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 text-center text-sm text-slate-500 sm:px-6 lg:px-8">
+            @if($tenant && $tenant->footer_text)
+                <span>{{ $tenant->footer_text }}</span>
+            @endif
+            @if($appVersion !== '')
+                <span class="font-medium">Version {{ $appVersion }}</span>
+            @endif
+        </div>
     </footer>
     @endif
 </body>

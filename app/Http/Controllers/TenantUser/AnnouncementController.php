@@ -13,6 +13,7 @@ class AnnouncementController extends Controller
         $tenant = auth()->user()->tenant;
         $announcements = $tenant->announcements()
             ->where('is_published', true)
+            ->with('creator')
             ->latest()
             ->paginate(10);
         $hasAnnouncementsEvents = $tenant->hasFeature('announcements_events');
@@ -26,6 +27,7 @@ class AnnouncementController extends Controller
             abort(404);
         }
         $hasAnnouncementsEvents = auth()->user()->tenant?->hasFeature('announcements_events') ?? false;
+        $announcement->loadMissing('creator');
 
         return view('tenant-user.announcements.show', compact('announcement', 'hasAnnouncementsEvents'));
     }

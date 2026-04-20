@@ -9,4 +9,5 @@ it('registers super admin global update routes', function (): void {
     expect(Route::has('super-admin.updates.edit'))->toBeTrue();
     expect(Route::has('super-admin.updates.update'))->toBeTrue();
     expect(Route::has('super-admin.updates.destroy'))->toBeTrue();
+    expect(Route::has('super-admin.updates.sync-github'))->toBeTrue();
 });

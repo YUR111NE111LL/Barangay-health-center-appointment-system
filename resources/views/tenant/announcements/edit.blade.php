@@ -54,7 +54,7 @@
                     <input type="checkbox" name="notify_users_by_email" id="notify_users_by_email" value="1" {{ old('notify_users_by_email') ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500">
                     <label for="notify_users_by_email" class="text-sm text-slate-700">Notify tenant users by email</label>
                 </div>
-                <p class="ml-6 text-xs text-slate-500">Sends one email per approved user with an email address in this barangay (same mail settings as appointment notifications). Only runs when this announcement is published.</p>
+                <p class="ml-6 text-xs text-slate-500">Sends one email per tenant user with an email address (residents and staff who are allowed to use the app; pending approval accounts are skipped). Uses the same mail settings as appointment notifications. Only runs when this announcement is published.</p>
             </div>
         </div>
     </div>

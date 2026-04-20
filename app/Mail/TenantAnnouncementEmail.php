@@ -13,7 +13,7 @@ class TenantAnnouncementEmail extends Mailable
     use Queueable;
 
     public function __construct(
-        public string $barangayName,
+        public string $posterName,
         public string $recipientName,
         public string $title,
         public string $excerpt,
@@ -27,7 +27,7 @@ class TenantAnnouncementEmail extends Mailable
                 (string) config('mail.from.address'),
                 (string) config('mail.from.name'),
             ),
-            subject: __('New health announcement – :barangay', ['barangay' => $this->barangayName]),
+            subject: __('New health announcement – :poster', ['poster' => $this->posterName]),
         );
     }
 

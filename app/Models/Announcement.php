@@ -12,6 +12,7 @@ class Announcement extends Model
 
     protected $fillable = [
         'tenant_id',
+        'created_by_user_id',
         'title',
         'body',
         'image_path',
@@ -28,6 +29,11 @@ class Announcement extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
     public function getImageUrlAttribute(): ?string

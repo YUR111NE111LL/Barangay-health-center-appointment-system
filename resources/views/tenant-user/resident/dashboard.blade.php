@@ -23,7 +23,7 @@
             @foreach($announcements as $a)
             <li>
                 <a href="{{ route('resident.announcements.show', $a) }}" class="font-medium text-teal-600 hover:text-teal-700">{{ $a->title }}</a>
-                <span class="text-xs text-slate-400">{{ $a->created_at->format('M d') }}</span>
+                <span class="text-xs text-slate-400">{{ $a->created_at->format('M d') }}@if($a->creator) &middot; {{ $a->creator->name }}@endif</span>
             </li>
             @endforeach
         </ul>
