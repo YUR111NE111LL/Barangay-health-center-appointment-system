@@ -23,7 +23,15 @@ class ReleaseNoteController extends Controller
             ->orderByDesc('published_at')
             ->paginate(15);
 
-        return view('superadmin.updates.index', compact('notes'));
+        $latestVersionNote = ReleaseNote::query()
+            ->whereNull('tenant_id')
+            ->whereNotNull('published_at')
+            ->whereNotNull('version')
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->first(['version', 'published_at']);
+
+        return view('superadmin.updates.index', compact('notes', 'latestVersionNote'));
     }
 
     public function create(): View
@@ -35,12 +43,12 @@ class ReleaseNoteController extends Controller
     {
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'summary' => ['nullable', 'string', 'max:500'],
-            'content' => ['nullable', 'string'],
-            'version' => ['nullable', 'string', 'max:50', Rule::requiredIf(fn () => $request->boolean('create_github_release'))],
+            'summary' => ['required', 'string', 'max:500'],
+            'content' => ['required', 'string'],
+            'version' => ['required', 'string', 'max:50', Rule::requiredIf(fn () => $request->boolean('create_github_release'))],
             'type' => ['required', 'in:feature,fix,maintenance,security'],
             'is_pinned' => ['boolean'],
-            'published_at' => ['nullable', 'date'],
+            'published_at' => ['required', 'date'],
             'create_github_release' => ['boolean'],
             'github_target_branch' => ['nullable', 'string', 'max:255'],
         ]);
@@ -49,12 +57,12 @@ class ReleaseNoteController extends Controller
             'tenant_id' => null,
             'created_by' => Auth::id(),
             'title' => $validated['title'],
-            'summary' => $validated['summary'] ?? null,
-            'content' => $validated['content'] ?? null,
-            'version' => $validated['version'] ?? null,
+            'summary' => $validated['summary'],
+            'content' => $validated['content'],
+            'version' => $validated['version'],
             'type' => $validated['type'],
             'is_pinned' => $request->boolean('is_pinned'),
-            'published_at' => $validated['published_at'] ?? now(),
+            'published_at' => $validated['published_at'],
         ]);
 
         $successMessage = 'Global update published.';
@@ -105,22 +113,22 @@ class ReleaseNoteController extends Controller
 
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'summary' => ['nullable', 'string', 'max:500'],
-            'content' => ['nullable', 'string'],
-            'version' => ['nullable', 'string', 'max:50'],
+            'summary' => ['required', 'string', 'max:500'],
+            'content' => ['required', 'string'],
+            'version' => ['required', 'string', 'max:50'],
             'type' => ['required', 'in:feature,fix,maintenance,security'],
             'is_pinned' => ['boolean'],
-            'published_at' => ['nullable', 'date'],
+            'published_at' => ['required', 'date'],
         ]);
 
         $update->update([
             'title' => $validated['title'],
-            'summary' => $validated['summary'] ?? null,
-            'content' => $validated['content'] ?? null,
-            'version' => $validated['version'] ?? null,
+            'summary' => $validated['summary'],
+            'content' => $validated['content'],
+            'version' => $validated['version'],
             'type' => $validated['type'],
             'is_pinned' => $request->boolean('is_pinned'),
-            'published_at' => $validated['published_at'] ?? now(),
+            'published_at' => $validated['published_at'],
         ]);
 
         return redirect()->route('super-admin.updates.index')->with('success', 'Global update updated.');

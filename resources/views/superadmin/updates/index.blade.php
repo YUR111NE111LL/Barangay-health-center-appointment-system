@@ -7,6 +7,14 @@
     <div>
         <h1 class="text-2xl font-bold text-slate-800">Global Updates</h1>
         <p class="mt-1 text-sm text-slate-500">Publish one update for all tenants and resident portals. Sync from GitHub to import releases into this list.</p>
+        @if(!empty($latestVersionNote?->version))
+            <p class="mt-2 inline-flex items-center gap-2 rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
+                Latest version: v{{ $latestVersionNote->version }}
+                @if($latestVersionNote->published_at)
+                    <span class="font-normal text-violet-600">({{ $latestVersionNote->published_at->format('M d, Y h:i A') }})</span>
+                @endif
+            </p>
+        @endif
     </div>
     <div class="flex flex-wrap items-center gap-2">
         <form action="{{ route('super-admin.updates.sync-github') }}" method="POST" class="inline" onsubmit="return confirm('Fetch latest releases and tags from GitHub and update global notes?');">

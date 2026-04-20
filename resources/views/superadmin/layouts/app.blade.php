@@ -154,6 +154,16 @@
                 <button type="button" onclick="this.parentElement.remove()" class="rounded p-1 hover:bg-sky-100" aria-label="Dismiss">&times;</button>
             </div>
         @endif
+        @if($errors->any())
+            <div class="mb-4 rounded-xl bg-rose-50 px-4 py-3 text-rose-800 ring-1 ring-rose-200" role="alert">
+                <p class="font-medium">{{ __('Please correct the following:') }}</p>
+                <ul class="mt-2 list-inside list-disc text-sm">
+                    @foreach ($errors->all() as $message)
+                        <li>{{ $message }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
         @yield('content')
     </main>
     @if($appVersion !== '')
