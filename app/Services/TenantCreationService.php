@@ -43,14 +43,8 @@ class TenantCreationService
      */
     public function createTenantRecordAndDomain(array $validated, string $barangaySlugSource): Tenant
     {
-        $plan = Plan::findOrFail($validated['plan_id']);
-        $planSlug = $plan->slug ? Str::slug((string) $plan->slug) : Str::slug((string) $plan->name);
-        $barangaySlug = Str::slug($barangaySlugSource);
-        $domainSlug = Str::slug($validated['domain']);
-
-        $randomDbSegment = Str::lower(Str::random(6));
-        $dbName = str_replace('-', '_', 'tenant_'.$randomDbSegment.'_'.$planSlug.'_'.$barangaySlug.'_'.$domainSlug);
-        $dbName = $this->sanitizeTenantDatabaseName($dbName);
+        Plan::findOrFail($validated['plan_id']);
+        $dbName = $this->buildHashedTenantDatabaseName();
 
         $tenant = Tenant::create([
             'plan_id' => $validated['plan_id'],
@@ -102,5 +96,16 @@ class TenantCreationService
         }
 
         return $dbName;
+    }
+
+    /**
+     * Build a tenant database name that keeps the public `tenant_` prefix
+     * while hiding tenant-identifying metadata behind a random hash token.
+     */
+    private function buildHashedTenantDatabaseName(): string
+    {
+        $token = bin2hex(random_bytes(12));
+
+        return $this->sanitizeTenantDatabaseName('tenant_'.$token);
     }
 }

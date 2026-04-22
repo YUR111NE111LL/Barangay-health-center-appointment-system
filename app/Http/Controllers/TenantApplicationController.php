@@ -13,6 +13,7 @@ use App\Support\Recaptcha;
 use App\Support\TenantDomainInput;
 use App\Support\TenantPortalLoginUrls;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -23,11 +24,28 @@ use Spatie\Permission\Models\Role;
 
 class TenantApplicationController extends Controller
 {
-    public function create(): View
+    public function create(Request $request): View
     {
         $plans = Plan::query()->orderBy('name')->get();
+        $trackingEmail = strtolower(trim((string) $request->query('track_email', '')));
+        if ($trackingEmail === '') {
+            $trackingEmail = strtolower(trim((string) $request->session()->get('tenant_application_tracking_email', '')));
+        }
+        $trackedApplications = collect();
 
-        return view('tenant-applications.create', compact('plans'));
+        if ($trackingEmail !== '' && filter_var($trackingEmail, FILTER_VALIDATE_EMAIL)) {
+            $request->session()->put('tenant_application_tracking_email', $trackingEmail);
+            $trackedApplications = TenantApplication::query()
+                ->with('plan')
+                ->whereRaw('LOWER(email) = ?', [$trackingEmail])
+                ->latest()
+                ->limit(10)
+                ->get();
+        } elseif ($trackingEmail !== '') {
+            $trackingEmail = '';
+        }
+
+        return view('tenant-applications.create', compact('plans', 'trackingEmail', 'trackedApplications'));
     }
 
     public function store(StoreTenantApplicationRequest $request): RedirectResponse

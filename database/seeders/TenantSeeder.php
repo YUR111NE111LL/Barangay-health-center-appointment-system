@@ -24,6 +24,7 @@ class TenantSeeder extends Seeder
                 'has_data_export' => false,
                 'has_email_notifications' => true,
                 'has_web_customization' => false,
+                'has_full_web_customization' => false,
                 'price' => 250,
             ]
         );
@@ -43,6 +44,7 @@ class TenantSeeder extends Seeder
                 'has_data_export' => false,
                 'has_email_notifications' => true,
                 'has_web_customization' => true,
+                'has_full_web_customization' => false,
                 'price' => 650,
             ]
         );
@@ -62,6 +64,7 @@ class TenantSeeder extends Seeder
                 'has_data_export' => true,
                 'has_email_notifications' => true,
                 'has_web_customization' => true,
+                'has_full_web_customization' => true,
                 'price' => 1000,
             ]
         );

@@ -26,7 +26,8 @@ final class TenantContentEmailNotifier
         $tenant->loadMissing('domains');
         $announcement->loadMissing('creator');
         $viewUrl = self::residentAbsoluteUrl($tenant, 'resident/announcements/'.$announcement->getKey());
-        $posterName = $announcement->creator?->name ?? $tenant->barangayDisplayName();
+        // Use barangay/tenant display name in email content instead of the staff/admin poster name.
+        $posterName = $tenant->barangayDisplayName();
         $title = $announcement->title;
         $excerpt = Str::limit(strip_tags((string) $announcement->body), 220);
 

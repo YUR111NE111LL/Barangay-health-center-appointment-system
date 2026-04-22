@@ -19,9 +19,10 @@
                 @php
                     $saDefault = 'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white';
                     $saActive  = 'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-violet-800 shadow-sm';
+                    $saMoreActive = request()->routeIs('super-admin.support-reports.*', 'super-admin.updates.*', 'super-admin.pending-approvals.*');
                 @endphp
                 <div class="hidden min-w-0 flex-1 lg:flex lg:justify-center">
-                <div id="sa-nav-links" class="flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto overflow-y-visible py-1 [scrollbar-color:rgba(255,255,255,0.35)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/30">
+                <div id="sa-nav-links" class="flex max-w-full items-center gap-1 py-1">
                     <a href="{{ route('super-admin.dashboard') }}" class="{{ request()->routeIs('super-admin.dashboard') ? $saActive : $saDefault }}">
                         <svg class="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                         Dashboard
@@ -43,20 +44,36 @@
                         <svg class="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                         Users
                     </a>
-                    <a href="{{ route('super-admin.support-reports.index') }}" class="relative {{ request()->routeIs('super-admin.support-reports.*') ? $saActive : $saDefault }}">
-                        <svg class="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                        Tenants reports
-                        @if(($supportReportPendingCount ?? 0) > 0)<span class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold text-violet-900">{{ $supportReportPendingCount }}</span>@endif
-                    </a>
-                    <a href="{{ route('super-admin.updates.index') }}" class="{{ request()->routeIs('super-admin.updates.*') ? $saActive : $saDefault }}">
-                        <svg class="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
-                        Updates
-                    </a>
-                    <a href="{{ route('super-admin.pending-approvals.index') }}" class="relative {{ request()->routeIs('super-admin.pending-approvals.*') ? $saActive : $saDefault }}">
-                        <svg class="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        Pending approvals
-                        @if(($pendingCount ?? 0) > 0)<span class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold text-violet-900">{{ $pendingCount }}</span>@endif
-                    </a>
+                    <details class="group relative">
+                        <summary class="list-none cursor-pointer {{ $saMoreActive ? $saActive : $saDefault }} [&::-webkit-details-marker]:hidden">
+                            <svg class="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h7"/></svg>
+                            More
+                            @if((($supportReportPendingCount ?? 0) + ($pendingCount ?? 0)) > 0)
+                                <span class="ml-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-amber-400 px-1 text-[10px] font-bold text-violet-900">{{ ($supportReportPendingCount ?? 0) + ($pendingCount ?? 0) }}</span>
+                            @endif
+                            <svg class="h-3.5 w-3.5 shrink-0 opacity-80 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </summary>
+                        <div class="absolute left-0 z-[60] mt-2 min-w-[14rem] rounded-xl border border-white/10 bg-violet-950/95 p-1.5 shadow-xl ring-1 ring-black/25 backdrop-blur">
+                            <a href="{{ route('super-admin.support-reports.index') }}" class="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-white/90 hover:bg-white/10 {{ request()->routeIs('super-admin.support-reports.*') ? 'bg-white/10' : '' }}">
+                                <span class="inline-flex items-center gap-2">
+                                    <svg class="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                                    Tenants reports
+                                </span>
+                                @if(($supportReportPendingCount ?? 0) > 0)<span class="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-amber-400 px-1 text-[10px] font-bold text-violet-900">{{ $supportReportPendingCount }}</span>@endif
+                            </a>
+                            <a href="{{ route('super-admin.pending-approvals.index') }}" class="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-white/90 hover:bg-white/10 {{ request()->routeIs('super-admin.pending-approvals.*') ? 'bg-white/10' : '' }}">
+                                <span class="inline-flex items-center gap-2">
+                                    <svg class="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Pending approvals
+                                </span>
+                                @if(($pendingCount ?? 0) > 0)<span class="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-amber-400 px-1 text-[10px] font-bold text-violet-900">{{ $pendingCount }}</span>@endif
+                            </a>
+                            <a href="{{ route('super-admin.updates.index') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/90 hover:bg-white/10 {{ request()->routeIs('super-admin.updates.*') ? 'bg-white/10' : '' }}">
+                                <svg class="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+                                Updates
+                            </a>
+                        </div>
+                    </details>
                 </div>
                 </div>
                 <details class="group relative ml-auto shrink-0" id="sa-user-menu">

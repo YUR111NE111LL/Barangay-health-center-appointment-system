@@ -304,6 +304,44 @@ class TenantApplicationReviewController extends Controller
             ->with('success', $success);
     }
 
+    public function resendRejectionEmail(TenantApplication $tenantApplication): RedirectResponse
+    {
+        if ($tenantApplication->status !== TenantApplication::STATUS_REJECTED) {
+            return redirect()
+                ->route('super-admin.tenant-applications.show', $tenantApplication)
+                ->with('error', __('Only rejected applications can resend rejection email.'));
+        }
+
+        if (! filled($tenantApplication->email)) {
+            return redirect()
+                ->route('super-admin.tenant-applications.show', $tenantApplication)
+                ->with('error', __('No email was saved for this application.'));
+        }
+
+        try {
+            Mail::mailer(config('mail.default'))->to($tenantApplication->email)->send(new TenantApplicationRejected(
+                $tenantApplication->name,
+                $tenantApplication->barangay,
+                $tenantApplication->rejection_reason,
+            ));
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->route('super-admin.tenant-applications.show', $tenantApplication)
+                ->with('error', __('Could not send rejection email. Please check mail configuration/logs.'));
+        }
+
+        $success = __('Rejection email sent to :email.', ['email' => $tenantApplication->email]);
+        if (config('mail.default') === 'log' && config('app.debug')) {
+            $success .= ' '.__('MAIL_MAILER is log, so this was written to logs instead of an inbox.');
+        }
+
+        return redirect()
+            ->route('super-admin.tenant-applications.show', $tenantApplication)
+            ->with('success', $success);
+    }
+
     /**
      * Remove the application record from the list only. Does not delete an existing tenant site.
      */

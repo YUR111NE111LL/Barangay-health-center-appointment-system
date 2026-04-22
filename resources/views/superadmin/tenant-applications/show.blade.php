@@ -70,6 +70,15 @@
             </div>
         @endif
 
+        @if($tenantApplication->status === \App\Models\TenantApplication::STATUS_REJECTED && filled($tenantApplication->email))
+            <form action="{{ route('super-admin.tenant-applications.resend-rejection-email', $tenantApplication) }}" method="POST" class="pt-1">
+                @csrf
+                <button type="submit" class="inline-flex items-center rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800 hover:bg-rose-100">
+                    Resend rejection email
+                </button>
+            </form>
+        @endif
+
         @if($tenantApplication->reviewed_at)
             <div class="border-t border-slate-200 pt-4 text-sm text-slate-600">
                 Reviewed {{ \App\Support\DateDisplay::format($tenantApplication->reviewed_at) }}
