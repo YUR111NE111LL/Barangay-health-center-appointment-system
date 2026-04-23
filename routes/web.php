@@ -97,6 +97,7 @@ Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('bac
     Route::post('appointments/{appointment}/reject', [BackendAppointmentController::class, 'reject'])->name('appointments.reject');
 
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('reports/export/pdf', [ReportController::class, 'exportPdf'])->name('reports.export.pdf');
     Route::get('inventory', [\App\Http\Controllers\Tenant\InventoryController::class, 'index'])->name('inventory.index');
     Route::resource('medicines', \App\Http\Controllers\Tenant\MedicineController::class)->except(['show']);
 

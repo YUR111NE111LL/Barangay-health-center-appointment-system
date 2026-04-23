@@ -20,6 +20,10 @@ class RecordTenantAuthAudit
             return;
         }
 
+        if (! $this->isExplicitLoginRequest()) {
+            return;
+        }
+
         if ($this->shouldSkipDuplicate('login', $user->id)) {
             return;
         }
@@ -59,5 +63,20 @@ class RecordTenantAuthAudit
         self::$recordedThisRequest[$slot] = true;
 
         return false;
+    }
+
+    private function isExplicitLoginRequest(): bool
+    {
+        $request = request();
+        if (! $request) {
+            return false;
+        }
+
+        $routeName = $request->route()?->getName();
+        if (in_array($routeName, ['auth.google.tenant-session', 'auth.email.tenant-session'], true)) {
+            return true;
+        }
+
+        return $request->isMethod('post') && $request->is('login');
     }
 }

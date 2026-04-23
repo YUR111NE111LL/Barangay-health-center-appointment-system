@@ -16,6 +16,19 @@
         <input type="date" name="to" value="{{ $to }}" class="w-full rounded-lg border-slate-300 bg-slate-50 px-3 py-2 text-sm focus:border-teal-500 focus:ring-teal-500">
     </div>
     <button type="submit" class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">Apply</button>
+    <details class="relative">
+        <summary class="cursor-pointer rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            Export
+        </summary>
+        <div class="absolute right-0 z-10 mt-2 w-44 overflow-hidden rounded-lg bg-white py-1 shadow-lg ring-1 ring-slate-200">
+            <a
+                href="{{ route('backend.reports.export.pdf', ['from' => $from, 'to' => $to]) }}"
+                class="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            >
+                Export PDF
+            </a>
+        </div>
+    </details>
 </form>
 
 <div class="mb-6 grid gap-4 sm:grid-cols-2">

@@ -46,6 +46,80 @@
             background: linear-gradient(135deg, var(--tenant-brand, #0d9488) 0%, #0f766e 50%, #115e59 100%);
         }
         @media (max-width: 767px) { .login-panel-left { min-height: 12rem; } }
+        /* Keep reCAPTCHA badge at bottom-right, collapsed by default, expand on hover. */
+        .grecaptcha-badge {
+            position: fixed !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 2147483000 !important;
+            bottom: 10px !important;
+            right: 10px !important;
+            left: auto !important;
+            top: auto !important;
+            transform: none !important;
+            width: 70px !important;
+            overflow: hidden !important;
+            transition: width 0.2s ease !important;
+        }
+        .grecaptcha-badge:hover,
+        .grecaptcha-badge:focus-within {
+            width: 256px !important;
+        }
+        .grecaptcha-badge iframe {
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        .recaptcha-fallback-badge {
+            position: fixed;
+            right: 10px;
+            bottom: 10px;
+            z-index: 2147482999;
+            display: inline-flex;
+            align-items: center;
+            width: 70px;
+            height: 60px;
+            overflow: hidden;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+            background: #f9fafb;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+            text-decoration: none;
+            transition: width 0.2s ease;
+        }
+        .recaptcha-fallback-badge:hover,
+        .recaptcha-fallback-badge:focus-visible {
+            width: 256px;
+        }
+        .recaptcha-fallback-badge[hidden] {
+            display: none !important;
+        }
+        .recaptcha-fallback-badge__icon {
+            display: inline-flex;
+            width: 70px;
+            min-width: 70px;
+            height: 60px;
+            align-items: center;
+            justify-content: center;
+            background: #f3f4f6;
+        }
+        .recaptcha-fallback-badge__icon img {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+        }
+        .recaptcha-fallback-badge__text {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 60px;
+            min-width: 186px;
+            padding: 0 12px;
+            background: #1a73e8;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body
@@ -126,6 +200,22 @@
             </div>
         </div>
     </div>
+    @if(\App\Support\Recaptcha::shouldLoadClient())
+        <a
+            id="recaptcha-fallback-badge"
+            class="recaptcha-fallback-badge"
+            href="https://policies.google.com/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Protected by reCAPTCHA"
+            hidden
+        >
+            <span class="recaptcha-fallback-badge__icon" aria-hidden="true">
+                <img src="https://www.gstatic.com/recaptcha/api2/logo_48.png" alt="">
+            </span>
+            <span class="recaptcha-fallback-badge__text">protected by reCAPTCHA</span>
+        </a>
+    @endif
     @include('components.professional-alerts')
     <script>
     (function () {
@@ -202,8 +292,43 @@
         var tokenInput = form && document.getElementById('recaptcha_token');
         var submitBtn = form && document.getElementById('login-submit');
         var siteKey = form ? form.getAttribute('data-recaptcha-site-key') : '';
+        var fallbackBadge = document.getElementById('recaptcha-fallback-badge');
         var isSubmitting = false;
         var tokenPreloaded = false;
+        function hasVisibleNativeBadge() {
+            var nativeBadge = document.querySelector('.grecaptcha-badge');
+            if (! nativeBadge) {
+                return false;
+            }
+
+            var style = window.getComputedStyle(nativeBadge);
+            return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+        }
+        function syncFallbackBadgeVisibility() {
+            if (! fallbackBadge) {
+                return;
+            }
+
+            fallbackBadge.hidden = hasVisibleNativeBadge();
+        }
+        function injectFallbackRecaptchaScript() {
+            if (! siteKey || typeof document === 'undefined') {
+                return;
+            }
+            if (typeof grecaptcha !== 'undefined' && typeof grecaptcha.ready === 'function') {
+                return;
+            }
+            if (document.querySelector('script[data-recaptcha-fallback="1"]')) {
+                return;
+            }
+
+            var script = document.createElement('script');
+            script.src = 'https://www.recaptcha.net/recaptcha/api.js?render=' + encodeURIComponent(siteKey);
+            script.async = true;
+            script.defer = true;
+            script.setAttribute('data-recaptcha-fallback', '1');
+            document.head.appendChild(script);
+        }
         function waitForRecaptcha(callback) {
             if (! (form && siteKey)) { return; }
 
@@ -212,9 +337,9 @@
                 return;
             }
 
-            // Fast polling until grecaptcha is ready (reduces click delay).
+            // Fast polling until grecaptcha is ready (tenant domains may load script slower).
             var attempts = 0;
-            var maxAttempts = 60; // 60 * 50ms = 3s
+            var maxAttempts = 240; // 240 * 50ms = 12s
             function check() {
                 if (typeof grecaptcha !== 'undefined' && typeof grecaptcha.ready === 'function') {
                     callback();
@@ -248,6 +373,7 @@
                             tokenInput.value = token;
                             tokenPreloaded = true;
                         }
+                        syncFallbackBadgeVisibility();
                     }).catch(function(){ /* ignore preload failure */ });
                 });
             });
@@ -278,9 +404,25 @@
 
         if (form && siteKey) {
             form.addEventListener('submit', submitHandler);
+            // If Google script is blocked/slow on tenant domain, try the recaptcha.net host.
+            setTimeout(function () {
+                if (typeof grecaptcha === 'undefined' || typeof grecaptcha.ready !== 'function') {
+                    injectFallbackRecaptchaScript();
+                }
+                syncFallbackBadgeVisibility();
+            }, 2500);
+            // Retry token preload a few times so badge appears even on delayed script load.
+            setTimeout(preloadToken, 1500);
+            setTimeout(preloadToken, 4000);
+            setTimeout(preloadToken, 9000);
+            window.addEventListener('load', preloadToken);
+            window.addEventListener('load', syncFallbackBadgeVisibility);
+            setTimeout(syncFallbackBadgeVisibility, 6000);
+            setTimeout(syncFallbackBadgeVisibility, 12000);
         }
 
         preloadToken();
+        syncFallbackBadgeVisibility();
     })();
     </script>
     @endif

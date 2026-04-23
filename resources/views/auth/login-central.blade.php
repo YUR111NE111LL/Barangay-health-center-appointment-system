@@ -84,6 +84,29 @@
             outline: 2px solid #0d9488;
             outline-offset: 2px;
         }
+        /* Keep reCAPTCHA badge at bottom-right, collapsed by default, expand on hover. */
+        .grecaptcha-badge {
+            position: fixed !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 2147483000 !important;
+            bottom: 10px !important;
+            right: 10px !important;
+            left: auto !important;
+            top: auto !important;
+            transform: none !important;
+            width: 70px !important;
+            overflow: hidden !important;
+            transition: width 0.2s ease !important;
+        }
+        .grecaptcha-badge:hover,
+        .grecaptcha-badge:focus-within {
+            width: 256px !important;
+        }
+        .grecaptcha-badge iframe {
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
     </style>
 </head>
 <body

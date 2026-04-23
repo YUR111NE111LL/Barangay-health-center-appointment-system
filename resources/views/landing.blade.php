@@ -294,7 +294,7 @@
         .custom-scrollbar::-webkit-scrollbar-thumb {
             background: #94a3b8;
             border-radius: 10px;
-        }
+            }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #64748b;
         }
