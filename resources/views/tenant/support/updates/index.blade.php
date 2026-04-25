@@ -7,6 +7,7 @@
     <div>
         <h1 class="text-2xl font-bold text-slate-800">Release Notes</h1>
         <p class="mt-1 text-sm text-slate-500">Stay informed with latest features, fixes, and maintenance updates.</p>
+        <p class="mt-1 text-xs text-slate-500">Global updates published by Super Admin appear here automatically for tenant admins and users.</p>
     </div>
 </div>
 
@@ -21,12 +22,25 @@
                         @if($note->version)
                             <span class="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-700">v{{ $note->version }}</span>
                         @endif
+                        @if($note->tenant_id === null)
+                            <span class="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">Global update</span>
+                        @endif
                         @if($note->is_pinned)
                             <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Pinned</span>
                         @endif
                     </div>
                 </div>
                 <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                    @php
+                        $isGitHubNote = is_string($note->external_ref ?? null) && str_starts_with((string) $note->external_ref, 'github:');
+                        $downloadUrl = null;
+                        if ($isGitHubNote && filled($note->version) && filled(config('github.owner')) && filled(config('github.repo'))) {
+                            $downloadUrl = 'https://github.com/'.urlencode((string) config('github.owner')).'/'.urlencode((string) config('github.repo')).'/archive/refs/tags/'.urlencode((string) $note->version).'.zip';
+                        }
+                    @endphp
+                    @if($downloadUrl)
+                        <a href="{{ $downloadUrl }}" target="_blank" rel="noopener noreferrer" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100">Download package</a>
+                    @endif
                     @if($isAdmin && str_starts_with($routeBase, 'backend.') && auth()->user()?->tenant_id && (int) $note->tenant_id === (int) auth()->user()->tenant_id)
                         <a href="{{ route($routeBase . '.updates.edit', $note) }}" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-slate-50">Edit</a>
                         <form action="{{ route($routeBase . '.updates.destroy', $note) }}" method="POST" class="inline" onsubmit="return confirm('Delete this update note?');">

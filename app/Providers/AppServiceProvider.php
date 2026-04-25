@@ -21,12 +21,14 @@ use App\Support\SessionPortal;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -46,6 +48,22 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Paginator::useTailwind();
+
+        RateLimiter::for('tenant-applications', function (\Illuminate\Http\Request $request): Limit {
+            return Limit::perMinute(12)->by((string) $request->ip());
+        });
+
+        RateLimiter::for('dashboard-live', function (\Illuminate\Http\Request $request): Limit {
+            return Limit::perMinute(90)->by($this->rateLimitIdentityKey($request, 'dashboard-live'));
+        });
+
+        RateLimiter::for('medicine-acquire', function (\Illuminate\Http\Request $request): Limit {
+            return Limit::perMinute(30)->by($this->rateLimitIdentityKey($request, 'medicine-acquire'));
+        });
+
+        RateLimiter::for('github-sync', function (\Illuminate\Http\Request $request): Limit {
+            return Limit::perMinute(12)->by($this->rateLimitIdentityKey($request, 'github-sync'));
+        });
 
         View::composer([
             'tenant.layouts.app',
@@ -291,5 +309,15 @@ class AppServiceProvider extends ServiceProvider
         }
 
         return $fallbackVersion;
+    }
+
+    private function rateLimitIdentityKey(\Illuminate\Http\Request $request, string $prefix): string
+    {
+        $userId = Auth::id();
+        if ($userId !== null) {
+            return $prefix.'|user:'.$userId;
+        }
+
+        return $prefix.'|ip:'.$request->ip();
     }
 }

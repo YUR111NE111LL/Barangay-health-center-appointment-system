@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\ReleaseNote;
 use App\Support\GitHubReleasePublisher;
+use App\Support\GitHubReleaseSyncService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,7 +32,9 @@ class ReleaseNoteController extends Controller
             ->orderByDesc('id')
             ->first(['version', 'published_at']);
 
-        return view('superadmin.updates.index', compact('notes', 'latestVersionNote'));
+        $releaseStatus = app(GitHubReleaseSyncService::class)->checkLatestReleaseStatus();
+
+        return view('superadmin.updates.index', compact('notes', 'latestVersionNote', 'releaseStatus'));
     }
 
     public function create(): View

@@ -11,6 +11,90 @@ use RuntimeException;
 final class GitHubReleaseSyncService
 {
     /**
+     * Read-only check for latest GitHub release vs latest local global version.
+     *
+     * @return array{
+     *   ok: bool,
+     *   has_update: bool,
+     *   latest_github_version: ?string,
+     *   latest_local_version: ?string,
+     *   message: string
+     * }
+     */
+    public function checkLatestReleaseStatus(): array
+    {
+        try {
+            $token = config('github.token');
+            $owner = config('github.owner');
+            $repo = config('github.repo');
+
+            if (! is_string($token) || $token === '' || ! is_string($owner) || $owner === '' || ! is_string($repo) || $repo === '') {
+                return [
+                    'ok' => false,
+                    'has_update' => false,
+                    'latest_github_version' => null,
+                    'latest_local_version' => $this->latestLocalGlobalVersion(),
+                    'message' => 'GitHub release check is not configured (set token, owner, and repo).',
+                ];
+            }
+
+            $path = '/repos/'.$this->encodePathSegment($owner).'/'.$this->encodePathSegment($repo).'/releases/latest';
+            $response = Http::timeout(20)
+                ->withHeaders([
+                    'Authorization' => 'Bearer '.$token,
+                    'Accept' => 'application/vnd.github+json',
+                    'X-GitHub-Api-Version' => '2022-11-28',
+                ])
+                ->get('https://api.github.com'.$path);
+
+            if (! $response->successful()) {
+                return [
+                    'ok' => false,
+                    'has_update' => false,
+                    'latest_github_version' => null,
+                    'latest_local_version' => $this->latestLocalGlobalVersion(),
+                    'message' => 'Could not check latest GitHub release (HTTP '.$response->status().').',
+                ];
+            }
+
+            /** @var array<string, mixed> $payload */
+            $payload = $response->json();
+            $githubVersion = $this->normalizeVersion((string) ($payload['tag_name'] ?? ''));
+            $localVersion = $this->latestLocalGlobalVersion();
+
+            if ($githubVersion === null) {
+                return [
+                    'ok' => false,
+                    'has_update' => false,
+                    'latest_github_version' => null,
+                    'latest_local_version' => $localVersion,
+                    'message' => 'Could not determine GitHub release version.',
+                ];
+            }
+
+            $hasUpdate = $localVersion === null || version_compare($this->normalizeForCompare($githubVersion), $this->normalizeForCompare($localVersion), '>');
+
+            return [
+                'ok' => true,
+                'has_update' => $hasUpdate,
+                'latest_github_version' => $githubVersion,
+                'latest_local_version' => $localVersion,
+                'message' => $hasUpdate
+                    ? 'New release update available.'
+                    : 'No release update available.',
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'ok' => false,
+                'has_update' => false,
+                'latest_github_version' => null,
+                'latest_local_version' => $this->latestLocalGlobalVersion(),
+                'message' => 'Could not check GitHub releases right now.',
+            ];
+        }
+    }
+
+    /**
      * Pull GitHub releases (and optionally tags) into global {@see ReleaseNote} rows.
      *
      * @return array{message: string, releases_created: int, releases_updated: int, tags_created: int, tags_skipped: int}
@@ -310,6 +394,22 @@ final class GitHubReleaseSyncService
         $v = trim($tagName);
 
         return $v !== '' ? Str::limit($v, 50, '') : null;
+    }
+
+    private function latestLocalGlobalVersion(): ?string
+    {
+        return ReleaseNote::query()
+            ->whereNull('tenant_id')
+            ->whereNotNull('published_at')
+            ->whereNotNull('version')
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->value('version');
+    }
+
+    private function normalizeForCompare(string $version): string
+    {
+        return ltrim(trim($version), 'vV');
     }
 
     private function inferType(string $body, string $title): string

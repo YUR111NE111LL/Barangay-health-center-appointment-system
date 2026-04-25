@@ -21,10 +21,10 @@ Route::get('/requirements', RequirementsController::class)->name('requirements')
 
 Route::get('/apply-for-tenant', [\App\Http\Controllers\TenantApplicationController::class, 'create'])->name('tenant-applications.create');
 Route::post('/apply-for-tenant', [\App\Http\Controllers\TenantApplicationController::class, 'store'])
-    ->middleware('throttle:12,1')
+    ->middleware('throttle:tenant-applications')
     ->name('tenant-applications.store');
 Route::post('/apply-for-tenant/google', [\App\Http\Controllers\TenantApplicationController::class, 'startGoogle'])
-    ->middleware('throttle:12,1')
+    ->middleware('throttle:tenant-applications')
     ->name('tenant-applications.google.start');
 
 Route::middleware(['tenancy.by_domain_for_auth'])->group(function (): void {
@@ -81,7 +81,7 @@ Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('bac
     Route::get('/nurse', [BackendDashboardController::class, 'nurse'])->name('nurse.dashboard')->middleware('role:Nurse');
     Route::get('/staff', [BackendDashboardController::class, 'staff'])->name('staff.dashboard')->middleware('role:Staff');
 
-    Route::middleware('throttle:90,1')->group(function (): void {
+    Route::middleware('throttle:dashboard-live')->group(function (): void {
         Route::get('/dashboard/live/summary', [DashboardLiveUpdateController::class, 'summary'])->name('dashboard.live.summary');
         Route::get('/dashboard/live/admin', [DashboardLiveUpdateController::class, 'admin'])->name('dashboard.live.admin')->middleware('tenant.barangay_admin');
         Route::get('/dashboard/live/nurse', [DashboardLiveUpdateController::class, 'nurse'])->name('dashboard.live.nurse')->middleware('role:Nurse');
@@ -172,7 +172,7 @@ Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('res
     Route::get('/medicine', [\App\Http\Controllers\TenantUser\MedicineController::class, 'index'])->name('medicine.index');
     Route::post('/medicine/{medicine}/acquire', [\App\Http\Controllers\TenantUser\MedicineController::class, 'acquire'])
         ->name('medicine.acquire')
-        ->middleware(['permission:acquire medicine', 'throttle:30,1']);
+        ->middleware(['permission:acquire medicine', 'throttle:medicine-acquire']);
 
     Route::prefix('support')->name('support.')->group(function (): void {
         Route::get('help', [\App\Http\Controllers\Tenant\SupportHelpController::class, 'index'])->name('help');
@@ -211,8 +211,11 @@ Route::middleware(['auth', 'role:Super Admin'])->prefix('super-admin')->name('su
     Route::put('updates/{update}', [\App\Http\Controllers\SuperAdmin\ReleaseNoteController::class, 'update'])->name('updates.update');
     Route::delete('updates/{update}', [\App\Http\Controllers\SuperAdmin\ReleaseNoteController::class, 'destroy'])->name('updates.destroy');
     Route::post('updates/sync-github', \App\Http\Controllers\SuperAdmin\GitHubReleaseSyncController::class)
-        ->middleware('throttle:12,1')
+        ->middleware('throttle:github-sync')
         ->name('updates.sync-github');
+    Route::post('updates/apply-downloaded', \App\Http\Controllers\SuperAdmin\ApplyDownloadedUpdateController::class)
+        ->middleware('throttle:github-sync')
+        ->name('updates.apply-downloaded');
 
     Route::resource('tenants', \App\Http\Controllers\SuperAdmin\TenantManagementController::class);
     Route::get('plans', [\App\Http\Controllers\SuperAdmin\PlanManagementController::class, 'index'])->name('plans.index');
