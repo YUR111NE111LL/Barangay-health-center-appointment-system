@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Services\CloudinaryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\File;
 use Illuminate\View\View;
@@ -19,7 +20,9 @@ class CustomizeWebController extends Controller
 {
     public function edit(): View
     {
-        $tenant = auth()->user()->tenant;
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+        $tenant = $user?->tenant;
         if (! $tenant || ! $tenant->hasFeature('web_customization')) {
             abort(403, 'Your plan does not include web customization.');
         }
@@ -29,7 +32,9 @@ class CustomizeWebController extends Controller
 
     public function update(Request $request): RedirectResponse
     {
-        $tenant = auth()->user()->tenant;
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+        $tenant = $user?->tenant;
         if (! $tenant || ! $tenant->hasFeature('web_customization')) {
             abort(403, 'Your plan does not include web customization.');
         }
@@ -56,6 +61,8 @@ class CustomizeWebController extends Controller
             $rules['appearance_accent_style'] = ['nullable', 'string', 'in:default,flat,elevated'];
             $rules['appearance_sidebar_density'] = ['nullable', 'string', 'in:comfortable,compact'];
             $rules['appearance_sidebar_surface'] = ['nullable', 'string', 'in:solid,soft,glass'];
+            $rules['appearance_card_style'] = ['nullable', 'string', 'in:default,soft,outlined'];
+            $rules['appearance_button_shape'] = ['nullable', 'string', 'in:rounded,pill,square'];
         }
         $validated = $request->validate($rules);
 
@@ -84,6 +91,8 @@ class CustomizeWebController extends Controller
             $ac = $validated['appearance_accent_style'] ?? 'default';
             $sd = $validated['appearance_sidebar_density'] ?? 'comfortable';
             $ss = $validated['appearance_sidebar_surface'] ?? 'solid';
+            $cs = $validated['appearance_card_style'] ?? 'default';
+            $bs = $validated['appearance_button_shape'] ?? 'rounded';
             $data['appearance_settings'] = [
                 'content_width' => in_array($cw, ['standard', 'narrow', 'wide'], true) ? $cw : 'standard',
                 'logo_shape' => in_array($ls, ['circle', 'rounded', 'square'], true) ? $ls : 'circle',
@@ -91,6 +100,8 @@ class CustomizeWebController extends Controller
                 'accent_style' => in_array($ac, ['default', 'flat', 'elevated'], true) ? $ac : 'default',
                 'sidebar_density' => in_array($sd, ['comfortable', 'compact'], true) ? $sd : 'comfortable',
                 'sidebar_surface' => in_array($ss, ['solid', 'soft', 'glass'], true) ? $ss : 'solid',
+                'card_style' => in_array($cs, ['default', 'soft', 'outlined'], true) ? $cs : 'default',
+                'button_shape' => in_array($bs, ['rounded', 'pill', 'square'], true) ? $bs : 'rounded',
             ];
         }
 

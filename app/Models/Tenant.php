@@ -472,6 +472,30 @@ class Tenant extends Model implements TenantWithDatabase
     }
 
     /**
+     * @return array<string, string>
+     */
+    public static function appearanceCardStyleOptions(): array
+    {
+        return [
+            'default' => 'Default cards',
+            'soft' => 'Soft cards (lighter, subtle shadow)',
+            'outlined' => 'Outlined cards (minimal shadow)',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function appearanceButtonShapeOptions(): array
+    {
+        return [
+            'rounded' => 'Rounded (default)',
+            'pill' => 'Pill',
+            'square' => 'Square-ish',
+        ];
+    }
+
+    /**
      * Defaults merged with saved Premium appearance settings.
      *
      * @return array{
@@ -480,7 +504,9 @@ class Tenant extends Model implements TenantWithDatabase
      *   page_background: string,
      *   accent_style: string,
      *   sidebar_density: string,
-     *   sidebar_surface: string
+     *   sidebar_surface: string,
+     *   card_style: string,
+     *   button_shape: string
      * }
      */
     public function mergedAppearanceSettings(): array
@@ -492,6 +518,8 @@ class Tenant extends Model implements TenantWithDatabase
             'accent_style' => 'default',
             'sidebar_density' => 'comfortable',
             'sidebar_surface' => 'solid',
+            'card_style' => 'default',
+            'button_shape' => 'rounded',
         ];
         $saved = is_array($this->appearance_settings) ? $this->appearance_settings : [];
 

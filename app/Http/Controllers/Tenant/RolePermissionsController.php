@@ -54,7 +54,9 @@ class RolePermissionsController extends Controller
 
     private function ensureBarangayAdmin(): void
     {
-        if (! Auth::user()?->hasTenantBarangayAdministrationAccess()) {
+        /** @var User|null $user */
+        $user = Auth::user();
+        if (! $user?->hasTenantBarangayAdministrationAccess()) {
             abort(403, 'Only Barangay (Health Center) Admin can manage role permissions.');
         }
     }
@@ -104,7 +106,7 @@ class RolePermissionsController extends Controller
                     (new RoleAndPermissionSeeder)->run();
                 }
 
-                TenantRbacSeeder::seedTenant((int) $tenant->id);
+                TenantRbacSeeder::seedTenant((int) $tenant->id, $tenant->plan?->slug);
             });
         } catch (\Throwable $e) {
             return false;
@@ -335,7 +337,7 @@ class RolePermissionsController extends Controller
         $toSync = array_values($validated['permissions'] ?? []);
 
         if (Schema::hasTable('tenant_role_permissions') && ! DB::table('tenant_role_permissions')->where('tenant_id', $tenant->id)->exists()) {
-            TenantRbacSeeder::seedTenant($tenant->id);
+            TenantRbacSeeder::seedTenant((int) $tenant->id, $tenant->plan?->slug);
         }
 
         DB::transaction(function () use ($tenant, $role, $toSync): void {
@@ -445,7 +447,7 @@ class RolePermissionsController extends Controller
         }
 
         RoleAndPermissionSeeder::syncPermissionTable();
-        TenantRbacSeeder::seedTenant((int) $tenant->id);
+        TenantRbacSeeder::seedTenant((int) $tenant->id, $tenant->plan?->slug);
     }
 
     /**
@@ -460,12 +462,22 @@ class RolePermissionsController extends Controller
 
         $excluded = TenantRbacExcludedPermissions::names();
 
-        return Permission::query()
+        /** @var \Illuminate\Database\Eloquent\Builder<Permission> $query */
+        $query = Permission::query()
             ->where('guard_name', 'web')
-            ->when($excluded !== [], fn ($q) => $q->whereNotIn('name', $excluded))
-            ->when($allowedPermissionNames !== ['*'] && $allowedPermissionNames !== [], fn ($q) => $q->whereIn('name', $allowedPermissionNames))
-            ->when($allowedPermissionNames === [], fn ($q) => $q->whereRaw('1 = 0'))
             ->orderBy('name');
+
+        if ($excluded !== []) {
+            $query->whereNotIn('name', $excluded);
+        }
+
+        if ($allowedPermissionNames !== ['*'] && $allowedPermissionNames !== []) {
+            $query->whereIn('name', $allowedPermissionNames);
+        } elseif ($allowedPermissionNames === []) {
+            $query->whereRaw('1 = 0');
+        }
+
+        return $query;
     }
 
     private function allowedPermissionsForPlan(?string $planSlug): array

@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Rules\TenantContactEmailUniqueInCentral;
 use App\Services\SeedTenantInitialData;
 use App\Services\TenantCreationService;
+use App\Services\TenantRbacSeeder;
 use App\Support\TenantPortalLoginUrls;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -398,6 +399,8 @@ class TenantManagementController extends Controller
 
     public function update(Request $request, Tenant $tenant): RedirectResponse
     {
+        $planWasChanged = (int) $tenant->plan_id !== (int) $request->input('plan_id');
+
         $request->merge([
             'domain' => $this->normalizeDomain((string) $request->input('domain', '')),
         ]);
@@ -423,12 +426,23 @@ class TenantManagementController extends Controller
             'is_active' => $validated['is_active'],
             'subscription_ends_at' => $validated['subscription_ends_at'] ?? null,
         ]);
+        $tenant->load('plan');
 
         $primary = $tenant->domains()->first();
         if ($primary instanceof Domain) {
             $primary->update(['domain' => Str::lower($validated['domain'])]);
         } else {
             $tenant->domains()->create(['domain' => Str::lower($validated['domain'])]);
+        }
+
+        if ($planWasChanged) {
+            try {
+                $tenant->run(function () use ($tenant): void {
+                    TenantRbacSeeder::syncStandardRolesToPlanDefaults((int) $tenant->id, $tenant->plan?->slug);
+                });
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         $message = $validated['is_active']

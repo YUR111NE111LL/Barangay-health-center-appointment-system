@@ -201,6 +201,7 @@ Route::middleware(['auth', 'role:Super Admin'])->prefix('super-admin')->name('su
     Route::post('tenant-applications/{tenant_application}/resend-rejection-email', [\App\Http\Controllers\SuperAdmin\TenantApplicationReviewController::class, 'resendRejectionEmail'])->name('tenant-applications.resend-rejection-email');
     Route::delete('tenant-applications/{tenant_application}', [\App\Http\Controllers\SuperAdmin\TenantApplicationReviewController::class, 'destroy'])->name('tenant-applications.destroy');
     Route::get('support-reports', [\App\Http\Controllers\SuperAdmin\SupportReportController::class, 'index'])->name('support-reports.index');
+    Route::get('support-reports/{ticket}/attachment', [\App\Http\Controllers\SuperAdmin\SupportReportController::class, 'viewAttachment'])->name('support-reports.attachment');
     Route::get('support-reports/{ticket}', [\App\Http\Controllers\SuperAdmin\SupportReportController::class, 'show'])->name('support-reports.show');
     Route::patch('support-reports/{ticket}/status', [\App\Http\Controllers\SuperAdmin\SupportReportController::class, 'updateStatus'])->name('support-reports.status');
     Route::get('updates', [\App\Http\Controllers\SuperAdmin\ReleaseNoteController::class, 'index'])->name('updates.index');

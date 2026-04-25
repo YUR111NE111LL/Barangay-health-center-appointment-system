@@ -233,6 +233,26 @@
                     <p class="mt-1 text-xs text-slate-500">Premium sidebar visual style. Best seen when Navigation style is set to Sidebar.</p>
                     @error('appearance_sidebar_surface')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
                 </div>
+                <div>
+                    <label for="appearance_card_style" class="mb-1 block text-sm font-medium text-slate-700">Card style</label>
+                    <select name="appearance_card_style" id="appearance_card_style" class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 focus:border-teal-500 focus:ring-teal-500">
+                        @foreach(\App\Models\Tenant::appearanceCardStyleOptions() as $value => $label)
+                        <option value="{{ $value }}" {{ old('appearance_card_style', $appearance['card_style'] ?? 'default') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">Premium: adjust how white panels and cards look across pages.</p>
+                    @error('appearance_card_style')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="appearance_button_shape" class="mb-1 block text-sm font-medium text-slate-700">Button shape</label>
+                    <select name="appearance_button_shape" id="appearance_button_shape" class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 focus:border-teal-500 focus:ring-teal-500">
+                        @foreach(\App\Models\Tenant::appearanceButtonShapeOptions() as $value => $label)
+                        <option value="{{ $value }}" {{ old('appearance_button_shape', $appearance['button_shape'] ?? 'rounded') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">Premium: use rounded, pill, or square-ish action buttons.</p>
+                    @error('appearance_button_shape')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
+                </div>
             </div>
             <details class="group rounded-xl border border-slate-200 bg-slate-50/80 p-4">
                 <summary class="cursor-pointer text-sm font-medium text-slate-800 marker:text-slate-400">Advanced: custom CSS (optional)</summary>

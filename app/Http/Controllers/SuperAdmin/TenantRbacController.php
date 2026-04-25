@@ -85,7 +85,7 @@ class TenantRbacController extends Controller
                     RoleAndPermissionSeeder::syncPermissionTable();
                 }
 
-                TenantRbacSeeder::seedTenant((int) $tenant->id);
+                TenantRbacSeeder::seedTenant((int) $tenant->id, $tenant->plan?->slug);
             });
         } catch (\Throwable $e) {
             return false;
@@ -224,7 +224,7 @@ class TenantRbacController extends Controller
 
         $tenant->run(function () use ($tenant, $role, $toSync): void {
             if (Schema::hasTable('tenant_role_permissions') && ! DB::table('tenant_role_permissions')->where('tenant_id', $tenant->id)->exists()) {
-                TenantRbacSeeder::seedTenant($tenant->id);
+                TenantRbacSeeder::seedTenant((int) $tenant->id, $tenant->plan?->slug);
             }
 
             DB::table('tenant_role_permissions')->where('tenant_id', $tenant->id)->where('role_name', $role->name)->delete();

@@ -28,7 +28,7 @@
             @if($ticket->attachment_url)
                 <div>
                     <div class="text-xs font-medium uppercase text-slate-500">Attachment</div>
-                    <a href="{{ $ticket->attachment_url }}" target="_blank" rel="noopener" class="mt-1 inline-flex rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                    <a href="{{ route('super-admin.support-reports.attachment', $ticket) }}" target="_blank" rel="noopener" class="mt-1 inline-flex rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
                         View attached screenshot
                     </a>
                 </div>

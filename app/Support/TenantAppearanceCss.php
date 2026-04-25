@@ -55,6 +55,26 @@ final class TenantAppearanceCss
             $parts[] = $sidebarRules;
         }
 
+        $cardStyle = $settings['card_style'] ?? 'default';
+        $cardRules = match ($cardStyle) {
+            'soft' => 'main .rounded-2xl.bg-white, main .rounded-xl.bg-white { background-color: rgb(248 250 252 / 0.92) !important; box-shadow: 0 1px 2px rgb(15 23 42 / 0.06) !important; }',
+            'outlined' => 'main .rounded-2xl.bg-white, main .rounded-xl.bg-white { box-shadow: none !important; border: 1px solid rgb(148 163 184 / 0.35) !important; }',
+            default => null,
+        };
+        if ($cardRules !== null) {
+            $parts[] = $cardRules;
+        }
+
+        $buttonShape = $settings['button_shape'] ?? 'rounded';
+        $buttonRules = match ($buttonShape) {
+            'pill' => 'button, input[type=submit], input[type=button], a.rounded-xl, a.rounded-lg { border-radius: 9999px !important; }',
+            'square' => 'button, input[type=submit], input[type=button], a.rounded-xl, a.rounded-lg { border-radius: 0.5rem !important; }',
+            default => null,
+        };
+        if ($buttonRules !== null) {
+            $parts[] = $buttonRules;
+        }
+
         return implode("\n", array_filter($parts));
     }
 }

@@ -38,13 +38,13 @@ class TenantSeeder extends Seeder
                 'has_automated_approval' => true,
                 'has_appointment_history' => true,
                 'has_monthly_reports' => true,
-                'has_inventory_tracking' => false,
+                'has_inventory_tracking' => true,
                 'has_advanced_analytics' => false,
                 'has_priority_support' => false,
                 'has_data_export' => false,
                 'has_email_notifications' => true,
                 'has_web_customization' => true,
-                'has_full_web_customization' => false,
+                'has_full_web_customization' => true,
                 'price' => 650,
             ]
         );

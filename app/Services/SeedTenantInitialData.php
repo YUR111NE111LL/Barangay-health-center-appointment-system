@@ -25,7 +25,13 @@ class SeedTenantInitialData
             (new RoleAndPermissionSeeder)->run();
 
             // Create per-tenant RBAC rows (tenant_role_permissions).
-            TenantRbacSeeder::seedTenant((int) $this->tenant->getTenantKey());
+            /** @var string|null $planSlug */
+            $planSlug = \App\Models\Tenant::query()
+                ->with('plan:id,slug')
+                ->find($this->tenant->getTenantKey())
+                ?->plan
+                ?->slug;
+            TenantRbacSeeder::seedTenant((int) $this->tenant->getTenantKey(), $planSlug);
 
             // Seed default services only for this tenant.
             $defaultServices = [

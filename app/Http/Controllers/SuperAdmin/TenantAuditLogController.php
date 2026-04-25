@@ -60,6 +60,8 @@ class TenantAuditLogController extends Controller
                     ->latest('created_at')
                     ->paginate(10);
 
+                $this->appendApprovedByDisplay($logs, $connection);
+
                 return view('superadmin.tenants.audit-log', [
                     'tenant' => $tenant,
                     'logs' => $logs,
@@ -71,5 +73,72 @@ class TenantAuditLogController extends Controller
                 ->route('super-admin.tenants.show', $tenant)
                 ->with('error', __('This tenant database is not provisioned yet. Use “Provision Tenant DB” on the tenant page.'));
         }
+    }
+
+    private function appendApprovedByDisplay(LengthAwarePaginator $logs, string $connection): void
+    {
+        $approverIds = collect($logs->items())
+            ->flatMap(function (AuditLog $log): array {
+                $ids = [];
+                foreach ([$log->old_values, $log->new_values] as $values) {
+                    if (is_array($values) && isset($values['approved_by']) && is_numeric($values['approved_by'])) {
+                        $ids[] = (int) $values['approved_by'];
+                    }
+                }
+
+                return $ids;
+            })
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values();
+
+        if ($approverIds->isEmpty()) {
+            return;
+        }
+
+        $approvers = \App\Models\User::on($connection)
+            ->select(['id', 'name', 'role'])
+            ->whereIn('id', $approverIds->all())
+            ->get()
+            ->keyBy('id');
+
+        $logs->setCollection(
+            $logs->getCollection()->map(function (AuditLog $log) use ($approvers): AuditLog {
+                $log->old_values = $this->decorateApprovedBy($log->old_values, $approvers);
+                $log->new_values = $this->decorateApprovedBy($log->new_values, $approvers);
+
+                return $log;
+            })
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $values
+     * @param  \Illuminate\Support\Collection<int, \App\Models\User>  $approvers
+     * @return array<string, mixed>|null
+     */
+    private function decorateApprovedBy(?array $values, \Illuminate\Support\Collection $approvers): ?array
+    {
+        if (! is_array($values) || ! isset($values['approved_by']) || ! is_numeric($values['approved_by'])) {
+            return $values;
+        }
+
+        $approverId = (int) $values['approved_by'];
+        if ($approverId <= 0) {
+            return $values;
+        }
+
+        $approver = $approvers->get($approverId);
+        if (! $approver) {
+            return $values;
+        }
+
+        $values['approved_by_user'] = [
+            'id' => $approver->id,
+            'name' => $approver->name,
+            'role' => $approver->role,
+        ];
+
+        return $values;
     }
 }

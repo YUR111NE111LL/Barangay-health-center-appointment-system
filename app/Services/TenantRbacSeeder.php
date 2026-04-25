@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\TenantRbacExcludedPermissions;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -25,7 +26,7 @@ class TenantRbacSeeder
      */
     private static array $baselineFilledForTenant = [];
 
-    public static function seedTenant(int $tenantId): void
+    public static function seedTenant(int $tenantId, ?string $planSlug = null): void
     {
         if (! Schema::hasTable('tenant_role_permissions')) {
             return;
@@ -37,9 +38,16 @@ class TenantRbacSeeder
 
         if ($hasAnyRows) {
             if (! isset(self::$baselineFilledForTenant[$tenantId])) {
-                self::fillMissingStandardRoleBaselines($tenantId);
+                self::fillMissingStandardRoleBaselines($tenantId, $planSlug);
                 self::$baselineFilledForTenant[$tenantId] = true;
             }
+
+            return;
+        }
+
+        $normalizedPlanSlug = strtolower((string) ($planSlug ?? ''));
+        if ($normalizedPlanSlug !== '') {
+            self::syncStandardRolesToPlanDefaults($tenantId, $normalizedPlanSlug);
 
             return;
         }
@@ -89,7 +97,7 @@ class TenantRbacSeeder
     /**
      * If this tenant has RBAC rows but a standard role has none (e.g. partial seed), copy Spatie defaults for that role only.
      */
-    private static function fillMissingStandardRoleBaselines(int $tenantId): void
+    private static function fillMissingStandardRoleBaselines(int $tenantId, ?string $planSlug = null): void
     {
         foreach (self::TENANT_ROLE_NAMES as $roleName) {
             $hasRows = DB::table('tenant_role_permissions')
@@ -111,7 +119,13 @@ class TenantRbacSeeder
                 continue;
             }
 
-            foreach ($role->permissions->pluck('name') as $permName) {
+            $permissionNames = self::permissionsForRoleWithPlanFilter(
+                $role->permissions->pluck('name')->toArray(),
+                $roleName,
+                $planSlug
+            );
+
+            foreach ($permissionNames as $permName) {
                 DB::table('tenant_role_permissions')->insertOrIgnore([
                     'tenant_id' => $tenantId,
                     'role_name' => $role->name,
@@ -119,6 +133,84 @@ class TenantRbacSeeder
                 ]);
             }
         }
+    }
+
+    public static function syncStandardRolesToPlanDefaults(int $tenantId, ?string $planSlug): void
+    {
+        if (! Schema::hasTable('tenant_role_permissions')) {
+            return;
+        }
+
+        self::ensureSpatieSeededForTenantDatabase();
+
+        $normalizedPlanSlug = strtolower((string) ($planSlug ?? 'basic'));
+
+        foreach (self::TENANT_ROLE_NAMES as $roleName) {
+            $role = Role::query()
+                ->where('guard_name', 'web')
+                ->where('name', $roleName)
+                ->with('permissions')
+                ->first();
+
+            if ($role === null) {
+                continue;
+            }
+
+            $permissionNames = self::permissionsForRoleWithPlanFilter(
+                $role->permissions->pluck('name')->toArray(),
+                $roleName,
+                $normalizedPlanSlug
+            );
+
+            DB::table('tenant_role_permissions')
+                ->where('tenant_id', $tenantId)
+                ->where('role_name', $roleName)
+                ->delete();
+
+            foreach ($permissionNames as $permName) {
+                DB::table('tenant_role_permissions')->insertOrIgnore([
+                    'tenant_id' => $tenantId,
+                    'role_name' => $roleName,
+                    'permission_name' => $permName,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @param  list<string>  $permissionNames
+     * @return list<string>
+     */
+    private static function permissionsForRoleWithPlanFilter(array $permissionNames, string $roleName, ?string $planSlug): array
+    {
+        $filtered = TenantRbacExcludedPermissions::filterList($permissionNames);
+        $allowedByPlan = self::allowedPermissionsForPlan($planSlug);
+
+        if ($allowedByPlan !== ['*']) {
+            $filtered = array_values(array_intersect($filtered, $allowedByPlan));
+        }
+
+        if ($roleName === 'Resident') {
+            $residentPerms = config('bhcas.resident_role_permissions', ['book appointments']);
+            $filtered = array_values(array_intersect($filtered, $residentPerms));
+        }
+
+        $filtered = array_values(array_unique($filtered));
+        sort($filtered);
+
+        return $filtered;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function allowedPermissionsForPlan(?string $planSlug): array
+    {
+        $normalizedPlanSlug = strtolower((string) ($planSlug ?: 'basic'));
+        $map = config('bhcas.plan_permissions', []);
+        $allowed = $map[$normalizedPlanSlug] ?? $map['basic'] ?? ['*'];
+
+        return $allowed === ['*'] ? ['*'] : array_values($allowed);
     }
 
     /** Seed all tenants that have no tenant_role_permissions rows. */

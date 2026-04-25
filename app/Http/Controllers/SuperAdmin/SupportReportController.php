@@ -9,6 +9,8 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Illuminate\View\View;
 use Stancl\Tenancy\Tenancy;
 
@@ -113,6 +115,43 @@ class SupportReportController extends Controller
         }
 
         return back()->with('success', 'Ticket status updated.');
+    }
+
+    public function viewAttachment(SupportTicket $ticket): BinaryFileResponse|RedirectResponse
+    {
+        if (! filled($ticket->attachment_path)) {
+            return back()->with('error', 'Attachment file is not available.');
+        }
+
+        $rawPath = trim((string) $ticket->attachment_path);
+
+        if (filter_var($rawPath, FILTER_VALIDATE_URL)) {
+            return redirect()->away($rawPath);
+        }
+
+        // Support legacy path formats saved in older records.
+        $candidatePaths = array_values(array_unique(array_filter([
+            $rawPath,
+            ltrim($rawPath, '/'),
+            preg_replace('#^storage/#', '', ltrim($rawPath, '/')) ?: null,
+            preg_replace('#^public/#', '', ltrim($rawPath, '/')) ?: null,
+        ])));
+
+        foreach ($candidatePaths as $path) {
+            if (Storage::disk('public')->exists($path)) {
+                return response()->file(Storage::disk('public')->path($path));
+            }
+        }
+
+        $tenantStorageBase = storage_path('tenant'.$ticket->tenant_id.'/app/public');
+        foreach ($candidatePaths as $path) {
+            $tenantScopedAbsolutePath = $tenantStorageBase.DIRECTORY_SEPARATOR.str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path);
+            if (is_file($tenantScopedAbsolutePath)) {
+                return response()->file($tenantScopedAbsolutePath);
+            }
+        }
+
+        return back()->with('error', 'Attachment file is not available.');
     }
 
     /**
