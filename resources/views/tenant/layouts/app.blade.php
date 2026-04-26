@@ -77,9 +77,7 @@
             @endif
             @endif
             @planFeature('inventory')
-            @if(auth()->user()->hasTenantPermission('manage inventory'))
             <a href="{{ route('backend.inventory.index') }}" class="{{ request()->routeIs('backend.inventory.*') ? $sbActive : $sbDefault }} {{ ($backendMedicineAcquisitionNotifyCount ?? 0) > 0 ? 'ring-1 ring-emerald-400 ring-offset-2 ring-offset-teal-600' : '' }} inline-flex items-center gap-2"><x-tenant-nav-icon name="inventory" class="h-4 w-4 shrink-0 opacity-90" />Inventory @if(($backendMedicineAcquisitionNotifyCount ?? 0) > 0)<span class="ml-1 rounded-full bg-emerald-400 px-1.5 py-0.5 text-xs font-semibold text-teal-900">{{ $backendMedicineAcquisitionNotifyCount }}</span>@endif</a>
-            @endif
             @if(auth()->user()->hasTenantPermission('manage medicine'))
             <a href="{{ route('backend.medicines.index') }}" class="{{ request()->routeIs('backend.medicines.*') ? $sbActive : $sbDefault }} {{ ($backendMedicineAcquisitionNotifyCount ?? 0) > 0 ? 'ring-1 ring-emerald-400 ring-offset-2 ring-offset-teal-600' : '' }} inline-flex items-center gap-2"><x-tenant-nav-icon name="medicine" class="h-4 w-4 shrink-0 opacity-90" />Medicine @if(($backendMedicineAcquisitionNotifyCount ?? 0) > 0)<span class="ml-1 rounded-full bg-emerald-400 px-1.5 py-0.5 text-xs font-semibold text-teal-900">{{ $backendMedicineAcquisitionNotifyCount }}</span>@endif</a>
             @endif
@@ -148,9 +146,7 @@
                             @endif
                             @endif
                             @planFeature('inventory')
-                            @if(auth()->user()->hasTenantPermission('manage inventory'))
                             <a href="{{ route('backend.inventory.index') }}" class="flex items-center justify-between gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"><span class="inline-flex items-center gap-2"><x-tenant-nav-icon name="inventory" class="h-4 w-4 shrink-0 text-slate-400" />Inventory</span> @if(($backendMedicineAcquisitionNotifyCount ?? 0) > 0)<span class="rounded-full bg-emerald-500 px-1.5 py-0.5 text-xs font-semibold text-white">{{ $backendMedicineAcquisitionNotifyCount }}</span>@endif</a>
-                            @endif
                             @if(auth()->user()->hasTenantPermission('manage medicine'))
                             <a href="{{ route('backend.medicines.index') }}" class="flex items-center justify-between gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"><span class="inline-flex items-center gap-2"><x-tenant-nav-icon name="medicine" class="h-4 w-4 shrink-0 text-slate-400" />Medicine</span> @if(($backendMedicineAcquisitionNotifyCount ?? 0) > 0)<span class="rounded-full bg-emerald-500 px-1.5 py-0.5 text-xs font-semibold text-white">{{ $backendMedicineAcquisitionNotifyCount }}</span>@endif</a>
                             @endif
@@ -329,9 +325,7 @@
                     @endif
                     @endif
                     @planFeature('inventory')
-                    @if(auth()->user()->hasTenantPermission('manage inventory'))
                     <a href="{{ route('backend.inventory.index') }}" class="{{ request()->routeIs('backend.inventory.*') ? $mobActive : $mobDefault }} {{ ($backendMedicineAcquisitionNotifyCount ?? 0) > 0 ? 'ring-1 ring-emerald-400 ring-offset-2 ring-offset-teal-600' : '' }} inline-flex items-center gap-2"><x-tenant-nav-icon name="inventory" class="h-4 w-4 shrink-0 opacity-90" />Inventory @if(($backendMedicineAcquisitionNotifyCount ?? 0) > 0)<span class="ml-1 rounded-full bg-emerald-400 px-1.5 py-0.5 text-xs font-semibold text-teal-900">{{ $backendMedicineAcquisitionNotifyCount }}</span>@endif</a>
-                    @endif
                     @if(auth()->user()->hasTenantPermission('manage medicine'))
                     <a href="{{ route('backend.medicines.index') }}" class="{{ request()->routeIs('backend.medicines.*') ? $mobActive : $mobDefault }} {{ ($backendMedicineAcquisitionNotifyCount ?? 0) > 0 ? 'ring-1 ring-emerald-400 ring-offset-2 ring-offset-teal-600' : '' }} inline-flex items-center gap-2"><x-tenant-nav-icon name="medicine" class="h-4 w-4 shrink-0 opacity-90" />Medicine @if(($backendMedicineAcquisitionNotifyCount ?? 0) > 0)<span class="ml-1 rounded-full bg-emerald-400 px-1.5 py-0.5 text-xs font-semibold text-teal-900">{{ $backendMedicineAcquisitionNotifyCount }}</span>@endif</a>
                     @endif

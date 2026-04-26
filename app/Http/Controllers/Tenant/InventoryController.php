@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Tenant;
 use App\Http\Controllers\Controller;
 use App\Models\MedicineAcquisition;
 use App\Support\MedicineAcquisitionNavBadge;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
@@ -12,9 +13,13 @@ class InventoryController extends Controller
 {
     public function index(): View
     {
-        $this->authorize('manage inventory');
-        MedicineAcquisitionNavBadge::acknowledgeFor(auth()->user());
-        $tenant = auth()->user()->tenant;
+        $user = Auth::user();
+        if (! $user) {
+            abort(403);
+        }
+
+        MedicineAcquisitionNavBadge::acknowledgeFor($user);
+        $tenant = $user->tenant;
         if (! $tenant || ! $tenant->hasFeature('inventory')) {
             abort(403, 'Your plan does not include inventory tracking.');
         }
