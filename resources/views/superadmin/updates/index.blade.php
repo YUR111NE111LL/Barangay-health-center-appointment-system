@@ -21,10 +21,6 @@
             @csrf
             <button type="submit" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Sync from GitHub</button>
         </form>
-        <form action="{{ route('super-admin.updates.apply-downloaded') }}" method="POST" class="inline" onsubmit="return confirm('Apply downloaded update files and run update commands now?');">
-            @csrf
-            <button type="submit" class="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100">Apply downloaded update</button>
-        </form>
         <a href="{{ route('super-admin.updates.create') }}" class="rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-violet-800">Publish global update</a>
     </div>
 </div>
@@ -34,6 +30,11 @@
     <p class="mt-1 text-sm {{ !empty($releaseStatus['ok']) ? (!empty($releaseStatus['has_update']) ? 'text-emerald-800' : 'text-slate-700') : 'text-amber-800' }}">
         {{ $releaseStatus['message'] ?? 'Release status unavailable.' }}
     </p>
+    @if(!empty($releaseStatus['latest_github_title']))
+        <p class="mt-2 text-xs {{ !empty($releaseStatus['ok']) ? 'text-slate-700' : 'text-amber-700' }}">
+            Latest GitHub release title: <strong>{{ $releaseStatus['latest_github_title'] }}</strong>
+        </p>
+    @endif
     @if(!empty($releaseStatus['latest_github_version']) || !empty($releaseStatus['latest_local_version']))
         <p class="mt-2 text-xs {{ !empty($releaseStatus['ok']) ? 'text-slate-600' : 'text-amber-700' }}">
             GitHub: <strong>{{ $releaseStatus['latest_github_version'] ?? '—' }}</strong>
@@ -41,6 +42,9 @@
             Local: <strong>{{ $releaseStatus['latest_local_version'] ?? '—' }}</strong>
         </p>
     @endif
+    <p class="mt-1 text-xs {{ !empty($releaseStatus['ok']) ? 'text-slate-600' : 'text-amber-700' }}">
+        Current system version: <strong>{{ $releaseStatus['current_app_version'] ?? '—' }}</strong>
+    </p>
 </div>
 
 <div class="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ring-1 ring-slate-200/60">

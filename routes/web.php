@@ -213,9 +213,6 @@ Route::middleware(['auth', 'role:Super Admin'])->prefix('super-admin')->name('su
     Route::post('updates/sync-github', \App\Http\Controllers\SuperAdmin\GitHubReleaseSyncController::class)
         ->middleware('throttle:github-sync')
         ->name('updates.sync-github');
-    Route::post('updates/apply-downloaded', \App\Http\Controllers\SuperAdmin\ApplyDownloadedUpdateController::class)
-        ->middleware('throttle:github-sync')
-        ->name('updates.apply-downloaded');
 
     Route::resource('tenants', \App\Http\Controllers\SuperAdmin\TenantManagementController::class);
     Route::get('plans', [\App\Http\Controllers\SuperAdmin\PlanManagementController::class, 'index'])->name('plans.index');

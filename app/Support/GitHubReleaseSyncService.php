@@ -16,8 +16,10 @@ final class GitHubReleaseSyncService
      * @return array{
      *   ok: bool,
      *   has_update: bool,
+     *   latest_github_title: ?string,
      *   latest_github_version: ?string,
      *   latest_local_version: ?string,
+     *   current_app_version: ?string,
      *   message: string
      * }
      */
@@ -27,13 +29,18 @@ final class GitHubReleaseSyncService
             $token = config('github.token');
             $owner = config('github.owner');
             $repo = config('github.repo');
+            $configuredAppVersion = $this->normalizeVersion((string) config('app.version', ''));
+            $latestLocalVersion = $this->latestLocalGlobalVersion();
+            $currentAppVersion = $this->resolveCurrentSystemVersion($configuredAppVersion, $latestLocalVersion);
 
             if (! is_string($token) || $token === '' || ! is_string($owner) || $owner === '' || ! is_string($repo) || $repo === '') {
                 return [
                     'ok' => false,
                     'has_update' => false,
+                    'latest_github_title' => null,
                     'latest_github_version' => null,
-                    'latest_local_version' => $this->latestLocalGlobalVersion(),
+                    'latest_local_version' => $latestLocalVersion,
+                    'current_app_version' => $currentAppVersion,
                     'message' => 'GitHub release check is not configured (set token, owner, and repo).',
                 ];
             }
@@ -51,23 +58,28 @@ final class GitHubReleaseSyncService
                 return [
                     'ok' => false,
                     'has_update' => false,
+                    'latest_github_title' => null,
                     'latest_github_version' => null,
-                    'latest_local_version' => $this->latestLocalGlobalVersion(),
+                    'latest_local_version' => $latestLocalVersion,
+                    'current_app_version' => $currentAppVersion,
                     'message' => 'Could not check latest GitHub release (HTTP '.$response->status().').',
                 ];
             }
 
             /** @var array<string, mixed> $payload */
             $payload = $response->json();
+            $githubTitle = trim((string) ($payload['name'] ?? ''));
             $githubVersion = $this->normalizeVersion((string) ($payload['tag_name'] ?? ''));
-            $localVersion = $this->latestLocalGlobalVersion();
+            $localVersion = $latestLocalVersion;
 
             if ($githubVersion === null) {
                 return [
                     'ok' => false,
                     'has_update' => false,
+                    'latest_github_title' => $githubTitle !== '' ? Str::limit($githubTitle, 255) : null,
                     'latest_github_version' => null,
                     'latest_local_version' => $localVersion,
+                    'current_app_version' => $currentAppVersion,
                     'message' => 'Could not determine GitHub release version.',
                 ];
             }
@@ -77,8 +89,10 @@ final class GitHubReleaseSyncService
             return [
                 'ok' => true,
                 'has_update' => $hasUpdate,
+                'latest_github_title' => $githubTitle !== '' ? Str::limit($githubTitle, 255) : null,
                 'latest_github_version' => $githubVersion,
                 'latest_local_version' => $localVersion,
+                'current_app_version' => $currentAppVersion,
                 'message' => $hasUpdate
                     ? 'New release update available.'
                     : 'No release update available.',
@@ -87,8 +101,10 @@ final class GitHubReleaseSyncService
             return [
                 'ok' => false,
                 'has_update' => false,
+                'latest_github_title' => null,
                 'latest_github_version' => null,
-                'latest_local_version' => $this->latestLocalGlobalVersion(),
+                'latest_local_version' => $latestLocalVersion ?? $this->latestLocalGlobalVersion(),
+                'current_app_version' => $currentAppVersion ?? $this->normalizeVersion((string) config('app.version', '')),
                 'message' => 'Could not check GitHub releases right now.',
             ];
         }
@@ -410,6 +426,23 @@ final class GitHubReleaseSyncService
     private function normalizeForCompare(string $version): string
     {
         return ltrim(trim($version), 'vV');
+    }
+
+    private function resolveCurrentSystemVersion(?string $configuredAppVersion, ?string $latestLocalVersion): ?string
+    {
+        if ($configuredAppVersion === null) {
+            return $latestLocalVersion;
+        }
+
+        if ($latestLocalVersion === null) {
+            return $configuredAppVersion;
+        }
+
+        return version_compare(
+            $this->normalizeForCompare($configuredAppVersion),
+            $this->normalizeForCompare($latestLocalVersion),
+            '>='
+        ) ? $configuredAppVersion : $latestLocalVersion;
     }
 
     private function inferType(string $body, string $title): string

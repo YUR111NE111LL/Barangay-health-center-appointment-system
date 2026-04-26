@@ -28,13 +28,9 @@ class TenantApplicationController extends Controller
     {
         $plans = Plan::query()->orderBy('name')->get();
         $trackingEmail = strtolower(trim((string) $request->query('track_email', '')));
-        if ($trackingEmail === '') {
-            $trackingEmail = strtolower(trim((string) $request->session()->get('tenant_application_tracking_email', '')));
-        }
         $trackedApplications = collect();
 
         if ($trackingEmail !== '' && filter_var($trackingEmail, FILTER_VALIDATE_EMAIL)) {
-            $request->session()->put('tenant_application_tracking_email', $trackingEmail);
             $trackedApplications = TenantApplication::query()
                 ->with('plan')
                 ->whereRaw('LOWER(email) = ?', [$trackingEmail])

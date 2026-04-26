@@ -503,12 +503,20 @@
         if (! statusResultsBlock) {
             return;
         }
+        var trackingEmailInput = document.getElementById('track_email');
         var autoHideMs = parseInt(statusResultsBlock.getAttribute('data-autohide-ms') || '15000', 10);
         if (Number.isNaN(autoHideMs) || autoHideMs < 1000) {
             autoHideMs = 15000;
         }
         setTimeout(function () {
             statusResultsBlock.classList.add('hidden');
+            if (trackingEmailInput) {
+                trackingEmailInput.value = '';
+            }
+            if (window.history && typeof window.history.replaceState === 'function') {
+                var cleanedUrl = window.location.origin + window.location.pathname;
+                window.history.replaceState({}, document.title, cleanedUrl);
+            }
         }, autoHideMs);
     })();
     </script>
