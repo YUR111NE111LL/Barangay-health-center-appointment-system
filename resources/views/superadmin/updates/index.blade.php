@@ -21,6 +21,12 @@
             @csrf
             <button type="submit" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Sync from GitHub</button>
         </form>
+        @if(!empty($releaseStatus['ok']) && !empty($releaseStatus['has_update']))
+            <form action="{{ route('super-admin.updates.sync-github') }}" method="POST" class="inline" onsubmit="return confirm('Apply the available GitHub release to this system now?');">
+                @csrf
+                <button type="submit" class="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">Apply for your system</button>
+            </form>
+        @endif
         <a href="{{ route('super-admin.updates.create') }}" class="rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-violet-800">Publish global update</a>
     </div>
 </div>
