@@ -56,7 +56,7 @@
                                 <div class="text-xs text-slate-500">{{ $ticket->resolved_reporter_email ?: $ticket->reporter_email }}</div>
                             @endif
                         </td>
-                        <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-500">{{ $ticket->created_at?->format('M d, Y h:i A') }}</td>
+                        <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-500">{{ \App\Support\DateDisplay::format($ticket->created_at, 'M d, Y h:i:s A') }}</td>
                         <td class="whitespace-nowrap px-4 py-3 text-sm">
                             <a href="{{ route('super-admin.support-reports.show', $ticket) }}" class="inline-flex rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
                                 View

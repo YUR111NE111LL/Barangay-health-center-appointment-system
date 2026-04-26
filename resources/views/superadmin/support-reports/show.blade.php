@@ -47,7 +47,7 @@
             <div><span class="font-medium text-slate-900">Category:</span> {{ ucfirst(str_replace('_', ' ', $ticket->category)) }}</div>
             <div><span class="font-medium text-slate-900">Priority:</span> {{ ucfirst($ticket->priority) }}</div>
             <div><span class="font-medium text-slate-900">Status:</span> {{ \App\Models\SupportTicket::statusLabel($ticket->status) }}</div>
-            <div><span class="font-medium text-slate-900">Created:</span> {{ $ticket->created_at?->format('M d, Y h:i A') }}</div>
+            <div><span class="font-medium text-slate-900">Created:</span> {{ \App\Support\DateDisplay::format($ticket->created_at, 'M d, Y h:i:s A') }}</div>
         </div>
         <form method="POST" action="{{ route('super-admin.support-reports.status', $ticket) }}" class="mt-4 space-y-2">
             @csrf
@@ -72,7 +72,7 @@
             <div class="rounded-xl border border-slate-200 p-3">
                 <div class="flex items-center justify-between gap-2">
                     <div class="text-sm font-medium text-slate-800">{{ $message->resolved_author_name ?: ($message->author_name ?: ($message->author?->name ?? 'Unknown user')) }}</div>
-                    <div class="text-xs text-slate-500">{{ $message->created_at?->format('M d, Y h:i A') }}</div>
+                    <div class="text-xs text-slate-500">{{ \App\Support\DateDisplay::format($message->created_at, 'M d, Y h:i:s A') }}</div>
                 </div>
                 @if($message->resolved_author_email || $message->author_email || $message->author?->email)
                     <div class="mt-0.5 text-xs text-slate-500">{{ $message->resolved_author_email ?: ($message->author_email ?: $message->author?->email) }}</div>

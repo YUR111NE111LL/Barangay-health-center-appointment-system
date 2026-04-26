@@ -5,6 +5,7 @@
 @section('content')
 <h1 class="mb-2 text-2xl font-bold text-slate-800">Super Admin audit log</h1>
 <p class="mb-6 text-slate-500">Tracks Super Admin account sign-ins, sign-outs, and tenant creation actions. Password values are never stored in plain text.</p>
+<p class="mb-4 text-xs text-slate-500">Display timezone: <strong>{{ config('bhcas.display_timezone', 'Asia/Manila') }}</strong></p>
 
 @if(!empty($auditLogTableMissing))
     <div class="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -27,7 +28,7 @@
         <tbody class="divide-y divide-slate-100">
             @forelse($logs as $log)
                 <tr class="align-top">
-                    <td class="whitespace-nowrap px-4 py-3 text-slate-700">{{ \App\Support\DateDisplay::format($log->created_at, 'Y-m-d H:i') }}</td>
+                    <td class="whitespace-nowrap px-4 py-3 text-slate-700">{{ \App\Support\DateDisplay::format($log->created_at, 'Y-m-d h:i:s A') }}</td>
                     <td class="whitespace-nowrap px-4 py-3">
                         <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium
                             @if($log->event === 'created') bg-emerald-100 text-emerald-800
