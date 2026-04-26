@@ -14,6 +14,7 @@ use App\Rules\TenantContactEmailUniqueInCentral;
 use App\Services\SeedTenantInitialData;
 use App\Services\TenantCreationService;
 use App\Services\TenantRbacSeeder;
+use App\Support\SuperAdminAuditRecorder;
 use App\Support\TenantPortalLoginUrls;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -262,6 +263,7 @@ class TenantManagementController extends Controller
 
             $tenant = app(TenantCreationService::class)->createFromValidatedData($validated, $barangaySlugSource);
             $tenant->load('plan', 'domains');
+            SuperAdminAuditRecorder::recordTenantCreated($tenant);
 
             $domain = $tenant->domains->first()?->domain;
             if ($domain !== null && filled($validated['email'] ?? null)) {

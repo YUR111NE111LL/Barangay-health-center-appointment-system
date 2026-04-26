@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Models\User;
+use App\Support\SuperAdminAuditRecorder;
 use App\Support\TenantAuditRecorder;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
@@ -28,6 +29,12 @@ class RecordTenantAuthAudit
             return;
         }
 
+        if ($user->isSuperAdmin()) {
+            SuperAdminAuditRecorder::recordAuth('login', $user, ['remember' => $event->remember]);
+
+            return;
+        }
+
         TenantAuditRecorder::recordAuth('login', $user, ['remember' => $event->remember]);
     }
 
@@ -39,6 +46,12 @@ class RecordTenantAuthAudit
         }
 
         if ($this->shouldSkipDuplicate('logout', $user->id)) {
+            return;
+        }
+
+        if ($user->isSuperAdmin()) {
+            SuperAdminAuditRecorder::recordAuth('logout', $user, null);
+
             return;
         }
 

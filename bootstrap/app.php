@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \App\Http\Middleware\EnsureUserHasPermission::class,
             'tenant.barangay_admin' => \App\Http\Middleware\EnsureUserIsTenantBarangayAdministrator::class,
             'tenancy.by_domain_for_auth' => \App\Http\Middleware\InitializeTenancyByDomainForAuth::class,
+            'audit.superadmin' => \App\Http\Middleware\RecordSuperAdminActionAudit::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
