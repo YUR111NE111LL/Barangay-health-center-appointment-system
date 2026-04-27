@@ -46,7 +46,7 @@ final class GitHubReleaseSyncService
             }
 
             $path = '/repos/'.$this->encodePathSegment($owner).'/'.$this->encodePathSegment($repo).'/releases/latest';
-            $response = Http::timeout(20)
+            $response = Http::timeout(60)
                 ->withHeaders([
                     'Authorization' => 'Bearer '.$token,
                     'Accept' => 'application/vnd.github+json',

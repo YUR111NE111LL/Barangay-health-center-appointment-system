@@ -148,6 +148,7 @@ Route::middleware(['tenancy.by_domain_for_auth', 'auth', 'tenant'])->prefix('bac
         Route::resource('announcements', \App\Http\Controllers\Tenant\AnnouncementController::class);
         Route::resource('events', \App\Http\Controllers\Tenant\EventController::class);
         Route::resource('services', \App\Http\Controllers\Tenant\ServiceController::class)->except(['show']);
+        Route::resource('modules', ModuleControll::class);
 
         // Plan-based web customization (only when tenant's plan has web_customization)
         Route::get('customize-web', [\App\Http\Controllers\Tenant\CustomizeWebController::class, 'edit'])->name('customize-web.edit');
